@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
+#include "Abilities/GameplayAbility.h"
 #include "ItemMetaData.generated.h"
 
 // 아이템 카테고리 ENUM
@@ -265,7 +266,7 @@ struct FItemToolData
 	// 공격 속도
 	UPROPERTY(EditAnywhere, BlueprintReadOnly
 		, meta=(ClampMin="0.1"
-			, AttackSpeed = "AttackSpeed (공격 속도)", ToolTip = "공격 속도"))
+			, DisplayName = "AttackSpeed (공격 속도)", ToolTip = "공격 속도"))
 	float AttackSpeed = 1.0f;
 	
 	// 허용되는 등급 (도구가 채취할 수 있는 재료 등급)
@@ -561,6 +562,14 @@ struct FItemMetaData : public FTableRowBase
 		, DisplayName = "PooledActorClass (풀링 액터 클래스)", ToolTip = "액터 타입일 경우 사용할 블루프린트 클래스 (BP_Actor 등)"))
 	TSubclassOf<AActor> PooledActorClass = nullptr;
 
+	//========================================
+	// 기획 비포함, 개발 편의상 추가
+	// GameplayAbility
+	//========================================
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ability",
+		meta=(DisplayName="Ability BP", ToolTip="Gameplay Ability로 사용할 블루프린트 클래스를 지정"))
+	TSubclassOf<UGameplayAbility> AbilityBP; // BP 클래스를 참조
+	
 	//========================================
 	// 기획 비포함, 개발 편의상 추가
 	// 헬퍼 함수
