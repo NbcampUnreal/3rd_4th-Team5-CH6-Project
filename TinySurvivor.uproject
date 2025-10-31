@@ -7,7 +7,12 @@
 		{
 			"Name": "TinySurvivor",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default", 
+          "AdditionalDependencies": [
+            "GameplayAbilities",
+            "GameplayTags",
+            "GameplayTasks"
+          ]
 		}
 	],
 	"Plugins": [
