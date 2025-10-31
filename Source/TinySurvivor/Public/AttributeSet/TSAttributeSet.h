@@ -17,9 +17,9 @@ class TINYSURVIVOR_API UTSAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 
 public:
-	UTSAttributeSet();
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override; //복제 설정
-	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data) override; //GE 적용 후
+	//UTSAttributeSet();
+	//virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override; //복제 설정
+	//virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data) override; //GE 적용 후
 
 	//이런식으로이름이랑값넣으면 됨
 	//UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Health , Category = "Health")
