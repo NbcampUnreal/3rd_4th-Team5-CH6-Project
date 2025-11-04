@@ -46,7 +46,7 @@ enum class ESlotType : uint8
  *  인벤토리 및 슬롯 관련 데이터 구조체
  */
 USTRUCT(Blueprintable, BlueprintType)
-struct TINYSURVIVOR_API FItemInventoryAndSlotInfo
+struct TINYSURVIVOR_API FItemData
 {
 	GENERATED_BODY()
 
@@ -93,11 +93,11 @@ struct TINYSURVIVOR_API FSlotStructMaster
 
 	// 아이템 정적데이터 ID
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ItemData")
-	FName StaticDataID = "";
+	int32 StaticDataID = INDEX_NONE;
 
 	// 아이템 동적데이터 ID
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ItemData")
-	FName DynamicDataID = "";
+	int32 DynamicDataID = INDEX_NONE;
 };
 
 /**
