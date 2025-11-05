@@ -15,7 +15,6 @@ public class TinySurvivor : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
-			"CommonUI",
 			"Niagara",
 			// AI
 			"AIModule",
