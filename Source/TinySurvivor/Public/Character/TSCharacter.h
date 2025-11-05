@@ -4,13 +4,15 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
+#include "InputActionValue.h"
 #include "TSCharacter.generated.h"
 
 class UAbilitySystemComponent;
 class UTSAttributeSet;
+class UGameplayAbility;
 class UCameraComponent;
 class USpringArmComponent;
-class UInputMappingContext;
+class UTSPlayerInputDataAsset;
 class UInputAction;
 
 UCLASS()
@@ -40,22 +42,10 @@ public:
 #pragma endregion
 
 #pragma region Input
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UInputMappingContext> DefaultInputMappingContext;
-
-	//wasd
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UInputAction> MoveAction;
-	//look
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UInputAction> LookAction;
-	//jump
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UInputAction> JumpAction;
-
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTSPlayerInputDataAsset> InputDataAsset;
 #pragma endregion
-
+	
 #pragma region GAS
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAbilitySystemComponent> ASC;
@@ -65,26 +55,50 @@ public:
 
 private:
 	void InitAbilitySystem();
-
-	
-	//GAS 쓸 목록들
-	//shift -> GA_Sprint Input.Sprint
-	//c -> GA_Crouch
-	//q GA_ShoulderSwitch
-	//ctrl GA_CameraSwitch
-	//z GA_LyingDown
-	//b GA_Build
-	//e GA_Interact
-	//left click GA_Attack, GA_Harvest
-	//right click GA_AimingDownSight, GA_UseItem, GA_Torchlight
-	//wheel GA_Ping
+	void InitializeAbilities();
 #pragma endregion
-	
+
 protected:
 	virtual void BeginPlay() override;
+
+	// GAS 안쓰는 함수
 	void Move(const struct FInputActionValue& Value);
 	void Look(const struct FInputActionValue& Value);
+	void ShoulderSwitch(const struct FInputActionValue& Value);
 
+	// GAS 어빌리티 매니저 호출 함수
+	void OnJumpOrClimb(const struct FInputActionValue& Value);
+	void OnRoll(const struct FInputActionValue& Value);
+	void OnCrouch(const struct FInputActionValue& Value);
+	void OnSprintStarted(const struct FInputActionValue& Value);
+	void OnSprintCompleted(const struct FInputActionValue& Value);
+	void OnLyingDown(const struct FInputActionValue& Value);
+
+
+	
+	
+	 
+	// Interaction 함수들
+	void OnBuild(const struct FInputActionValue& Value);
+	void OnInteract(const struct FInputActionValue& Value);
+	void OnLeftClick(const struct FInputActionValue& Value); //얘넨 모르겠다 (한 키에 여러가지 함수?)
+	void OnRightClick(const struct FInputActionValue& Value); // 얘넨 모르겠다.
+	void OnPing(const struct FInputActionValue& Value);
+
+	//hot key 함수들
+	void OnHotKey1(const struct FInputActionValue& Value);
+	void OnHotKey2(const struct FInputActionValue& Value);
+	void OnHotKey3(const struct FInputActionValue& Value);
+	void OnHotKey4(const struct FInputActionValue& Value);
+	void OnHotKey5(const struct FInputActionValue& Value);
+	void OnHotKey6(const struct FInputActionValue& Value);
+	void OnHotKey7(const struct FInputActionValue& Value);
+	void OnHotKey8(const struct FInputActionValue& Value);
+	void OnHotKey9(const struct FInputActionValue& Value);
+	void OnHotKey0(const struct FInputActionValue& Value);
+
+	
+	
 public:	
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
