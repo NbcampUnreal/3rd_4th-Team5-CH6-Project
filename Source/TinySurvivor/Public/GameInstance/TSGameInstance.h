@@ -5,6 +5,7 @@
 #include "Engine/GameInstance.h"
 #include "TSGameInstance.generated.h"
 
+class UTSAbilityDataAsset;
 // 전방선언
 class UItemDataSubsystem;
 class UItemTableAsset;
