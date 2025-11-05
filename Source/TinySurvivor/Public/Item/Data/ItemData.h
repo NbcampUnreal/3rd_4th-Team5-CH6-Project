@@ -14,10 +14,11 @@
 UENUM(BlueprintType)
 enum class EItemCategory : uint8
 {
-	MATERIAL    UMETA(DisplayName = "Material"),
-	WEAPON      UMETA(DisplayName = "Weapon"),
-	TOOL        UMETA(DisplayName = "Tool"),
-	CONSUMABLE  UMETA(DisplayName = "Consumable")
+	MATERIAL    UMETA(DisplayName = "Material", ToolTip="재료"),
+	WEAPON      UMETA(DisplayName = "Weapon", ToolTip="무기"),
+	TOOL        UMETA(DisplayName = "Tool", ToolTip="도구"),
+	CONSUMABLE  UMETA(DisplayName = "Consumable", ToolTip="소모품"),
+	ARMOR       UMETA(DisplayName = "Armor", ToolTip="방어구")
 };
 
 /*
@@ -26,11 +27,22 @@ enum class EItemCategory : uint8
 UENUM(BlueprintType)
 enum class EItemRarity : uint8
 {
-	NONE    UMETA(DisplayName = "None"),
-	COMMON  UMETA(DisplayName = "Common"),
-	NORMAL  UMETA(DisplayName = "Normal"),
-	RARE    UMETA(DisplayName = "Rare"),
-	UNIQUE  UMETA(DisplayName = "Unique")
+	NONE    UMETA(DisplayName = "None", ToolTip="등급 없음"),
+	COMMON  UMETA(DisplayName = "Common", ToolTip="일반"),
+	NORMAL  UMETA(DisplayName = "Normal", ToolTip="보통"),
+	RARE    UMETA(DisplayName = "Rare", ToolTip="희귀"),
+	UNIQUE  UMETA(DisplayName = "Unique", ToolTip="유일/특별")
+};
+
+/*
+	장비의 장착 부위를 나타내는 Enum
+*/
+UENUM(BlueprintType)
+enum class EEquipSlot : uint8
+{
+	HEAD    UMETA(DisplayName = "Head", ToolTip="머리 장착 부위"),
+	TORSO   UMETA(DisplayName = "Torso", ToolTip="몸통 장착 부위"),
+	LEG     UMETA(DisplayName = "Leg", ToolTip="다리 장착 부위")
 };
 #pragma endregion
 
@@ -169,6 +181,61 @@ public:
 };
 #pragma endregion
 
+#pragma region ArmorData
+/*
+	방어구 전용 데이터
+*/
+USTRUCT(BlueprintType)
+struct FArmorData
+{
+	GENERATED_BODY()
+
+public:
+	FArmorData()
+	: EquipSlot(EEquipSlot::TORSO) // 기본값 예시
+	, HealthBonus(0.0f)
+	, DamageReductionRate(0.0f)
+	, MoveSpeedBonus(0.0f)
+	, SpecialEffectID(0)
+	, RequiredRarity(1)
+	{}
+	
+	// 장착 가능 부위
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="EquipSlot (장착 가능 부위)", ToolTip="장착 가능 부위 정의 (HEAD, TORSO, LEG 등)"))
+	EEquipSlot EquipSlot;
+	
+	// 최대 체력 추가 수치
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="HealthBonus (최대 체력 추가 수치)", ToolTip="플레이어 최대 체력에 추가되는 수치"), 
+		AdvancedDisplay)
+	float HealthBonus;
+	
+	// 피해 감소율 (0.0 ~ 1.0)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="DamageReductionRate (피해 감소율)", ToolTip="해당 방어구가 제공하는 피해 감소율 (0.0 ~ 1.0)"), 
+		AdvancedDisplay)
+	float DamageReductionRate;
+	
+	// 이동 속도 증가 보너스 (다리 부위 전용)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="MoveSpeedBonus (이동 속도 증가 보너스)", ToolTip="해당 방어구가 제공하는 이동 속도 증가 보너스 (다리 부위 전용)"), 
+		AdvancedDisplay)
+	float MoveSpeedBonus;
+	
+	// 고유 효과 ID (Effect Tag 테이블 참조)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="SpecialEffectID (고유 효과 ID)", ToolTip="피해 반사 등 고유 효과가 있는 경우 참조하는 ID"), 
+		AdvancedDisplay)
+	int32 SpecialEffectID;
+	
+	// 제작에 필요한 기술 레벨
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="RequiredRarity (제작에 필요한 기술 레벨)", ToolTip="해당 방어구를 제작하는데 필요한 기술 레벨"))
+	int32 RequiredRarity;
+};
+#pragma endregion
+
 #pragma region ItemEffectData
 // 복합 효과
 // USTRUCT(BlueprintType)
@@ -208,6 +275,7 @@ public:
 		, WeaponData()         // FWeaponData 기본 생성자 호출
 		, ToolData()           // FToolData 기본 생성자 호출
 		, ConsumableData()     // FConsumableData 기본 생성자 호출
+		, ArmorData()          // FArmorData 기본 생성자 호출
 		, Rarity(EItemRarity::NONE)
 		, MaxStack(1)
 		, EffectTag()          // 단일 효과 태그 초기화
@@ -266,6 +334,12 @@ public:
 		meta=(EditCondition="Category==EItemCategory::CONSUMABLE", EditConditionHides,
 			DisplayName="ConsumableData (소모품 전용 데이터)", ToolTip="소모품 전용 데이터"))
 	FConsumableData ConsumableData;
+	
+	// 방어구 전용 데이터
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Base-System-Armor",
+		meta=(EditCondition="Category==EItemCategory::ARMOR", EditConditionHides,
+			DisplayName="ArmorData (방어구 전용 데이터)", ToolTip="방어구 전용 데이터"))
+	FArmorData ArmorData;
 	
 	// 등급
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-System",
