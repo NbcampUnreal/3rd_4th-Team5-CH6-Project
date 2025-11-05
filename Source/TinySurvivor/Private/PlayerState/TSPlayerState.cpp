@@ -1,6 +1,6 @@
 #include "PlayerState/TSPlayerState.h"
 #include "AbilitySystemComponent.h"
-#include "AttributeSet/TSAttributeSet.h"
+#include "GAS/AttributeSet/TSAttributeSet.h"
 
 ATSPlayerState::ATSPlayerState()
 {
