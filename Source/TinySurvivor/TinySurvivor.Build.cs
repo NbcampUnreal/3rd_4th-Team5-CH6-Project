@@ -15,6 +15,7 @@ public class TinySurvivor : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
+			"CommonUI",
 			"Niagara",
 			// AI
 			"AIModule",
@@ -22,7 +23,8 @@ public class TinySurvivor : ModuleRules
 			//GAS
 			"GameplayAbilities",
 			"GameplayTags",
-			"GameplayTasks"
+			"GameplayTasks", 
+			
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
