@@ -4,8 +4,8 @@
 #include "Net/UnrealNetwork.h"
 #include "AbilitySystemComponent.h"
 #include "Character/TSCharacter.h"
-// TODO: 아이템 컨테이너 매니저 include 추가
-// #include "Manager/TSItemContainerManager.h"
+#include "Item/System/ItemDataSubsystem.h"
+#include "Item/Data/ItemData.h"
 
 UTSInventoryMasterComponent::UTSInventoryMasterComponent()
 {
@@ -27,6 +27,13 @@ void UTSInventoryMasterComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 아이템 데이터 서브시스템 초기화
+	CachedIDS = GetItemDataSubsystem();
+	if (!CachedIDS)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get ItemDataSubsystem!"));
+	}
+
 	if (GetOwner()->HasAuthority())
 	{
 		// 핫키 인벤토리 초기화
@@ -45,11 +52,24 @@ void UTSInventoryMasterComponent::BeginPlay()
 			EquipmentInventory.InventorySlotContainer[i].SlotType = EquipmentSlotTypes[i];
 		}
 
-		// 가방 인벤토리 (슬롯은 가방 장착 시 생성)
+		// 가방 인벤토리 초기화
 		BagInventory.InventoryType = EInventoryType::BackPack;
 
-		UE_LOG(LogTemp, Log, TEXT("Inventory initialized: Hotkey=%d, Equipment=%d, Bag=Disabled"),
-		       HotkeySlotCount, EquipmentSlotCount);
+		if (InitialBagSlotCount > 0)
+		{
+			BagInventory.InventorySlotContainer.SetNum(InitialBagSlotCount);
+			for (int32 i = 0; i < InitialBagSlotCount; ++i)
+			{
+				BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
+			}
+			UE_LOG(LogTemp, Log, TEXT("Inventory initialized: Hotkey=%d, Equipment=%d, Bag=%d"),
+			       HotkeySlotCount, EquipmentSlotCount, InitialBagSlotCount);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("Inventory initialized: Hotkey=%d, Equipment=%d, Bag=Disabled (0 slots)"),
+			       HotkeySlotCount, EquipmentSlotCount);
+		}
 	}
 }
 
@@ -59,26 +79,17 @@ void UTSInventoryMasterComponent::BeginPlay()
 
 void UTSInventoryMasterComponent::OnRep_HotkeyInventory()
 {
-	for (int32 i = 0; i < HotkeyInventory.InventorySlotContainer.Num(); ++i)
-	{
-		OnInventoryUpdated.Broadcast(EInventoryType::HotKey, i);
-	}
+	OnInventoryUpdated.Broadcast(EInventoryType::HotKey);
 }
 
 void UTSInventoryMasterComponent::OnRep_EquipmentInventory()
 {
-	for (int32 i = 0; i < EquipmentInventory.InventorySlotContainer.Num(); ++i)
-	{
-		OnInventoryUpdated.Broadcast(EInventoryType::Equipment, i);
-	}
+	OnInventoryUpdated.Broadcast(EInventoryType::Equipment);
 }
 
 void UTSInventoryMasterComponent::OnRep_BagInventory()
 {
-	for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
-	{
-		OnInventoryUpdated.Broadcast(EInventoryType::BackPack, i);
-	}
+	OnInventoryUpdated.Broadcast(EInventoryType::BackPack);
 }
 
 void UTSInventoryMasterComponent::OnRep_ActiveHotkeyIndex()
@@ -98,75 +109,27 @@ void UTSInventoryMasterComponent::OnRep_ActiveHotkeyIndex()
 // Server RPC
 // ========================================
 
-void UTSInventoryMasterComponent::ServerSwapSlots_Implementation(
-	EInventoryType FromInventoryType, int32 FromSlotIndex,
-	EInventoryType ToInventoryType, int32 ToSlotIndex,
-	bool bIsFullStack)
-{
-	Internal_SwapSlots(FromInventoryType, FromSlotIndex, ToInventoryType, ToSlotIndex, bIsFullStack);
-}
-
-bool UTSInventoryMasterComponent::ServerSwapSlots_Validate(
-	EInventoryType FromInventoryType, int32 FromSlotIndex,
-	EInventoryType ToInventoryType, int32 ToSlotIndex,
-	bool bIsFullStack)
-{
-	// 기본 인덱스 체크
-	if (!IsValidSlotIndex(FromInventoryType, FromSlotIndex) ||
-		!IsValidSlotIndex(ToInventoryType, ToSlotIndex))
-	{
-		return false;
-	}
-
-	if (FromInventoryType == EInventoryType::BackPack && !CanAccessBagInventory())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Client tried to access disabled bag (From)"));
-		return false;
-	}
-
-	if (ToInventoryType == EInventoryType::BackPack && !CanAccessBagInventory())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Client tried to access disabled bag (To)"));
-		return false;
-	}
-
-	return true;
-}
-
 void UTSInventoryMasterComponent::ServerTransferItem_Implementation(
+	UTSInventoryMasterComponent* SourceInventory,
 	UTSInventoryMasterComponent* TargetInventory,
 	EInventoryType FromInventoryType, int32 FromSlotIndex,
 	EInventoryType ToInventoryType, int32 ToSlotIndex,
 	bool bIsFullStack)
 {
-	Internal_TransferItem(TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType, ToSlotIndex,
+	Internal_TransferItem(SourceInventory, TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType,
+	                      ToSlotIndex,
 	                      bIsFullStack);
 }
 
 bool UTSInventoryMasterComponent::ServerTransferItem_Validate(
+	UTSInventoryMasterComponent* SourceInventory,
 	UTSInventoryMasterComponent* TargetInventory,
 	EInventoryType FromInventoryType, int32 FromSlotIndex,
 	EInventoryType ToInventoryType, int32 ToSlotIndex,
 	bool bIsFullStack)
 {
-	if (!TargetInventory || !IsValidSlotIndex(FromInventoryType, FromSlotIndex))
-	{
-		return false;
-	}
-
-	if (FromInventoryType == EInventoryType::BackPack && !CanAccessBagInventory())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Client tried to transfer from disabled bag"));
-		return false;
-	}
-
-	if (ToInventoryType == EInventoryType::BackPack && !TargetInventory->CanAccessBagInventory())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Client tried to transfer to disabled bag"));
-		return false;
-	}
-
-	return true;
+	return TargetInventory != nullptr &&
+		IsValidSlotIndex(FromInventoryType, FromSlotIndex);
 }
 
 void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
@@ -187,7 +150,7 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	int32 DropQuantity = (Quantity <= 0) ? Slot.CurrentStackSize : FMath::Min(Quantity, Slot.CurrentStackSize);
 
 	// TODO: 스폰 매니저에 아이템 액터 스폰 요청
-	UE_LOG(LogTemp, Log, TEXT("Dropping item: %d x%d"), Slot.StaticDataID, DropQuantity);
+	UE_LOG(LogTemp, Log, TEXT("Dropping item: ID=%d x%d"), Slot.StaticDataID, DropQuantity);
 
 	Slot.CurrentStackSize -= DropQuantity;
 	if (Slot.CurrentStackSize <= 0)
@@ -199,11 +162,6 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 bool UTSInventoryMasterComponent::ServerDropItemToWorld_Validate(
 	EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
-	if (InventoryType == EInventoryType::BackPack && !CanAccessBagInventory())
-	{
-		return false;
-	}
-
 	return IsValidSlotIndex(InventoryType, SlotIndex);
 }
 
@@ -220,94 +178,22 @@ bool UTSInventoryMasterComponent::ServerActivateHotkeySlot_Validate(int32 SlotIn
 	return SlotIndex >= -1 && SlotIndex < HotkeySlotCount;
 }
 
+void UTSInventoryMasterComponent::ServerUseItem_Implementation(int32 SlotIndex)
+{
+	Internal_UseItem(SlotIndex);
+}
+
+bool UTSInventoryMasterComponent::ServerUseItem_Validate(int32 SlotIndex)
+{
+	return IsValidSlotIndex(EInventoryType::HotKey, SlotIndex);
+}
+
 // ========================================
 // Internal 함수
 // ========================================
 
-void UTSInventoryMasterComponent::Internal_SwapSlots(
-	EInventoryType FromInventoryType, int32 FromSlotIndex,
-	EInventoryType ToInventoryType, int32 ToSlotIndex,
-	bool bIsFullStack)
-{
-	if (!GetOwner()->HasAuthority())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Internal_SwapSlots called on client!"));
-		return;
-	}
-
-	if (!IsValidSlotIndex(FromInventoryType, FromSlotIndex) ||
-		!IsValidSlotIndex(ToInventoryType, ToSlotIndex))
-	{
-		return;
-	}
-
-	FInventoryStructMaster* FromInventory = GetInventoryByType(FromInventoryType);
-	FInventoryStructMaster* ToInventory = GetInventoryByType(ToInventoryType);
-
-	if (!FromInventory || !ToInventory)
-		return;
-
-	FSlotStructMaster& FromSlot = FromInventory->InventorySlotContainer[FromSlotIndex];
-	FSlotStructMaster& ToSlot = ToInventory->InventorySlotContainer[ToSlotIndex];
-
-	// 타입 검증
-	if (FromSlot.StaticDataID != INDEX_NONE)
-	{
-		if (!CanPlaceItemInSlot(FromSlot.StaticDataID, ToInventoryType, ToSlotIndex))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Cannot place item %d in target slot"), FromSlot.StaticDataID);
-			return;
-		}
-	}
-
-	if (ToSlot.StaticDataID != INDEX_NONE)
-	{
-		if (!CanPlaceItemInSlot(ToSlot.StaticDataID, FromInventoryType, FromSlotIndex))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Cannot place item %d in source slot"), ToSlot.StaticDataID);
-			return;
-		}
-	}
-
-	// 스택 처리 시도
-	if (TryStackSlots(FromSlot, ToSlot, bIsFullStack))
-	{
-		// 스택 완료
-	}
-	else
-	{
-		// 일반 교환
-		if (bIsFullStack)
-		{
-			// 전체 교환
-			FSlotStructMaster Temp = FromSlot;
-			FromSlot = ToSlot;
-			ToSlot = Temp;
-		}
-		else
-		{
-			if (FromSlot.StaticDataID != INDEX_NONE && ToSlot.StaticDataID == INDEX_NONE)
-			{
-				CopySlotData(FromSlot, ToSlot, 1);
-				FromSlot.CurrentStackSize -= 1;
-
-				if (FromSlot.CurrentStackSize <= 0)
-				{
-					ClearSlot(FromSlot);
-				}
-			}
-		}
-	}
-
-	// 가방 상태 업데이트
-	if (FromInventoryType == EInventoryType::Equipment ||
-		ToInventoryType == EInventoryType::Equipment)
-	{
-		UpdateBagInventoryState();
-	}
-}
-
 void UTSInventoryMasterComponent::Internal_TransferItem(
+	UTSInventoryMasterComponent* SourceInventory,
 	UTSInventoryMasterComponent* TargetInventory,
 	EInventoryType FromInventoryType, int32 FromSlotIndex,
 	EInventoryType ToInventoryType, int32 ToSlotIndex,
@@ -318,18 +204,28 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		UE_LOG(LogTemp, Error, TEXT("Internal_TransferItem called on client!"));
 		return;
 	}
-
-	if (!TargetInventory || !IsValidSlotIndex(FromInventoryType, FromSlotIndex))
+	if (!SourceInventory || !TargetInventory)
+	{
 		return;
+	}
+
+	if (!SourceInventory->IsValidSlotIndex(FromInventoryType, FromSlotIndex))
+	{
+		return;
+	}
 
 	if (!TargetInventory->IsValidSlotIndex(ToInventoryType, ToSlotIndex))
+	{
 		return;
+	}
 
-	FInventoryStructMaster* FromInventory = GetInventoryByType(FromInventoryType);
+	FInventoryStructMaster* FromInventory = SourceInventory->GetInventoryByType(FromInventoryType);
 	FInventoryStructMaster* ToInventory = TargetInventory->GetInventoryByType(ToInventoryType);
 
 	if (!FromInventory || !ToInventory)
+	{
 		return;
+	}
 
 	FSlotStructMaster& FromSlot = FromInventory->InventorySlotContainer[FromSlotIndex];
 	FSlotStructMaster& ToSlot = ToInventory->InventorySlotContainer[ToSlotIndex];
@@ -346,7 +242,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 
 	if (ToSlot.StaticDataID != INDEX_NONE)
 	{
-		if (!CanPlaceItemInSlot(ToSlot.StaticDataID, FromInventoryType, FromSlotIndex))
+		if (!SourceInventory->CanPlaceItemInSlot(ToSlot.StaticDataID, FromInventoryType, FromSlotIndex))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in source inventory"));
 			return;
@@ -381,16 +277,65 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 			}
 		}
 	}
+}
 
-	// 가방 상태 업데이트 (양쪽)
-	if (FromInventoryType == EInventoryType::Equipment)
+void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
+{
+	if (!GetOwner()->HasAuthority())
 	{
-		UpdateBagInventoryState();
+		UE_LOG(LogTemp, Error, TEXT("Internal_UseItem called on client!"));
+		return;
 	}
-	if (ToInventoryType == EInventoryType::Equipment)
+
+	if (!IsValidSlotIndex(EInventoryType::HotKey, SlotIndex))
+		return;
+
+	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
+
+	if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+		return;
+
+	// ========================================
+	// 가방 아이템인 경우
+	// ========================================
+	if (IsItemBagType(Slot.StaticDataID))
 	{
-		TargetInventory->UpdateBagInventoryState();
+		bool bExpanded = ExpandBagInventory(BagSlotIncrement);
+
+		if (bExpanded)
+		{
+			// 아이템 소비
+			Slot.CurrentStackSize -= 1;
+			if (Slot.CurrentStackSize <= 0)
+			{
+				ClearSlot(Slot);
+			}
+
+			UE_LOG(LogTemp, Log, TEXT("Bag item used: Expanded bag by %d slots (Total: %d/%d)"),
+			       BagSlotIncrement, BagInventory.InventorySlotContainer.Num(), MaxBagSlotCount);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Cannot use bag: Already at max capacity (%d)"), MaxBagSlotCount);
+		}
+
+		return;
 	}
+
+	// ========================================
+	// 일반 소비 아이템인 경우
+	// ========================================
+
+	// TODO: 아이템 효과 적용 (HP 회복 등)
+
+	// 아이템 소비
+	Slot.CurrentStackSize -= 1;
+	if (Slot.CurrentStackSize <= 0)
+	{
+		ClearSlot(Slot);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.StaticDataID);
 }
 
 // ========================================
@@ -400,11 +345,14 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataID, int32 Quantity)
 {
 	if (!GetOwner()->HasAuthority() || StaticDataID == INDEX_NONE || Quantity <= 0)
+	{
 		return false;
+	}
 
 	FItemData ItemInfo;
-	if (!GetItemSlotInfo(StaticDataID, ItemInfo))
+	if (!GetItemData(StaticDataID, ItemInfo))
 	{
+		UE_LOG(LogTemp, Error, TEXT("AddItem failed: Item %d not found"), StaticDataID);
 		return false;
 	}
 
@@ -414,17 +362,18 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 	TArray<int32> EmptyHotkeySlots;
 	TArray<int32> EmptyBagSlots;
 
-	// 핫키 순회
-	if (ItemInfo.bCanStack)
+	// ========================================
+	// 1단계: 핫키 스택 가능한 슬롯
+	// ========================================
+	if (ItemInfo.IsStackable())
 	{
 		for (int32 i = 0; i < HotkeyInventory.InventorySlotContainer.Num(); ++i)
 		{
 			FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[i];
 
-			if (Slot.StaticDataID == StaticDataID && Slot.CurrentStackSize < ItemInfo.StackSize)
+			if (Slot.StaticDataID == StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
 			{
-				// 스택 가능한 슬롯 발견
-				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.StackSize - Slot.CurrentStackSize);
+				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
 				Slot.CurrentStackSize += CanAdd;
 				RemainingQuantity -= CanAdd;
 
@@ -433,7 +382,6 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 			}
 			else if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
 			{
-				// 빈 슬롯 발견
 				EmptyHotkeySlots.Add(i);
 			}
 		}
@@ -451,44 +399,46 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		}
 	}
 
-	// 가방 순회 (활성화된 경우만)
-	if (CanAccessBagInventory())
+	// ========================================
+	// 2단계: 가방 스택 가능한 슬롯
+	// ========================================
+	if (ItemInfo.IsStackable() && BagInventory.InventorySlotContainer.Num() > 0)
 	{
-		if (ItemInfo.bCanStack)
+		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
 		{
-			for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
+			FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
+
+			if (Slot.StaticDataID == StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
 			{
-				FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
+				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
+				Slot.CurrentStackSize += CanAdd;
+				RemainingQuantity -= CanAdd;
 
-				if (Slot.StaticDataID == StaticDataID && Slot.CurrentStackSize < ItemInfo.StackSize)
-				{
-					int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.StackSize - Slot.CurrentStackSize);
-					Slot.CurrentStackSize += CanAdd;
-					RemainingQuantity -= CanAdd;
-
-					if (RemainingQuantity <= 0)
-						return true;
-				}
-				else if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
-				{
-					EmptyBagSlots.Add(i);
-				}
+				if (RemainingQuantity <= 0)
+					return true;
+			}
+			else if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+			{
+				EmptyBagSlots.Add(i);
 			}
 		}
-		else
+	}
+	else if (!ItemInfo.IsStackable() && BagInventory.InventorySlotContainer.Num() > 0)
+	{
+		// 스택 불가하면 빈 슬롯만 수집
+		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
 		{
-			for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
+			const FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
+			if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
 			{
-				const FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
-				if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
-				{
-					EmptyBagSlots.Add(i);
-				}
+				EmptyBagSlots.Add(i);
 			}
 		}
 	}
 
-	// 빈 슬롯 사용 (핫키 우선)
+	// ========================================
+	// 3단계: 핫키 빈 슬롯
+	// ========================================
 	for (int32 SlotIndex : EmptyHotkeySlots)
 	{
 		if (RemainingQuantity <= 0) break;
@@ -496,15 +446,17 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
 		Slot.StaticDataID = StaticDataID;
 		Slot.DynamicDataID = DynamicDataID;
-		Slot.bCanStack = ItemInfo.bCanStack;
-		Slot.MaxStackSize = ItemInfo.StackSize;
+		Slot.bCanStack = ItemInfo.IsStackable();
+		Slot.MaxStackSize = ItemInfo.MaxStack;
 
-		int32 AddAmount = ItemInfo.bCanStack ? FMath::Min(RemainingQuantity, ItemInfo.StackSize) : 1;
+		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(RemainingQuantity, ItemInfo.MaxStack) : 1;
 		Slot.CurrentStackSize = AddAmount;
 		RemainingQuantity -= AddAmount;
 	}
 
-	// 가방 빈 슬롯 사용
+	// ========================================
+	// 4단계: 가방 빈 슬롯
+	// ========================================
 	for (int32 SlotIndex : EmptyBagSlots)
 	{
 		if (RemainingQuantity <= 0) break;
@@ -512,17 +464,17 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[SlotIndex];
 		Slot.StaticDataID = StaticDataID;
 		Slot.DynamicDataID = DynamicDataID;
-		Slot.bCanStack = ItemInfo.bCanStack;
-		Slot.MaxStackSize = ItemInfo.StackSize;
+		Slot.bCanStack = ItemInfo.IsStackable();
+		Slot.MaxStackSize = ItemInfo.MaxStack;
 
-		int32 AddAmount = ItemInfo.bCanStack ? FMath::Min(RemainingQuantity, ItemInfo.StackSize) : 1;
+		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(RemainingQuantity, ItemInfo.MaxStack) : 1;
 		Slot.CurrentStackSize = AddAmount;
 		RemainingQuantity -= AddAmount;
 	}
 
 	if (RemainingQuantity > 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AddItem partial: Added %d, Failed %d"),
+		UE_LOG(LogTemp, Warning, TEXT("AddItem partial: All slots full! Added %d, Failed %d"),
 		       Quantity - RemainingQuantity, RemainingQuantity);
 	}
 
@@ -545,12 +497,10 @@ bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32
 
 	if (Quantity <= 0)
 	{
-		// 전체 제거
 		ClearSlot(Slot);
 		return true;
 	}
 
-	// 부분 제거
 	Slot.CurrentStackSize -= Quantity;
 	if (Slot.CurrentStackSize <= 0)
 	{
@@ -568,12 +518,6 @@ FSlotStructMaster UTSInventoryMasterComponent::GetSlot(EInventoryType InventoryT
 {
 	if (!IsValidSlotIndex(InventoryType, SlotIndex))
 		return FSlotStructMaster();
-
-	if (InventoryType == EInventoryType::BackPack && !CanAccessBagInventory())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Cannot access bag: No bag equipped"));
-		return FSlotStructMaster();
-	}
 
 	const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
 	if (!Inventory)
@@ -619,34 +563,22 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 		return false;
 
 	FItemData ItemInfo;
-	if (!GetItemSlotInfo(StaticDataID, ItemInfo))
+	if (!GetItemData(StaticDataID, ItemInfo))
 	{
 		return false;
 	}
 
-	// 인벤토리 타입 체크
-	if (!ItemInfo.InventoryType.Contains(InventoryType) && !ItemInfo.InventoryType.Contains(EInventoryType::Any))
-	{
-		return false;
-	}
-
-	// 장비 슬롯인 경우 슬롯 타입도 체크
-	if (InventoryType == EInventoryType::Equipment)
-	{
-		const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
-		if (!Inventory)
-			return false;
-
-		ESlotType TargetSlotType = Inventory->InventorySlotContainer[SlotIndex].SlotType;
-
-		if (TargetSlotType != ESlotType::Any)
-		{
-			if (!ItemInfo.SlotType.Contains(TargetSlotType) && !ItemInfo.SlotType.Contains(ESlotType::Any))
-			{
-				return false;
-			}
-		}
-	}
+	// TODO: 방어구 아이템 타입 검증, ItemData에 Enum추가되면 수정 예정
+	// if (InventoryType == EInventoryType::Equipment)
+	// {
+	// 	const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
+	// 	if (!Inventory)
+	// 		return false;
+	//
+	// 	ESlotType TargetSlotType = Inventory->InventorySlotContainer[SlotIndex].SlotType;
+	//
+	// 	아이템 카테고리 방어구인지, 슬롯 타입과 같은지 확인
+	// }
 
 	return true;
 }
@@ -655,112 +587,38 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 // 가방 시스템
 // ========================================
 
-bool UTSInventoryMasterComponent::IsBagEquipped() const
-{
-	for (const FSlotStructMaster& Slot : EquipmentInventory.InventorySlotContainer)
-	{
-		if (Slot.SlotType == ESlotType::BackPack &&
-			Slot.StaticDataID != INDEX_NONE &&
-			Slot.CurrentStackSize > 0)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-int32 UTSInventoryMasterComponent::GetEquippedBagSlotCount() const
-{
-	int32 BagItemID = GetEquippedBagItemID();
-	if (BagItemID == INDEX_NONE)
-		return 0;
-
-	return GetBagSlotCount(BagItemID);
-}
-
-void UTSInventoryMasterComponent::UpdateBagInventoryState()
+bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 {
 	if (!GetOwner()->HasAuthority())
-		return;
+		return false;
 
-	bool bBagEquipped = IsBagEquipped();
-	int32 BagSlotCount = GetEquippedBagSlotCount();
-	int32 CurrentBagSlotCount = BagInventory.InventorySlotContainer.Num();
+	int32 CurrentSlotCount = BagInventory.InventorySlotContainer.Num();
+	int32 NewSlotCount = CurrentSlotCount + AdditionalSlots;
 
-	if (bBagEquipped && BagSlotCount > 0)
+	if (NewSlotCount > MaxBagSlotCount)
 	{
-		// 가방 장착됨
-		if (CurrentBagSlotCount == 0)
+		NewSlotCount = MaxBagSlotCount;
+
+		if (CurrentSlotCount >= MaxBagSlotCount)
 		{
-			// 가방 활성화
-			BagInventory.InventorySlotContainer.SetNum(BagSlotCount);
-
-			for (int32 i = 0; i < BagSlotCount; ++i)
-			{
-				BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
-			}
-
-			OnBagSizeChanged.Broadcast(BagSlotCount);
-			UE_LOG(LogTemp, Log, TEXT("Bag activated: %d slots"), BagSlotCount);
-		}
-		else if (CurrentBagSlotCount != BagSlotCount)
-		{
-			// 가방 크기 변경
-			if (BagSlotCount < CurrentBagSlotCount)
-			{
-				// 축소: 아이템 드롭 필요
-				for (int32 i = BagSlotCount; i < CurrentBagSlotCount; ++i)
-				{
-					FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
-					if (Slot.StaticDataID != INDEX_NONE && Slot.CurrentStackSize > 0)
-					{
-						UE_LOG(LogTemp, Warning, TEXT("Dropping item from bag slot %d"), i);
-						// TODO: 월드에 드롭
-					}
-				}
-			}
-
-			int32 OldSize = CurrentBagSlotCount;
-			BagInventory.InventorySlotContainer.SetNum(BagSlotCount);
-
-			if (BagSlotCount > OldSize)
-			{
-				for (int32 i = OldSize; i < BagSlotCount; ++i)
-				{
-					BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
-				}
-			}
-
-			OnBagSizeChanged.Broadcast(BagSlotCount);
-			UE_LOG(LogTemp, Log, TEXT("Bag resized: %d -> %d"), OldSize, BagSlotCount);
+			return false;
 		}
 	}
-	else
+
+	int32 OldSize = CurrentSlotCount;
+	BagInventory.InventorySlotContainer.SetNum(NewSlotCount);
+
+	for (int32 i = OldSize; i < NewSlotCount; ++i)
 	{
-		// 가방 해제
-		if (CurrentBagSlotCount > 0)
-		{
-			// 아이템 드롭 필요
-			for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
-			{
-				FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
-				if (Slot.StaticDataID != INDEX_NONE && Slot.CurrentStackSize > 0)
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Dropping item from bag slot %d (bag unequipped)"), i);
-					// TODO: 월드에 드롭
-				}
-			}
-
-			BagInventory.InventorySlotContainer.Empty();
-			OnBagSizeChanged.Broadcast(0);
-			UE_LOG(LogTemp, Log, TEXT("Bag deactivated"));
-		}
+		BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
 	}
-}
 
-bool UTSInventoryMasterComponent::CanAccessBagInventory() const
-{
-	return IsBagEquipped() && BagInventory.InventorySlotContainer.Num() > 0;
+	OnBagSizeChanged.Broadcast(NewSlotCount);
+
+	UE_LOG(LogTemp, Log, TEXT("Bag expanded: %d -> %d (Max: %d)"),
+	       OldSize, NewSlotCount, MaxBagSlotCount);
+
+	return true;
 }
 
 // ========================================
@@ -798,14 +656,11 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 		return;
 	}
 
-	// 이전 아이템 해제
 	UnequipCurrentItem();
 
-	// GameplayAbility 실행
-	UAbilitySystemComponent* ASC = GetASC();
-	// TODO: 장착 어빌리티 실행
+	// TODO: GameplayAbility 연동 시 ASC 코드 추가
 
-	UE_LOG(LogTemp, Log, TEXT("Equipped: %d (Slot %d)"),
+	UE_LOG(LogTemp, Log, TEXT("Equipped: ID=%d (Slot %d)"),
 	       ActiveSlot.StaticDataID, ActiveHotkeyIndex);
 }
 
@@ -814,11 +669,10 @@ void UTSInventoryMasterComponent::UnequipCurrentItem()
 	if (!HasItemEquipped())
 		return;
 
-	UAbilitySystemComponent* ASC = GetASC();
-	// TODO: 장착 해제 어빌리티 실행
+	// TODO: GameplayAbility 연동 시 ASC 코드 추가
 
 	FSlotStructMaster ActiveSlot = GetActiveHotkeySlot();
-	UE_LOG(LogTemp, Log, TEXT("Unequipped: %d"), ActiveSlot.StaticDataID);
+	UE_LOG(LogTemp, Log, TEXT("Unequipped: ID=%d"), ActiveSlot.StaticDataID);
 }
 
 // ========================================
@@ -856,15 +710,15 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 	}
 
 	FItemData ItemInfo;
-	if (!GetItemSlotInfo(FromSlot.StaticDataID, ItemInfo))
+	if (!GetItemData(FromSlot.StaticDataID, ItemInfo))
 	{
 		return false;
 	}
 
-	if (!ItemInfo.bCanStack)
+	if (!ItemInfo.IsStackable())
 		return false;
 
-	int32 MaxStack = ItemInfo.StackSize;
+	int32 MaxStack = ItemInfo.MaxStack;
 
 	if (bIsFullStack)
 	{
@@ -946,42 +800,38 @@ bool UTSInventoryMasterComponent::IsValidSlotIndex(EInventoryType InventoryType,
 // 헬퍼 함수 - 아이템 정보
 // ========================================
 
-bool UTSInventoryMasterComponent::GetItemSlotInfo(int32 StaticDataID, FItemData& OutData) const
+UItemDataSubsystem* UTSInventoryMasterComponent::GetItemDataSubsystem() const
 {
-	// TODO: 아이템 컨테이너 매니저에서 조회
-	// return ItemContainerManager->GetItemSlotInfo(StaticDataID, OutData);
-
-	OutData.InventoryType = {EInventoryType::Any};
-	OutData.SlotType = {ESlotType::Any};
-	OutData.bCanStack = false;
-	OutData.StackSize = 1;
-
-	return true;
-}
-
-int32 UTSInventoryMasterComponent::GetEquippedBagItemID() const
-{
-	for (const FSlotStructMaster& Slot : EquipmentInventory.InventorySlotContainer)
+	if (UGameInstance* GI = GetWorld()->GetGameInstance())
 	{
-		if (Slot.SlotType == ESlotType::BackPack &&
-			Slot.StaticDataID != INDEX_NONE &&
-			Slot.CurrentStackSize > 0)
-		{
-			return Slot.StaticDataID;
-		}
+		return GI->GetSubsystem<UItemDataSubsystem>();
 	}
-	return INDEX_NONE;
+	return nullptr;
 }
 
-int32 UTSInventoryMasterComponent::GetBagSlotCount(int32 BagItemID) const
+bool UTSInventoryMasterComponent::GetItemData(int32 StaticDataID, FItemData& OutData) const
 {
-	if (BagItemID == INDEX_NONE)
-		return 0;
+	if (StaticDataID == INDEX_NONE)
+	{
+		return false;
+	}
 
-	// TODO: 아이템 컨테이너 매니저에서 조회
-	// return ItemContainerManager->GetBagSlotCount(BagItemID);
+	if (!CachedIDS)
+	{
+		CachedIDS = GetItemDataSubsystem();
+	}
 
-	return 20;
+	if (CachedIDS && CachedIDS->GetItemDataSafe(StaticDataID, OutData))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool UTSInventoryMasterComponent::IsItemBagType(int32 StaticDataID) const
+{
+	// 멤버변수 BagItemID와 비교
+	return StaticDataID == BagItemID;
 }
 
 UAbilitySystemComponent* UTSInventoryMasterComponent::GetASC()

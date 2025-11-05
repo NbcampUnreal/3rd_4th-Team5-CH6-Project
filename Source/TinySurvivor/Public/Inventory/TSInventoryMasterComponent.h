@@ -10,12 +10,12 @@
 // 델리게이트 선언
 // ========================================
 
+struct FItemData;
+class UItemDataSubsystem;
 class UAbilitySystemComponent;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventorySlotUpdated, EInventoryType, InventoryType, int32, SlotIndex);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot)
-;
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotUpdated, EInventoryType, InventoryType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBagSizeChanged, int32, NewSize);
 
 UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
@@ -35,15 +35,12 @@ public:
 	// 인벤토리 데이터
 	// ========================================
 
-	/** 핫키 인벤토리 */
 	UPROPERTY(ReplicatedUsing = OnRep_HotkeyInventory, BlueprintReadOnly, Category = "Inventory")
 	FInventoryStructMaster HotkeyInventory;
 
-	/** 장비 인벤토리 */
 	UPROPERTY(ReplicatedUsing = OnRep_EquipmentInventory, BlueprintReadOnly, Category = "Inventory")
 	FInventoryStructMaster EquipmentInventory;
 
-	/** 가방 인벤토리 */
 	UPROPERTY(ReplicatedUsing = OnRep_BagInventory, BlueprintReadOnly, Category = "Inventory")
 	FInventoryStructMaster BagInventory;
 
@@ -58,16 +55,30 @@ public:
 	int32 HotkeySlotCount = 10;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 EquipmentSlotCount = 4;
+	int32 EquipmentSlotCount = 3;
 
-	/** 장비 슬롯 타입 정의 (인덱스 순서) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
 	TArray<ESlotType> EquipmentSlotTypes = {
-		ESlotType::Helmet,
-		ESlotType::Chest,
-		ESlotType::Boot,
-		ESlotType::BackPack
+		ESlotType::Head,
+		ESlotType::Torso,
+		ESlotType::Leg
 	};
+
+	/** 가방 초기 슬롯 개수 (0이면 가방 아이템 사용 전까지 사용 불가) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 InitialBagSlotCount = 0;
+
+	/** 가방 최대 슬롯 개수 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 MaxBagSlotCount = 16;
+
+	/** 가방 아이템 사용 시 증가하는 슬롯 개수 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 BagSlotIncrement = 4;
+
+	/** 가방 아이템의 StaticDataID */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 BagItemID = 999;
 
 	// ========================================
 	// 델리게이트
@@ -103,14 +114,9 @@ public:
 	// ========================================
 
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
-	void ServerSwapSlots(
-		EInventoryType FromInventoryType, int32 FromSlotIndex,
-		EInventoryType ToInventoryType, int32 ToSlotIndex,
-		bool bIsFullStack = true);
-
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
 	void ServerTransferItem(
-		UTSInventoryMasterComponent* TargetInventory,
+	UTSInventoryMasterComponent* SourceInventory,
+	UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
 		EInventoryType ToInventoryType, int32 ToSlotIndex,
 		bool bIsFullStack = true);
@@ -122,22 +128,23 @@ public:
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
 	void ServerActivateHotkeySlot(int32 SlotIndex);
 
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
+	void ServerUseItem(int32 SlotIndex);
+
 	// ========================================
 	// Internal 함수
 	// ========================================
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
-	void Internal_SwapSlots(
+	void Internal_TransferItem(
+	UTSInventoryMasterComponent* SourceInventory,
+	UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
 		EInventoryType ToInventoryType, int32 ToSlotIndex,
 		bool bIsFullStack = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
-	void Internal_TransferItem(
-		UTSInventoryMasterComponent* TargetInventory,
-		EInventoryType FromInventoryType, int32 FromSlotIndex,
-		EInventoryType ToInventoryType, int32 ToSlotIndex,
-		bool bIsFullStack = true);
+	void Internal_UseItem(int32 SlotIndex);
 
 	// ========================================
 	// 아이템 추가/제거
@@ -177,16 +184,10 @@ public:
 	// ========================================
 
 	UFUNCTION(BlueprintPure, Category = "Inventory|Bag")
-	bool IsBagEquipped() const;
+	int32 GetCurrentBagSlotCount() const { return BagInventory.InventorySlotContainer.Num(); }
 
-	UFUNCTION(BlueprintPure, Category = "Inventory|Bag")
-	int32 GetEquippedBagSlotCount() const;
-
-	UFUNCTION()
-	void UpdateBagInventoryState();
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Bag")
-	bool CanAccessBagInventory() const;
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Bag")
+	bool ExpandBagInventory(int32 AdditionalSlots);
 
 	// ========================================
 	// 핫키 아이템 장착 시스템
@@ -212,16 +213,8 @@ private:
 	// 헬퍼 함수 - 슬롯 조작
 	// ========================================
 
-	/** 슬롯 초기화 */
 	static void ClearSlot(FSlotStructMaster& Slot);
-
-	/** 슬롯 데이터 복사 */
 	static void CopySlotData(const FSlotStructMaster& Source, FSlotStructMaster& Target, int32 Quantity = -1);
-
-	/**
-	 * 두 슬롯 간 스택 처리 시도
-	 * @return true면 스택 처리 완료, false면 일반 교환 필요
-	 */
 	bool TryStackSlots(FSlotStructMaster& FromSlot, FSlotStructMaster& ToSlot, bool bIsFullStack);
 
 	// ========================================
@@ -236,9 +229,10 @@ private:
 	// 헬퍼 함수 - 아이템 정보
 	// ========================================
 
-	bool GetItemSlotInfo(int32 StaticDataID, FItemData& OutData) const;
-	int32 GetEquippedBagItemID() const;
-	int32 GetBagSlotCount(int32 BagItemID) const;
+	mutable class UItemDataSubsystem* CachedIDS = nullptr;
+	UItemDataSubsystem* GetItemDataSubsystem() const;
+	bool GetItemData(int32 StaticDataID, FItemData& OutData) const;
+	bool IsItemBagType(int32 StaticDataID) const;
 
 	// ========================================
 	// 헬퍼 함수 - ASC
