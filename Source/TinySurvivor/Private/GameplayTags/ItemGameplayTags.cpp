@@ -20,6 +20,38 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Category_Story, "Item.Category.Story");
 
 	//========================================
+	// 채취 대상 자원 태그
+	//========================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget, "Item.HarvestTarget");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Paper, "Item.HarvestTarget.Paper");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Plastic, "Item.HarvestTarget.Plastic");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Wood, "Item.HarvestTarget.Wood");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Stone, "Item.HarvestTarget.Stone");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Metal, "Item.HarvestTarget.Metal");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Glass, "Item.HarvestTarget.Glass");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Rubber, "Item.HarvestTarget.Rubber");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Fabric, "Item.HarvestTarget.Fabric");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_HarvestTarget_Food, "Item.HarvestTarget.Food");
+
+	//========================================
+	// 소모품 효과 태그 (기획서 C-4-1 매핑)
+	//========================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect, "Item.Effect");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_HP_HEAL, "Item.Effect.HP_HEAL");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_SANITY_RESTORE, "Item.Effect.SANITY_RESTORE");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_TEMP_SPEED_BUFF, "Item.Effect.TEMP_SPEED_BUFF");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_CURE_DEBUFF, "Item.Effect.CURE_DEBUFF");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_HUNGER_RESTORE, "Item.Effect.HUNGER_RESTORE");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_THIRST_RESTORE, "Item.Effect.THIRST_RESTORE");
+
+	//========================================
+	// 설치 구역 제한용 임시 태그
+	//========================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_Disallowed_CurseSource, "Item.Building.Disallowed.CurseSource");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_Disallowed_GiantPath, "Item.Building.Disallowed.GiantPath");
+
+	//========================================
+	// (임시)
 	// 재료 세부 분류
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Material_Paper, "Item.Category.Material.Paper");
@@ -40,6 +72,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Material_SteelProcessed, "Item.Category.Material.SteelProcessed");
 	
 	//========================================
+	// (임시)
 	// 도구 세부 분류
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Tool_Pickaxe, "Item.Category.Tool.Pickaxe");
@@ -50,6 +83,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Tool_Lantern, "Item.Category.Tool.Lantern");
 	
 	//========================================
+	// (임시)
 	// 도구 재질별 분류
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Tool_Pickaxe_Wood, "Item.Category.Tool.Pickaxe.Wood");
@@ -63,6 +97,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Tool_Slingshot_Wood, "Item.Category.Tool.Slingshot.Wood");
 	
 	//========================================
+	// (임시)
 	// 무기 세부 분류
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Weapon_Melee, "Item.Category.Weapon.Melee");
@@ -72,6 +107,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Weapon_Spear, "Item.Category.Weapon.Spear");
 	
 	//========================================
+	// (임시)
 	// 소모품 세부 분류
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Consumable_Food, "Item.Category.Consumable.Food");
@@ -82,6 +118,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Consumable_Water, "Item.Category.Consumable.Drink.Water");
 	
 	//========================================
+	// (임시)
 	// 건축물 세부 분류
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Building_Workbench, "Item.Category.Building.Workbench");
@@ -90,6 +127,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Building_Brazier, "Item.Category.Building.Brazier");
 	
 	//========================================
+	// (임시)
 	// 티어
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Tier, "Item.Tier");
@@ -98,6 +136,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Tier_T3, "Item.Tier.T3");
 	
 	//========================================
+	// (임시)
 	// 등급 (Rarity)
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Rarity, "Item.Rarity");
@@ -107,6 +146,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Rarity_Rare, "Item.Rarity.Rare");
 	
 	//========================================
+	// (임시)
 	// 특성 태그
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Property, "Item.Property");
@@ -118,6 +158,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Property_LightSource, "Item.Property.LightSource");
 	
 	//========================================
+	// (임시)
 	// 로직 태그
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Logic, "Item.Logic");
@@ -129,6 +170,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Logic_RequiresBullet, "Item.Logic.RequiresBullet");
 	
 	//========================================
+	// (임시)
 	// 사용 대상
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_UseTarget, "Item.UseTarget");
@@ -137,6 +179,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_UseTarget_Field, "Item.UseTarget.Field");
 
 	//========================================
+	// (임시)
 	// 획득 방식
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Acquisition, "Item.Acquisition");
@@ -148,6 +191,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Acquisition_Install, "Item.Acquisition.Install");
 	
 	//========================================
+	// (임시)
 	// 크래프팅 제작대
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Crafting, "Item.Crafting");
@@ -156,18 +200,20 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Crafting_Cooker, "Item.Crafting.Cooker");
 	
 	//========================================
+	// (임시)
 	// 효과 태그
 	//========================================
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect, "Item.Effect");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Hunger, "Item.Effect.Hunger");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Thirst, "Item.Effect.Thirst");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Health, "Item.Effect.Health");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Sanity, "Item.Effect.Sanity");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Damage, "Item.Effect.Damage");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Buff, "Item.Effect.Buff");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Debuff, "Item.Effect.Debuff");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect, "Item.Effect");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Hunger, "Item.Effect.Hunger");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Thirst, "Item.Effect.Thirst");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Health, "Item.Effect.Health");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Sanity, "Item.Effect.Sanity");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Damage, "Item.Effect.Damage");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Buff, "Item.Effect.Buff");
+	// UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_Debuff, "Item.Effect.Debuff");
 	
 	//========================================
+	// (임시)
 	// 구체적 아이템 ID (재료 001-016)
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_ID_001, "Item.ID.001"); // 종이
@@ -188,6 +234,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_ID_016, "Item.ID.016"); // 가공된 강철
 
 	//========================================
+	// (임시)
 	// 구체적 아이템 ID (도구 017-025)
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_ID_017, "Item.ID.017"); // 나무 곡괭이
@@ -201,12 +248,14 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_ID_025, "Item.ID.025"); // 나무 새총
 
 	//========================================
+	// (임시)
 	// 구체적 아이템 ID (소모품 026-027)
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_ID_026, "Item.ID.026"); // 쿠키 부스러기
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_ID_027, "Item.ID.027"); // 물이 든 물병
 
 	//========================================
+	// (임시)
 	// 구체적 아이템 ID (건축물 001-004)
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Building_ID_001, "Item.Building.ID.001"); // 제작대
