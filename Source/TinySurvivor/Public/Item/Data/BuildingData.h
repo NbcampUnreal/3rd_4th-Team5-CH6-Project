@@ -32,22 +32,22 @@ enum class ETier : uint8
 /*
 	자원 소모량 구조체
 */
-USTRUCT(BlueprintType)
-struct FResourceAmount
-{
-	GENERATED_BODY()
-
-	FResourceAmount()
-	: ResourceID(0)
-	, Amount(0)
-	{}
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 ResourceID; // 자원 타입 ID
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Amount;     // 필요한 양
-};
+// USTRUCT(BlueprintType)
+// struct FResourceAmount
+// {
+// 	GENERATED_BODY()
+//
+// 	FResourceAmount()
+// 	: ResourceID(0)
+// 	, Amount(0)
+// 	{}
+//
+// 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+// 	int32 ResourceID; // 자원 타입 ID
+//
+// 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+// 	int32 Amount;     // 필요한 양
+// };
 
 /*
 	건축물 데이터 구조체
@@ -57,26 +57,30 @@ USTRUCT(BlueprintType)
 struct FBuildingData : public FTableRowBase
 {
 	GENERATED_BODY()
-
+	
 	FBuildingData()
-	: BuildingID(0)
-	, BuildingType(EBuildingType::DEFENSE)
-	, RequiredTier(ETier::T1)
-	, MaxDurability(100)
-	, IsErosionController(false)
-	, MaintenancePeriod(0.0f)
+	: BuildingType(EBuildingType::DEFENSE)     // 기본 건축 타입: 방어
+	, RequiredTier(ETier::T1)                  // 기본 제작 요구 등급: Tier 1
+	, MaxDurability(100)                       // 기본 내구도: 100
+	, IsErosionController(false)               // 기본: 침식도 관리 기능 없음
+	, MaintenanceCostID(0)                     // 기본 유지비 재료 ID: 0 (없음)
+	, MaintenanceInterval(0)                   // 기본 유지비 소모 간격: 0초
+	, MaintenanceCostQty(0)                    // 기본 유지비 수량: 0
+	, Icon(nullptr)                            // 기본 아이콘: 없음
+	, WorldMesh(nullptr)                       // 기본 월드 메시: 없음
+	, ActorClass(nullptr)                 // 기본 액터 클래스: 없음
 	{}
-
-	// 건축물 고유 ID
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
-	int32 BuildingID;
-
-	// 건축물 이름
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
-	FText Name_KR;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
-	FText Name_EN;
+	
+	// // 건축물 고유 ID
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	// int32 BuildingID;
+	//
+	// // 건축물 이름
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	// FText Name_KR;
+	//
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	// FText Name_EN;
 
 	// 건축 타입
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
@@ -99,16 +103,31 @@ struct FBuildingData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
 	bool IsErosionController;
 
-	// 유지비 소모 주기 (초 단위, 0이면 소모 없음)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System",
-		meta=(EditCondition="IsErosionController", ClampMin="0.0"))
-	float MaintenancePeriod;
+	// // 유지비 소모 주기 (초 단위, 0이면 소모 없음)
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", ClampMin="0.0"))
+	// float MaintenancePeriod;
 
-	// 유지비 목록
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System",
-		meta=(EditCondition="IsErosionController"))
-	TArray<FResourceAmount> MaintenanceCost;
+	// // 유지비 목록 (복수 고려)
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	// TArray<FResourceAmount> MaintenanceCost;
 	
+	// 유지비 재료 ID (침식도 관리 기능과 연동, 단일 ID)
+	// TODO: 기획서에서는 STRING으로 명시되어 있으나, 기존 시스템 및 데이터에서는 자원 ID를 int로 처리하고 있음.
+	// 현재는 INT로 작성했지만, 기획과 일치 여부 확인 필요.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	int32 MaintenanceCostID;
+	
+	// 유지비 소모 간격 (초 단위)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", ClampMin="0")
+	int32 MaintenanceInterval;
+	
+	// 유지비 재료 수량
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", ClampMin="0")
+	int32 MaintenanceCostQty;
+	
+	//========================================
+	// 기획 비포함, 개발 편의상 추가
+	//========================================
 	// 아이콘
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Visual")
 	TSoftObjectPtr<UTexture2D> Icon;
