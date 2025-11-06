@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Struct/TSInventorySlot.h"
+#include "Item/Data/ItemData.h"
 #include "TSInventoryMasterComponent.generated.h"
 
 // ========================================
@@ -14,8 +15,13 @@ struct FItemData;
 class UItemDataSubsystem;
 class UAbilitySystemComponent;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotUpdated, EInventoryType, InventoryType);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventorySlotUpdated, const FInventoryStructMaster&, HotkeyInventory,
+                                               const FInventoryStructMaster&, EquipmentInventory,
+                                               const FInventoryStructMaster&, BagInventory);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot)
+;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBagSizeChanged, int32, NewSize);
 
 UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
@@ -55,13 +61,10 @@ public:
 	int32 HotkeySlotCount = 10;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 EquipmentSlotCount = 3;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	TArray<ESlotType> EquipmentSlotTypes = {
-		ESlotType::Head,
-		ESlotType::Torso,
-		ESlotType::Leg
+	TMap<ESlotType, EEquipSlot> EquipmentSlotTypes = {
+		{ESlotType::Head, EEquipSlot::HEAD},
+		{ESlotType::Torso, EEquipSlot::TORSO},
+		{ESlotType::Leg, EEquipSlot::LEG}
 	};
 
 	/** 가방 초기 슬롯 개수 (0이면 가방 아이템 사용 전까지 사용 불가) */
@@ -115,8 +118,8 @@ public:
 
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
 	void ServerTransferItem(
-	UTSInventoryMasterComponent* SourceInventory,
-	UTSInventoryMasterComponent* TargetInventory,
+		UTSInventoryMasterComponent* SourceInventory,
+		UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
 		EInventoryType ToInventoryType, int32 ToSlotIndex,
 		bool bIsFullStack = true);
@@ -137,8 +140,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
 	void Internal_TransferItem(
-	UTSInventoryMasterComponent* SourceInventory,
-	UTSInventoryMasterComponent* TargetInventory,
+		UTSInventoryMasterComponent* SourceInventory,
+		UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
 		EInventoryType ToInventoryType, int32 ToSlotIndex,
 		bool bIsFullStack = true);
@@ -238,4 +241,10 @@ private:
 	// 헬퍼 함수 - ASC
 	// ========================================
 	UAbilitySystemComponent* GetASC();
+
+	// ========================================
+	// 헬퍼 함수 - 델리게이트
+	// ========================================
+	void HandleInventoryChanged();
+	void HandleActiveHotkeyIndexChanged();
 };

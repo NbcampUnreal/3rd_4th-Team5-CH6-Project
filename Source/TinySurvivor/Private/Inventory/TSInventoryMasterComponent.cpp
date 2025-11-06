@@ -46,10 +46,12 @@ void UTSInventoryMasterComponent::BeginPlay()
 
 		// 장비 인벤토리 초기화
 		EquipmentInventory.InventoryType = EInventoryType::Equipment;
-		EquipmentInventory.InventorySlotContainer.SetNum(EquipmentSlotCount);
-		for (int32 i = 0; i < EquipmentSlotTypes.Num() && i < EquipmentSlotCount; ++i)
+		EquipmentInventory.InventorySlotContainer.SetNum(EquipmentSlotTypes.Num());
+		int32 idx = 0;
+		for (const auto& Pair : EquipmentSlotTypes)
 		{
-			EquipmentInventory.InventorySlotContainer[i].SlotType = EquipmentSlotTypes[i];
+			EquipmentInventory.InventorySlotContainer[idx].SlotType = Pair.Key;
+			++idx;
 		}
 
 		// 가방 인벤토리 초기화
@@ -63,12 +65,12 @@ void UTSInventoryMasterComponent::BeginPlay()
 				BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
 			}
 			UE_LOG(LogTemp, Log, TEXT("Inventory initialized: Hotkey=%d, Equipment=%d, Bag=%d"),
-			       HotkeySlotCount, EquipmentSlotCount, InitialBagSlotCount);
+			       HotkeySlotCount, EquipmentSlotTypes.Num(), InitialBagSlotCount);
 		}
 		else
 		{
 			UE_LOG(LogTemp, Log, TEXT("Inventory initialized: Hotkey=%d, Equipment=%d, Bag=Disabled (0 slots)"),
-			       HotkeySlotCount, EquipmentSlotCount);
+			       HotkeySlotCount, EquipmentSlotTypes.Num());
 		}
 	}
 }
@@ -79,30 +81,22 @@ void UTSInventoryMasterComponent::BeginPlay()
 
 void UTSInventoryMasterComponent::OnRep_HotkeyInventory()
 {
-	OnInventoryUpdated.Broadcast(EInventoryType::HotKey);
+	HandleInventoryChanged();
 }
 
 void UTSInventoryMasterComponent::OnRep_EquipmentInventory()
 {
-	OnInventoryUpdated.Broadcast(EInventoryType::Equipment);
+	HandleInventoryChanged();
 }
 
 void UTSInventoryMasterComponent::OnRep_BagInventory()
 {
-	OnInventoryUpdated.Broadcast(EInventoryType::BackPack);
+	HandleInventoryChanged();
 }
 
 void UTSInventoryMasterComponent::OnRep_ActiveHotkeyIndex()
 {
-	if (ActiveHotkeyIndex >= 0 && ActiveHotkeyIndex < HotkeyInventory.InventorySlotContainer.Num())
-	{
-		OnHotkeyActivated.Broadcast(ActiveHotkeyIndex, HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex]);
-		EquipActiveHotkeyItem();
-	}
-	else
-	{
-		UnequipCurrentItem();
-	}
+	HandleActiveHotkeyIndexChanged();
 }
 
 // ========================================
@@ -128,24 +122,34 @@ bool UTSInventoryMasterComponent::ServerTransferItem_Validate(
 	EInventoryType ToInventoryType, int32 ToSlotIndex,
 	bool bIsFullStack)
 {
-	return TargetInventory != nullptr &&
-		IsValidSlotIndex(FromInventoryType, FromSlotIndex);
+	if (!SourceInventory || !TargetInventory)
+	{
+		return false;
+	}
+	return SourceInventory->IsValidSlotIndex(FromInventoryType, FromSlotIndex) &&
+		TargetInventory->IsValidSlotIndex(ToInventoryType, ToSlotIndex);
 }
 
 void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
 	if (!IsValidSlotIndex(InventoryType, SlotIndex))
+	{
 		return;
+	}
 
 	FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
 	if (!Inventory)
+	{
 		return;
+	}
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
 
 	if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+	{
 		return;
+	}
 
 	int32 DropQuantity = (Quantity <= 0) ? Slot.CurrentStackSize : FMath::Min(Quantity, Slot.CurrentStackSize);
 
@@ -157,6 +161,8 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	{
 		ClearSlot(Slot);
 	}
+
+	HandleInventoryChanged();
 }
 
 bool UTSInventoryMasterComponent::ServerDropItemToWorld_Validate(
@@ -168,9 +174,13 @@ bool UTSInventoryMasterComponent::ServerDropItemToWorld_Validate(
 void UTSInventoryMasterComponent::ServerActivateHotkeySlot_Implementation(int32 SlotIndex)
 {
 	if (SlotIndex < -1 || SlotIndex >= HotkeyInventory.InventorySlotContainer.Num())
+	{
 		return;
+	}
 
 	ActiveHotkeyIndex = SlotIndex;
+
+	HandleActiveHotkeyIndexChanged();
 }
 
 bool UTSInventoryMasterComponent::ServerActivateHotkeySlot_Validate(int32 SlotIndex)
@@ -277,6 +287,17 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 			}
 		}
 	}
+
+	// 소스 인벤토리의 델리게이트 브로드캐스트
+	if (SourceInventory)
+	{
+		SourceInventory->HandleInventoryChanged();
+	}
+	// 타겟 인벤토리의 델리게이트 브로드캐스트
+	if (TargetInventory && TargetInventory != SourceInventory)
+	{
+		TargetInventory->HandleInventoryChanged();
+	}
 }
 
 void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
@@ -288,12 +309,16 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	}
 
 	if (!IsValidSlotIndex(EInventoryType::HotKey, SlotIndex))
+	{
 		return;
+	}
 
 	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
 
 	if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+	{
 		return;
+	}
 
 	// ========================================
 	// 가방 아이템인 경우
@@ -310,6 +335,8 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 			{
 				ClearSlot(Slot);
 			}
+
+			HandleInventoryChanged();
 
 			UE_LOG(LogTemp, Log, TEXT("Bag item used: Expanded bag by %d slots (Total: %d/%d)"),
 			       BagSlotIncrement, BagInventory.InventorySlotContainer.Num(), MaxBagSlotCount);
@@ -336,6 +363,8 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.StaticDataID);
+
+	HandleInventoryChanged();
 }
 
 // ========================================
@@ -362,6 +391,9 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 	TArray<int32> EmptyHotkeySlots;
 	TArray<int32> EmptyBagSlots;
 
+	// 인벤토리 변경 플래그
+	bool bInventoryChanged = false;
+
 	// ========================================
 	// 1단계: 핫키 스택 가능한 슬롯
 	// ========================================
@@ -376,9 +408,12 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
 				Slot.CurrentStackSize += CanAdd;
 				RemainingQuantity -= CanAdd;
+				bInventoryChanged = true;
 
 				if (RemainingQuantity <= 0)
-					return true;
+				{
+					break;
+				}
 			}
 			else if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
 			{
@@ -402,7 +437,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 	// ========================================
 	// 2단계: 가방 스택 가능한 슬롯
 	// ========================================
-	if (ItemInfo.IsStackable() && BagInventory.InventorySlotContainer.Num() > 0)
+	if (RemainingQuantity > 0 && ItemInfo.IsStackable() && BagInventory.InventorySlotContainer.Num() > 0)
 	{
 		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
 		{
@@ -413,9 +448,12 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
 				Slot.CurrentStackSize += CanAdd;
 				RemainingQuantity -= CanAdd;
+				bInventoryChanged = true;
 
 				if (RemainingQuantity <= 0)
-					return true;
+				{
+					break;
+				}
 			}
 			else if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
 			{
@@ -441,7 +479,12 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 	// ========================================
 	for (int32 SlotIndex : EmptyHotkeySlots)
 	{
-		if (RemainingQuantity <= 0) break;
+		if (RemainingQuantity <= 0)
+		{
+			break;
+		}
+		
+		bInventoryChanged = true;
 
 		FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
 		Slot.StaticDataID = StaticDataID;
@@ -459,7 +502,12 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 	// ========================================
 	for (int32 SlotIndex : EmptyBagSlots)
 	{
-		if (RemainingQuantity <= 0) break;
+		if (RemainingQuantity <= 0)
+		{
+			break;
+		}
+		
+		bInventoryChanged = true;
 
 		FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[SlotIndex];
 		Slot.StaticDataID = StaticDataID;
@@ -478,22 +526,33 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		       Quantity - RemainingQuantity, RemainingQuantity);
 	}
 
+	if (bInventoryChanged)
+	{
+		HandleInventoryChanged();
+	}
+
 	return RemainingQuantity == 0;
 }
 
 bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
 	if (!GetOwner()->HasAuthority() || !IsValidSlotIndex(InventoryType, SlotIndex))
+	{
 		return false;
+	}
 
 	FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
 	if (!Inventory)
+	{
 		return false;
+	}
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
 
 	if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+	{
 		return false;
+	}
 
 	if (Quantity <= 0)
 	{
@@ -507,6 +566,8 @@ bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32
 		ClearSlot(Slot);
 	}
 
+	HandleInventoryChanged();
+
 	return true;
 }
 
@@ -517,11 +578,15 @@ bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32
 FSlotStructMaster UTSInventoryMasterComponent::GetSlot(EInventoryType InventoryType, int32 SlotIndex) const
 {
 	if (!IsValidSlotIndex(InventoryType, SlotIndex))
+	{
 		return FSlotStructMaster();
+	}
 
 	const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
 	if (!Inventory)
+	{
 		return FSlotStructMaster();
+	}
 
 	return Inventory->InventorySlotContainer[SlotIndex];
 }
@@ -536,7 +601,9 @@ int32 UTSInventoryMasterComponent::FindEmptySlot(EInventoryType InventoryType) c
 {
 	const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
 	if (!Inventory)
+	{
 		return -1;
+	}
 
 	for (int32 i = 0; i < Inventory->InventorySlotContainer.Num(); ++i)
 	{
@@ -560,7 +627,9 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 	int32 SlotIndex) const
 {
 	if (StaticDataID == INDEX_NONE || !IsValidSlotIndex(InventoryType, SlotIndex))
+	{
 		return false;
+	}
 
 	FItemData ItemInfo;
 	if (!GetItemData(StaticDataID, ItemInfo))
@@ -568,17 +637,20 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 		return false;
 	}
 
-	// TODO: 방어구 아이템 타입 검증, ItemData에 Enum추가되면 수정 예정
-	// if (InventoryType == EInventoryType::Equipment)
-	// {
-	// 	const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
-	// 	if (!Inventory)
-	// 		return false;
-	//
-	// 	ESlotType TargetSlotType = Inventory->InventorySlotContainer[SlotIndex].SlotType;
-	//
-	// 	아이템 카테고리 방어구인지, 슬롯 타입과 같은지 확인
-	// }
+	// 방어구 아이템 타입 검증
+	if (InventoryType == EInventoryType::Equipment)
+	{
+		const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
+		if (!Inventory)
+		{
+			return false;
+		}
+		ESlotType TargetSlotType = Inventory->InventorySlotContainer[SlotIndex].SlotType;
+		if (EquipmentSlotTypes[TargetSlotType] != ItemInfo.ArmorData.EquipSlot)
+		{
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -590,7 +662,9 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 {
 	if (!GetOwner()->HasAuthority())
+	{
 		return false;
+	}
 
 	int32 CurrentSlotCount = BagInventory.InventorySlotContainer.Num();
 	int32 NewSlotCount = CurrentSlotCount + AdditionalSlots;
@@ -667,7 +741,9 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 void UTSInventoryMasterComponent::UnequipCurrentItem()
 {
 	if (!HasItemEquipped())
+	{
 		return;
+	}
 
 	// TODO: GameplayAbility 연동 시 ASC 코드 추가
 
@@ -847,4 +923,22 @@ UAbilitySystemComponent* UTSInventoryMasterComponent::GetASC()
 		return nullptr;
 	}
 	return ASC;
+}
+
+void UTSInventoryMasterComponent::HandleInventoryChanged()
+{
+	OnInventoryUpdated.Broadcast(HotkeyInventory, EquipmentInventory, BagInventory);
+}
+
+void UTSInventoryMasterComponent::HandleActiveHotkeyIndexChanged()
+{
+	if (ActiveHotkeyIndex >= 0 && ActiveHotkeyIndex < HotkeyInventory.InventorySlotContainer.Num())
+	{
+		OnHotkeyActivated.Broadcast(ActiveHotkeyIndex, HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex]);
+		EquipActiveHotkeyItem();
+	}
+	else
+	{
+		UnequipCurrentItem();
+	}
 }
