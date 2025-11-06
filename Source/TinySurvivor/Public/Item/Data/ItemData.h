@@ -198,6 +198,7 @@ public:
 	, MoveSpeedBonus(0.0f)
 	, SpecialEffectID(0)
 	, RequiredRarity(1)
+	, MaxDurability(100)
 	{}
 	
 	// 장착 가능 부위
@@ -233,6 +234,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
 		meta = (DisplayName="RequiredRarity (제작에 필요한 기술 레벨)", ToolTip="해당 방어구를 제작하는데 필요한 기술 레벨"))
 	int32 RequiredRarity;
+
+	// 최대 내구도
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="MaxDurability (최대 내구도)", ToolTip="방어구의 최대 내구도"))
+	int32 MaxDurability;
 };
 #pragma endregion
 
@@ -459,6 +465,7 @@ public:
 		{
 		case EItemCategory::WEAPON: return WeaponData.MaxDurability;
 		case EItemCategory::TOOL: return ToolData.MaxDurability;
+		case EItemCategory::ARMOR: return ArmorData.MaxDurability;
 		default: return 0;
 		}
 	}
