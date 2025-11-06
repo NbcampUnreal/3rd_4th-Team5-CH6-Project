@@ -59,7 +59,10 @@ struct FBuildingData : public FTableRowBase
 	GENERATED_BODY()
 	
 	FBuildingData()
-	: BuildingType(EBuildingType::DEFENSE)     // 기본 건축 타입: 방어
+	: BuildingID(0)                             // 기본 건축물 ID: 0
+	, Name_KR(FText::GetEmpty())                // 기본 한글 이름: 빈 텍스트
+	, Name_EN(FText::GetEmpty())                // 기본 영어 이름: 빈 텍스트
+	, BuildingType(EBuildingType::DEFENSE)     // 기본 건축 타입: 방어
 	, RequiredTier(ETier::T1)                  // 기본 제작 요구 등급: Tier 1
 	, MaxDurability(100)                       // 기본 내구도: 100
 	, IsErosionController(false)               // 기본: 침식도 관리 기능 없음
@@ -68,19 +71,19 @@ struct FBuildingData : public FTableRowBase
 	, MaintenanceCostQty(0)                    // 기본 유지비 수량: 0
 	, Icon(nullptr)                            // 기본 아이콘: 없음
 	, WorldMesh(nullptr)                       // 기본 월드 메시: 없음
-	, ActorClass(nullptr)                 // 기본 액터 클래스: 없음
+	, ActorClass(nullptr)                       // 기본 액터 클래스: 없음
 	{}
 	
-	// // 건축물 고유 ID
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
-	// int32 BuildingID;
-	//
-	// // 건축물 이름
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
-	// FText Name_KR;
-	//
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
-	// FText Name_EN;
+	// 건축물 고유 ID
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	int32 BuildingID;
+	
+	// 건축물 이름
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	FText Name_KR;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	FText Name_EN;
 
 	// 건축 타입
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
@@ -118,11 +121,11 @@ struct FBuildingData : public FTableRowBase
 	int32 MaintenanceCostID;
 	
 	// 유지비 소모 간격 (초 단위)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", ClampMin="0")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", meta=(ClampMin=0))
 	int32 MaintenanceInterval;
 	
 	// 유지비 재료 수량
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", ClampMin="0")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", meta=(ClampMin=0))
 	int32 MaintenanceCostQty;
 	
 	//========================================
