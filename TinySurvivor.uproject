@@ -7,12 +7,13 @@
 		{
 			"Name": "TinySurvivor",
 			"Type": "Runtime",
-			"LoadingPhase": "Default", 
-          "AdditionalDependencies": [
-            "GameplayAbilities",
-            "GameplayTags",
-            "GameplayTasks"
-          ]
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"GameplayAbilities",
+				"GameplayTags",
+				"GameplayTasks",
+				"ActorPoolManager"
+			]
 		}
 	],
 	"Plugins": [
@@ -45,6 +46,15 @@
 		},
 		{
 			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
+			"Name": "ActorPoolManager",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/bd95c379ae0d440eb04bd64028d80ac6"
+		},
+		{
+			"Name": "rdInst",
 			"Enabled": true
 		}
 	]

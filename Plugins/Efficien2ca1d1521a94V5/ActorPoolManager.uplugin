@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "ActorPoolManager",
+	"Description": "The Actor Pool Plugin efficiently manages reusable actors, optimizing lifecycle management and reducing creation/destruction overhead for better performance.",
+	"Category": "Blueprints",
+	"CreatedBy": "X-Games",
+	"CreatedByURL": "https://www.unrealengine.com/marketplace/en-US/profile/X+Games?count=20&sortBy=effectiveDate&sortDir=DESC&start=0",
+	"DocsURL": "https://docs.google.com/document/d/1edlTh_5cspW4dylJNrUJxoXad1TH4WyhwAndm-0jBFw/edit?usp=sharing",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/bd95c379ae0d440eb04bd64028d80ac6",
+	"SupportURL": "https://www.unrealengine.com/marketplace/en-US/profile/X+Games?count=20&sortBy=effectiveDate&sortDir=DESC&start=0",
+	"EngineVersion": "5.6.0",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "ActorPoolManager",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64"
+			],
+			"TargetAllowList": [
+				"Game",
+				"Editor"
+			]
+		}
+	]
+}
