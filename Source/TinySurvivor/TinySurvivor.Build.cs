@@ -23,6 +23,9 @@ public class TinySurvivor : ModuleRules
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks", 
+			// Object Pooling
+			"rdInst",
+			"ActorPoolManager",
 			
 		});
 

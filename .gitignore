@@ -27,3 +27,9 @@ Saved/
 
 # Content 내 모든 하위 경로를 포함해, 지정된 이름의 폴더 무시
 Content/ThirdParty/
+
+# Plugins 폴더를 추가함으로써 규칙 추가
+/Plugins/*/Binaries/
+/Plugins/*/Intermediate/
+Plugins/Efficien2ca1d1521a94V5/Content
+Plugins/Efficien2ca1d1521a94V5/Resources
