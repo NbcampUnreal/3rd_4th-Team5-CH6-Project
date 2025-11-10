@@ -11,6 +11,10 @@
 #include "GAS/AbilityManager/TSAbilityManagerSubSystem.h"
 #include "GameplayTagContainer.h"
 #include "DataAsset/TSPlayerInputDataAsset.h"
+#include "AbilitySystemComponent.h"
+#include "Controller/TSPlayerController.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Abilities/GameplayAbilityTypes.h"
 
 ATSCharacter::ATSCharacter()
 {
@@ -87,6 +91,9 @@ void ATSCharacter::InitializeAbilities()
 	{
 		return;
 	}
+
+	// GAS
+	
 	/*const FGameplayTag JumpOrClimbTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.JumpOrClimb"));
 	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,JumpOrClimbTag);
 	*/
@@ -102,11 +109,22 @@ void ATSCharacter::InitializeAbilities()
 	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,InteractTag);
 	const FGameplayTag PingTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Ping"));
 	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,PingTag);
+	const FGameplayTag PingTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.WheelScroll"));
+	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,WheelScrollTag);
 	const FGameplayTag LeftClickTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.LeftClick"));
 	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,LeftClickTag);
 	const FGameplayTag RightClickTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.RightClick"));
 	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,RightClickTag);
 	*/
+
+	const FGameplayTag HotKeyTag = FGameplayTag::RequestGameplayTag(FName("Ability.HotKey"));
+	if (HotKeyTag.IsValid())
+	{
+		UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC, HotKeyTag);
+	}
+
+
+
 }
 
 void ATSCharacter::BeginPlay()
@@ -131,6 +149,11 @@ void ATSCharacter::BeginPlay()
 					Subsystem->AddMappingContext(InputDataAsset->InteractionInputMappingContext, 1);
 				}
 			}
+		}
+
+		if (ATSPlayerController* PS = Cast<ATSPlayerController>(PlayerController))
+		{
+			PS -> InitializePlayerHUD(this);
 		}
 	}
 
@@ -216,51 +239,83 @@ void ATSCharacter::OnPing(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel pressed"));
 }
+void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Vaule)
+{
+	UE_LOG(LogTemp, Log, TEXT("wheel scroll pressed"));
+}
+
+void ATSCharacter::OnHotKey1(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("1 pressed"));
+	SendHotKeyEvent(0); //1번키 = 0번 슬롯!!!
+}
+void ATSCharacter::OnHotKey2(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("2 pressed"));
+	SendHotKeyEvent(1);
+}
+void ATSCharacter::OnHotKey3(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("3 pressed"));
+	SendHotKeyEvent(2);
+}
+void ATSCharacter::OnHotKey4(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("4 pressed"));
+	SendHotKeyEvent(3);
+}
+void ATSCharacter::OnHotKey5(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("5 pressed"));
+	SendHotKeyEvent(4);
+}
+void ATSCharacter::OnHotKey6(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("6 pressed"));
+	SendHotKeyEvent(5);
+}
+void ATSCharacter::OnHotKey7(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("7 pressed"));
+	SendHotKeyEvent(6);
+	
+}
+void ATSCharacter::OnHotKey8(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("8 pressed"));
+	SendHotKeyEvent(7);
+
+}
+void ATSCharacter::OnHotKey9(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("9 pressed"));
+	SendHotKeyEvent(8);
+}
+void ATSCharacter::OnHotKey0(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("0 pressed"));
+	SendHotKeyEvent(9); // 0번키 = 9번 슬롯 !!!!!!!!
+
+}
+void ATSCharacter::SendHotKeyEvent(int HotKeyIndex)
+{
+	if (!ASC) return;
+	const FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName("Input.HotKey"));
+	FGameplayEventData EventData;
+	EventData.EventTag = EventTag;
+	EventData.EventMagnitude = static_cast<float>(HotKeyIndex); 
+    
+	EventData.Instigator = this;
+	EventData.Target = this;
+	
+	//페이로드 데이터를 사용하여 해당 액터에 대한 능력을 트리거하는데 사용하는 함수. 저는 페이로드라고 안쓰고 EventData로 사용함
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this/*Actor*/,EventTag,EventData/*Payload*/);
+}
 
 void ATSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-}
-void ATSCharacter::OnHotKey1(const struct FInputActionValue& Value)
-{
-	//GameplayEvent 전송 (태그 send)
-}
-void ATSCharacter::OnHotKey2(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey3(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey4(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey5(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey6(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey7(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey8(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey9(const struct FInputActionValue& Value)
-{
-	
-}
-void ATSCharacter::OnHotKey0(const struct FInputActionValue& Value)
-{
-	
 }
 void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -279,6 +334,7 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(InputDataAsset->BuildAction, ETriggerEvent::Started, this, &ATSCharacter::OnBuild);
 		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Started, this, &ATSCharacter::OnInteract);
 		EnhancedInputComponent->BindAction(InputDataAsset->PingAction, ETriggerEvent::Started, this, &ATSCharacter::OnPing);
+		EnhancedInputComponent->BindAction(InputDataAsset->WheelScrollAction, ETriggerEvent::Started, this, &ATSCharacter::OnWheelScroll);
 		EnhancedInputComponent->BindAction(InputDataAsset->LeftClickAction, ETriggerEvent::Started, this, &ATSCharacter::OnLeftClick);
 		EnhancedInputComponent->BindAction(InputDataAsset->RightClickAction, ETriggerEvent::Started, this, &ATSCharacter::OnRightClick);
 		EnhancedInputComponent->BindAction(InputDataAsset->SprintAction, ETriggerEvent::Started, this, &ATSCharacter::OnSprintStarted);
@@ -293,6 +349,7 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey7Action, ETriggerEvent::Started, this, &ATSCharacter::OnHotKey7);
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey8Action, ETriggerEvent::Started, this, &ATSCharacter::OnHotKey8);
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey9Action, ETriggerEvent::Started, this, &ATSCharacter::OnHotKey9);
+		EnhancedInputComponent->BindAction(InputDataAsset->HotKey0Action, ETriggerEvent::Started, this, &ATSCharacter::OnHotKey0);
 	}
 }
 
