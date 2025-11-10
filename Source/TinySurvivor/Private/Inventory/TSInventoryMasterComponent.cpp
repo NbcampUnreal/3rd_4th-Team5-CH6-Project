@@ -352,9 +352,24 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	// ========================================
 	// 일반 소비 아이템인 경우
 	// ========================================
-
-	// TODO: 아이템 효과 적용 (HP 회복 등)
-
+	// 아이템 사용 어빌리티 활성화
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UseItem failed: No ASC found"));
+		return;
+	}
+	FItemData ItemInfo;
+	if (!GetItemData(Slot.StaticDataID, ItemInfo))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UseItem failed: Invalid ItemData for ID=%d"), Slot.StaticDataID);
+		return;
+	}
+	if (ItemInfo.AbilityBP)
+	{
+		FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
+		ASC->GiveAbilityAndActivateOnce(Spec);
+	}
 	// 아이템 소비
 	Slot.CurrentStackSize -= 1;
 	if (Slot.CurrentStackSize <= 0)
@@ -483,7 +498,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		{
 			break;
 		}
-		
+
 		bInventoryChanged = true;
 
 		FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
@@ -506,7 +521,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		{
 			break;
 		}
-		
+
 		bInventoryChanged = true;
 
 		FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[SlotIndex];
