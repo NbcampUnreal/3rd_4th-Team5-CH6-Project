@@ -37,7 +37,10 @@ AWorldItem::AWorldItem()
 	
 	// 오버램 이벤트 바인딩 (서버에서만)
 	if (HasAuthority())
+	{
 		InteractionCollision->OnComponentBeginOverlap.AddDynamic(this, &AWorldItem::OnInteractionOverlap);
+		InteractionCollision->OnComponentBeginOverlap.AddDynamic(this, &AWorldItem::OnInteractionEndOverlap);
+	}
 }
 
 // 어떤 변수를 클라이언트로 복제할 지 설정
@@ -185,4 +188,10 @@ void AWorldItem::OnInteractionOverlap(UPrimitiveComponent* OverlappedComponent, 
 	// 7.      PoolSubsystem->ReleaseItemActor(this); // 풀에 반납
 	
 	UE_LOG(LogTemp, Warning, TEXT("AWorldItem overlapped by %s"), *OtherActor->GetName());
+}
+
+void AWorldItem::OnInteractionEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	
 }
