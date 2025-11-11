@@ -6,6 +6,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(ErosionManager, Log, All);
 
+// 주석 달자.
+
 class UErosionConfigData;
 class UErosionLightSourceComponent;
 class AErosionStateInfo;
