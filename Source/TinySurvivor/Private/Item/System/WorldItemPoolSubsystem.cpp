@@ -104,7 +104,7 @@ void UWorldItemPoolSubsystem::Tick(float DeltaTime)
 bool UWorldItemPoolSubsystem::DropItem(const FSlotStructMaster& ItemData, const FTransform& Transform,
 	FVector PlayerLocation)
 {
-	if (!IsPoolReady() || !InstanceSubsystem || ItemData.StaticDataID <= 0)
+	if (!IsPoolReady() || !InstanceSubsystem || ItemData.ItemData.StaticDataID <= 0)
 		return false;
 
 	float DistanceSq = FVector::DistSquared(PlayerLocation, Transform.GetLocation());
@@ -237,7 +237,7 @@ void UWorldItemPoolSubsystem::SwapActorToInstance(AWorldItem* ItemaActor)
 		return;
 
 	FSlotStructMaster ItemData = ItemaActor->GetItemData();
-	if (ItemData.StaticDataID <= 0)
+	if (ItemData.ItemData.StaticDataID <= 0)
 	{
 		ReleaseItemActor(ItemaActor);	// 데이터가 없는 액터는 그냥 풀에 반납
 		return;
