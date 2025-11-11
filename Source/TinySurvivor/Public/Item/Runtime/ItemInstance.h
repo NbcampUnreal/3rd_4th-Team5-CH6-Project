@@ -79,6 +79,5 @@ public:
 	/*
 		디버그 정보 출력
 	*/
-	UFUNCTION(BlueprintCallable, Category="ItemInstance")
 	FString ToString() const;
 };
