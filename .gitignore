@@ -35,3 +35,7 @@ Plugins/Efficien2ca1d1521a94V5/Content
 Plugins/Efficien2ca1d1521a94V5/Resources
 Plugins/rdInst95b84e21fd17V8/Content
 Plugins/rdInst95b84e21fd17V8/Resources
+
+# Claude 폴더 제외
+/.claude/
+CLAUDE.md
