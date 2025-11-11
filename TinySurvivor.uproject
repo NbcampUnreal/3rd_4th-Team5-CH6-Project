@@ -45,10 +45,6 @@
 			"Enabled": true
 		},
 		{
-			"Name": "CommonUI",
-			"Enabled": true
-		},
-		{
 			"Name": "ActorPoolManager",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/bd95c379ae0d440eb04bd64028d80ac6"
