@@ -4,6 +4,11 @@
 #include "System/Erosion/TSErosionSubsystem.h"
 #include "Engine/World.h"
 
+UErosionLightSourceComponent::UErosionLightSourceComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+}
+
 void UErosionLightSourceComponent::BeginPlay()
 {
 	Super::BeginPlay();

@@ -18,6 +18,7 @@ class TINYSURVIVOR_API UErosionLightSourceComponent : public UActorComponent
 	// ===============================
 	
 protected:
+	UErosionLightSourceComponent();
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
