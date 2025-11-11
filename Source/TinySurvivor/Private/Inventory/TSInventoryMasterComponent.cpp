@@ -36,6 +36,8 @@ void UTSInventoryMasterComponent::BeginPlay()
 
 	if (GetOwner()->HasAuthority())
 	{
+		// TODO : 부패도 매니저와 OnDecayTick 바인딩
+		
 		// 핫키 인벤토리 초기화
 		HotkeyInventory.InventoryType = EInventoryType::HotKey;
 		HotkeyInventory.InventorySlotContainer.SetNum(HotkeySlotCount);
@@ -75,10 +77,7 @@ void UTSInventoryMasterComponent::BeginPlay()
 	}
 }
 
-// ========================================
-// 리플리케이션 콜백
-// ========================================
-
+#pragma region Replication Callback
 void UTSInventoryMasterComponent::OnRep_HotkeyInventory()
 {
 	HandleInventoryChanged();
@@ -98,11 +97,9 @@ void UTSInventoryMasterComponent::OnRep_ActiveHotkeyIndex()
 {
 	HandleActiveHotkeyIndexChanged();
 }
+#pragma endregion
 
-// ========================================
-// Server RPC
-// ========================================
-
+#pragma region Server RPC
 void UTSInventoryMasterComponent::ServerTransferItem_Implementation(
 	UTSInventoryMasterComponent* SourceInventory,
 	UTSInventoryMasterComponent* TargetInventory,
@@ -146,7 +143,7 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
 
-	if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 	{
 		return;
 	}
@@ -154,7 +151,7 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	int32 DropQuantity = (Quantity <= 0) ? Slot.CurrentStackSize : FMath::Min(Quantity, Slot.CurrentStackSize);
 
 	// TODO: 스폰 매니저에 아이템 액터 스폰 요청
-	UE_LOG(LogTemp, Log, TEXT("Dropping item: ID=%d x%d"), Slot.StaticDataID, DropQuantity);
+	UE_LOG(LogTemp, Log, TEXT("Dropping item: ID=%d x%d"), Slot.ItemData.StaticDataID, DropQuantity);
 
 	Slot.CurrentStackSize -= DropQuantity;
 	if (Slot.CurrentStackSize <= 0)
@@ -197,11 +194,9 @@ bool UTSInventoryMasterComponent::ServerUseItem_Validate(int32 SlotIndex)
 {
 	return IsValidSlotIndex(EInventoryType::HotKey, SlotIndex);
 }
+#pragma endregion
 
-// ========================================
-// Internal 함수
-// ========================================
-
+#pragma region Internal function
 void UTSInventoryMasterComponent::Internal_TransferItem(
 	UTSInventoryMasterComponent* SourceInventory,
 	UTSInventoryMasterComponent* TargetInventory,
@@ -241,18 +236,18 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	FSlotStructMaster& ToSlot = ToInventory->InventorySlotContainer[ToSlotIndex];
 
 	// 타입 검증
-	if (FromSlot.StaticDataID != INDEX_NONE)
+	if (FromSlot.ItemData.StaticDataID != 0)
 	{
-		if (!TargetInventory->CanPlaceItemInSlot(FromSlot.StaticDataID, ToInventoryType, ToSlotIndex))
+		if (!TargetInventory->CanPlaceItemInSlot(FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in target inventory"));
 			return;
 		}
 	}
 
-	if (ToSlot.StaticDataID != INDEX_NONE)
+	if (ToSlot.ItemData.StaticDataID != 0)
 	{
-		if (!SourceInventory->CanPlaceItemInSlot(ToSlot.StaticDataID, FromInventoryType, FromSlotIndex))
+		if (!SourceInventory->CanPlaceItemInSlot(ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in source inventory"));
 			return;
@@ -275,7 +270,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		}
 		else
 		{
-			if (FromSlot.StaticDataID != INDEX_NONE && ToSlot.StaticDataID == INDEX_NONE)
+			if (FromSlot.ItemData.StaticDataID != 0 && ToSlot.ItemData.StaticDataID == 0)
 			{
 				CopySlotData(FromSlot, ToSlot, 1);
 				FromSlot.CurrentStackSize -= 1;
@@ -292,11 +287,13 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	if (SourceInventory)
 	{
 		SourceInventory->HandleInventoryChanged();
+		SourceInventory->GetOwner()->ForceNetUpdate();
 	}
 	// 타겟 인벤토리의 델리게이트 브로드캐스트
 	if (TargetInventory && TargetInventory != SourceInventory)
 	{
 		TargetInventory->HandleInventoryChanged();
+		TargetInventory->GetOwner()->ForceNetUpdate();
 	}
 }
 
@@ -315,7 +312,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 
 	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
 
-	if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 	{
 		return;
 	}
@@ -323,7 +320,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	// ========================================
 	// 가방 아이템인 경우
 	// ========================================
-	if (IsItemBagType(Slot.StaticDataID))
+	if (IsItemBagType(Slot.ItemData.StaticDataID))
 	{
 		bool bExpanded = ExpandBagInventory(BagSlotIncrement);
 
@@ -360,9 +357,9 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		return;
 	}
 	FItemData ItemInfo;
-	if (!GetItemData(Slot.StaticDataID, ItemInfo))
+	if (!GetItemData(Slot.ItemData.StaticDataID, ItemInfo))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UseItem failed: Invalid ItemData for ID=%d"), Slot.StaticDataID);
+		UE_LOG(LogTemp, Warning, TEXT("UseItem failed: Invalid ItemData for ID=%d"), Slot.ItemData.StaticDataID);
 		return;
 	}
 	if (ItemInfo.AbilityBP)
@@ -377,26 +374,25 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		ClearSlot(Slot);
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.StaticDataID);
+	UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
 
 	HandleInventoryChanged();
+	GetOwner()->ForceNetUpdate();
 }
+#pragma endregion
 
-// ========================================
-// 아이템 추가/제거
-// ========================================
-
-bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataID, int32 Quantity)
+#pragma region Add/Remove Item
+bool UTSInventoryMasterComponent::AddItem(FItemInstance& ItemData, int32 Quantity)
 {
-	if (!GetOwner()->HasAuthority() || StaticDataID == INDEX_NONE || Quantity <= 0)
+	if (!GetOwner()->HasAuthority() || ItemData.StaticDataID == 0 || Quantity <= 0)
 	{
 		return false;
 	}
 
 	FItemData ItemInfo;
-	if (!GetItemData(StaticDataID, ItemInfo))
+	if (!GetItemData(ItemData.StaticDataID, ItemInfo))
 	{
-		UE_LOG(LogTemp, Error, TEXT("AddItem failed: Item %d not found"), StaticDataID);
+		UE_LOG(LogTemp, Error, TEXT("AddItem failed: Item %d not found"), ItemData.StaticDataID);
 		return false;
 	}
 
@@ -418,9 +414,14 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		{
 			FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[i];
 
-			if (Slot.StaticDataID == StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
+			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
 			{
 				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
+				// 부패 만료 시각 업데이트
+				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
+					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
+					                                             ItemInfo.ConsumableData.DecayRate)
+					                      : 0;
 				Slot.CurrentStackSize += CanAdd;
 				RemainingQuantity -= CanAdd;
 				bInventoryChanged = true;
@@ -430,7 +431,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 					break;
 				}
 			}
-			else if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+			else if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 			{
 				EmptyHotkeySlots.Add(i);
 			}
@@ -442,7 +443,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		for (int32 i = 0; i < HotkeyInventory.InventorySlotContainer.Num(); ++i)
 		{
 			const FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[i];
-			if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+			if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 			{
 				EmptyHotkeySlots.Add(i);
 			}
@@ -458,9 +459,14 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		{
 			FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
 
-			if (Slot.StaticDataID == StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
+			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
 			{
 				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
+				// 부패 만료 시각 업데이트
+				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
+					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
+					                                             ItemInfo.ConsumableData.DecayRate)
+					                      : 0;
 				Slot.CurrentStackSize += CanAdd;
 				RemainingQuantity -= CanAdd;
 				bInventoryChanged = true;
@@ -470,7 +476,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 					break;
 				}
 			}
-			else if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+			else if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 			{
 				EmptyBagSlots.Add(i);
 			}
@@ -482,7 +488,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
 		{
 			const FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
-			if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+			if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 			{
 				EmptyBagSlots.Add(i);
 			}
@@ -502,12 +508,16 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		bInventoryChanged = true;
 
 		FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
-		Slot.StaticDataID = StaticDataID;
-		Slot.DynamicDataID = DynamicDataID;
+		Slot.ItemData = ItemData;
 		Slot.bCanStack = ItemInfo.IsStackable();
 		Slot.MaxStackSize = ItemInfo.MaxStack;
 
 		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(RemainingQuantity, ItemInfo.MaxStack) : 1;
+		// 부패 만료 시각 업데이트
+		Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
+			                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount,
+			                                             ItemInfo.ConsumableData.DecayRate)
+			                      : 0;
 		Slot.CurrentStackSize = AddAmount;
 		RemainingQuantity -= AddAmount;
 	}
@@ -525,12 +535,16 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 		bInventoryChanged = true;
 
 		FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[SlotIndex];
-		Slot.StaticDataID = StaticDataID;
-		Slot.DynamicDataID = DynamicDataID;
+		Slot.ItemData = ItemData;
 		Slot.bCanStack = ItemInfo.IsStackable();
 		Slot.MaxStackSize = ItemInfo.MaxStack;
 
 		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(RemainingQuantity, ItemInfo.MaxStack) : 1;
+		// 부패 만료 시각 업데이트
+		Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
+			                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount,
+			                                             ItemInfo.ConsumableData.DecayRate)
+			                      : 0;
 		Slot.CurrentStackSize = AddAmount;
 		RemainingQuantity -= AddAmount;
 	}
@@ -544,6 +558,7 @@ bool UTSInventoryMasterComponent::AddItem(int32 StaticDataID, int32 DynamicDataI
 	if (bInventoryChanged)
 	{
 		HandleInventoryChanged();
+		GetOwner()->ForceNetUpdate();
 	}
 
 	return RemainingQuantity == 0;
@@ -564,7 +579,7 @@ bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
 
-	if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 	{
 		return false;
 	}
@@ -582,14 +597,13 @@ bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32
 	}
 
 	HandleInventoryChanged();
+	GetOwner()->ForceNetUpdate();
 
 	return true;
 }
+#pragma endregion
 
-// ========================================
-// 슬롯 조회
-// ========================================
-
+#pragma region Slot
 FSlotStructMaster UTSInventoryMasterComponent::GetSlot(EInventoryType InventoryType, int32 SlotIndex) const
 {
 	if (!IsValidSlotIndex(InventoryType, SlotIndex))
@@ -609,7 +623,7 @@ FSlotStructMaster UTSInventoryMasterComponent::GetSlot(EInventoryType InventoryT
 bool UTSInventoryMasterComponent::IsSlotEmpty(EInventoryType InventoryType, int32 SlotIndex) const
 {
 	FSlotStructMaster Slot = GetSlot(InventoryType, SlotIndex);
-	return Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0;
+	return Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0;
 }
 
 int32 UTSInventoryMasterComponent::FindEmptySlot(EInventoryType InventoryType) const
@@ -623,7 +637,7 @@ int32 UTSInventoryMasterComponent::FindEmptySlot(EInventoryType InventoryType) c
 	for (int32 i = 0; i < Inventory->InventorySlotContainer.Num(); ++i)
 	{
 		const FSlotStructMaster& Slot = Inventory->InventorySlotContainer[i];
-		if (Slot.StaticDataID == INDEX_NONE || Slot.CurrentStackSize <= 0)
+		if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
 		{
 			return i;
 		}
@@ -631,17 +645,16 @@ int32 UTSInventoryMasterComponent::FindEmptySlot(EInventoryType InventoryType) c
 
 	return -1;
 }
+#pragma endregion
 
-// ========================================
-// 타입 검증
-// ========================================
+#pragma region CheckSlotType
 
 bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 	int32 StaticDataID,
 	EInventoryType InventoryType,
 	int32 SlotIndex) const
 {
-	if (StaticDataID == INDEX_NONE || !IsValidSlotIndex(InventoryType, SlotIndex))
+	if (StaticDataID == 0 || !IsValidSlotIndex(InventoryType, SlotIndex))
 	{
 		return false;
 	}
@@ -669,10 +682,9 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 
 	return true;
 }
+#pragma endregion
 
-// ========================================
-// 가방 시스템
-// ========================================
+#pragma region BagInventory
 
 bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 {
@@ -703,16 +715,16 @@ bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 	}
 
 	OnBagSizeChanged.Broadcast(NewSlotCount);
+	GetOwner()->ForceNetUpdate();
 
 	UE_LOG(LogTemp, Log, TEXT("Bag expanded: %d -> %d (Max: %d)"),
 	       OldSize, NewSlotCount, MaxBagSlotCount);
 
 	return true;
 }
+#pragma endregion
 
-// ========================================
-// 핫키 아이템 장착 시스템
-// ========================================
+#pragma region Hotkey / EquipItem
 
 FSlotStructMaster UTSInventoryMasterComponent::GetActiveHotkeySlot() const
 {
@@ -726,7 +738,7 @@ FSlotStructMaster UTSInventoryMasterComponent::GetActiveHotkeySlot() const
 bool UTSInventoryMasterComponent::HasItemEquipped() const
 {
 	FSlotStructMaster ActiveSlot = GetActiveHotkeySlot();
-	return ActiveSlot.StaticDataID != INDEX_NONE && ActiveSlot.CurrentStackSize > 0;
+	return ActiveSlot.ItemData.StaticDataID != 0 && ActiveSlot.CurrentStackSize > 0;
 }
 
 void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
@@ -739,7 +751,7 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 
 	const FSlotStructMaster& ActiveSlot = HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex];
 
-	if (ActiveSlot.StaticDataID == INDEX_NONE || ActiveSlot.CurrentStackSize <= 0)
+	if (ActiveSlot.ItemData.StaticDataID == 0 || ActiveSlot.CurrentStackSize <= 0)
 	{
 		UnequipCurrentItem();
 		return;
@@ -750,7 +762,7 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 	// TODO: GameplayAbility 연동 시 ASC 코드 추가
 
 	UE_LOG(LogTemp, Log, TEXT("Equipped: ID=%d (Slot %d)"),
-	       ActiveSlot.StaticDataID, ActiveHotkeyIndex);
+	       ActiveSlot.ItemData.StaticDataID, ActiveHotkeyIndex);
 }
 
 void UTSInventoryMasterComponent::UnequipCurrentItem()
@@ -763,17 +775,64 @@ void UTSInventoryMasterComponent::UnequipCurrentItem()
 	// TODO: GameplayAbility 연동 시 ASC 코드 추가
 
 	FSlotStructMaster ActiveSlot = GetActiveHotkeySlot();
-	UE_LOG(LogTemp, Log, TEXT("Unequipped: ID=%d"), ActiveSlot.StaticDataID);
+	UE_LOG(LogTemp, Log, TEXT("Unequipped: ID=%d"), ActiveSlot.ItemData.StaticDataID);
 }
 
-// ========================================
-// 헬퍼 함수 - 슬롯 조작
-// ========================================
+
+#pragma endregion
+void UTSInventoryMasterComponent::OnDecayTick()
+{
+	ConvertToDecayedItem(EInventoryType::HotKey);
+	ConvertToDecayedItem(EInventoryType::BackPack);
+	HandleInventoryChanged();
+	GetOwner()->ForceNetUpdate();
+}
+
+void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryType)
+{
+	FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
+	if (!Inventory)
+	{
+		return;
+	}
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	for (FSlotStructMaster& Slot : Inventory->InventorySlotContainer)
+	{
+		if (Slot.ItemData.StaticDataID == 0)
+		{
+			continue;
+		}
+		FItemData ItemInfo;
+		if (!GetItemData(Slot.ItemData.StaticDataID, ItemInfo))
+		{
+			continue;
+		}
+		if (ItemInfo.IsDecayEnabled() && Slot.ExpirationTime > 0)
+		{
+			if (CurrentTime < Slot.ExpirationTime)
+			{
+				continue;
+			}
+			if (CachedDecayedItemInfo.ItemID != DecayedItemID)
+			{
+				if (!GetItemData(DecayedItemID, CachedDecayedItemInfo))
+				{
+					continue;
+				}
+			}
+			Slot.ItemData.StaticDataID = DecayedItemID;
+			Slot.ExpirationTime = 0;
+			Slot.bCanStack = CachedDecayedItemInfo.IsStackable();
+			Slot.MaxStackSize = CachedDecayedItemInfo.MaxStack;
+			UE_LOG(LogTemp, Log, TEXT("Decayed: ID=%d"), Slot.ItemData.StaticDataID);
+		}
+	}
+}
+#pragma region Helper - Slot
 
 void UTSInventoryMasterComponent::ClearSlot(FSlotStructMaster& Slot)
 {
-	Slot.StaticDataID = INDEX_NONE;
-	Slot.DynamicDataID = INDEX_NONE;
+	Slot.ItemData = FItemInstance();
 	Slot.CurrentStackSize = 0;
 }
 
@@ -782,11 +841,11 @@ void UTSInventoryMasterComponent::CopySlotData(
 	FSlotStructMaster& Target,
 	int32 Quantity)
 {
-	Target.StaticDataID = Source.StaticDataID;
-	Target.DynamicDataID = Source.DynamicDataID;
+	Target.ItemData = Source.ItemData;
 	Target.bCanStack = Source.bCanStack;
 	Target.MaxStackSize = Source.MaxStackSize;
 	Target.CurrentStackSize = (Quantity < 0) ? Source.CurrentStackSize : Quantity;
+	Target.ExpirationTime = Source.ExpirationTime;
 }
 
 bool UTSInventoryMasterComponent::TryStackSlots(
@@ -794,14 +853,14 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 	FSlotStructMaster& ToSlot,
 	bool bIsFullStack)
 {
-	if (FromSlot.StaticDataID == INDEX_NONE || ToSlot.StaticDataID == INDEX_NONE ||
-		FromSlot.StaticDataID != ToSlot.StaticDataID)
+	if (FromSlot.ItemData.StaticDataID == 0 || ToSlot.ItemData.StaticDataID == 0 ||
+		FromSlot.ItemData.StaticDataID != ToSlot.ItemData.StaticDataID)
 	{
 		return false;
 	}
 
 	FItemData ItemInfo;
-	if (!GetItemData(FromSlot.StaticDataID, ItemInfo))
+	if (!GetItemData(FromSlot.ItemData.StaticDataID, ItemInfo))
 	{
 		return false;
 	}
@@ -814,8 +873,14 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 	if (bIsFullStack)
 	{
 		int32 CanAdd = FMath::Min(FromSlot.CurrentStackSize, MaxStack - ToSlot.CurrentStackSize);
+
 		if (CanAdd > 0)
 		{
+			// 부패 만료 시각 업데이트
+			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled()
+				                        ? UpdateExpirationTime(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, CanAdd,
+				                                               ItemInfo.ConsumableData.DecayRate)
+				                        : 0;
 			ToSlot.CurrentStackSize += CanAdd;
 			FromSlot.CurrentStackSize -= CanAdd;
 
@@ -830,6 +895,11 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 	{
 		if (ToSlot.CurrentStackSize < MaxStack)
 		{
+			// 부패 만료 시각 업데이트
+			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled()
+				                        ? UpdateExpirationTime(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, 1,
+				                                               ItemInfo.ConsumableData.DecayRate)
+				                        : 0;
 			ToSlot.CurrentStackSize += 1;
 			FromSlot.CurrentStackSize -= 1;
 
@@ -843,10 +913,9 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 
 	return false;
 }
+#pragma endregion
 
-// ========================================
-// 헬퍼 함수 - 인벤토리
-// ========================================
+#pragma region Helper - Inventory
 
 FInventoryStructMaster* UTSInventoryMasterComponent::GetInventoryByType(EInventoryType InventoryType)
 {
@@ -886,11 +955,9 @@ bool UTSInventoryMasterComponent::IsValidSlotIndex(EInventoryType InventoryType,
 
 	return SlotIndex >= 0 && SlotIndex < Inventory->InventorySlotContainer.Num();
 }
+#pragma endregion
 
-// ========================================
-// 헬퍼 함수 - 아이템 정보
-// ========================================
-
+#pragma region Helper - ItemInfo
 UItemDataSubsystem* UTSInventoryMasterComponent::GetItemDataSubsystem() const
 {
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
@@ -902,7 +969,7 @@ UItemDataSubsystem* UTSInventoryMasterComponent::GetItemDataSubsystem() const
 
 bool UTSInventoryMasterComponent::GetItemData(int32 StaticDataID, FItemData& OutData) const
 {
-	if (StaticDataID == INDEX_NONE)
+	if (StaticDataID == 0)
 	{
 		return false;
 	}
@@ -925,6 +992,16 @@ bool UTSInventoryMasterComponent::IsItemBagType(int32 StaticDataID) const
 	return StaticDataID == BagItemID;
 }
 
+double UTSInventoryMasterComponent::UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack,
+                                                         int NewItemStack, float DecayRate)
+{
+	double NewItemExpirationTime = GetWorld()->GetTimeSeconds() + DecayRate;
+	return (CurrentExpirationTime * CurrentStack + NewItemExpirationTime * NewItemStack) / (CurrentStack +
+		NewItemStack);
+}
+#pragma endregion
+
+#pragma region Helper - ASC
 UAbilitySystemComponent* UTSInventoryMasterComponent::GetASC()
 {
 	ATSCharacter* PC = Cast<ATSCharacter>(GetOwner());
@@ -939,7 +1016,9 @@ UAbilitySystemComponent* UTSInventoryMasterComponent::GetASC()
 	}
 	return ASC;
 }
+#pragma endregion
 
+#pragma region Helper - Delegate
 void UTSInventoryMasterComponent::HandleInventoryChanged()
 {
 	OnInventoryUpdated.Broadcast(HotkeyInventory, EquipmentInventory, BagInventory);
@@ -957,3 +1036,4 @@ void UTSInventoryMasterComponent::HandleActiveHotkeyIndexChanged()
 		UnequipCurrentItem();
 	}
 }
+#pragma endregion

@@ -12,6 +12,7 @@
 // ========================================
 
 struct FItemData;
+struct FItemInstance;
 class UItemDataSubsystem;
 class UAbilitySystemComponent;
 
@@ -154,7 +155,7 @@ public:
 	// ========================================
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(int32 StaticDataID, int32 DynamicDataID, int32 Quantity);
+	bool AddItem(FItemInstance& ItemData, int32 Quantity);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
@@ -212,6 +213,17 @@ public:
 	void UnequipCurrentItem();
 
 private:
+	// 부패도 매니저 델리게이트 바인딩 함수
+	UFUNCTION()
+	void OnDecayTick();
+	// ========================================
+	// 헬퍼 함수 - 부패
+	// ========================================
+	// TODO : 부패물 아이템 아이디 어디서 가져올지 확인 필요
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Settings")
+	int32 DecayedItemID = 0;
+	FItemData CachedDecayedItemInfo;
+	void ConvertToDecayedItem(EInventoryType InventoryType);
 	// ========================================
 	// 헬퍼 함수 - 슬롯 조작
 	// ========================================
@@ -236,6 +248,7 @@ private:
 	UItemDataSubsystem* GetItemDataSubsystem() const;
 	bool GetItemData(int32 StaticDataID, FItemData& OutData) const;
 	bool IsItemBagType(int32 StaticDataID) const;
+	double UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack, int NewItemStack, float DecayRate);
 
 	// ========================================
 	// 헬퍼 함수 - ASC
