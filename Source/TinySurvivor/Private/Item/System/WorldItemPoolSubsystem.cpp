@@ -20,7 +20,7 @@ bool UWorldItemPoolSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 	if (!World->IsGameWorld())
 		return false;
 
-	// ¼­¹ö¿¡¼­¸¸ »ı¼º
+	// ì„œë²„ì—ì„œë§Œ ìƒì„±
 	return World->GetNetMode() != NM_Client;
 }
 
@@ -28,14 +28,14 @@ void UWorldItemPoolSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	// rdInst ¼­ºê½Ã½ºÅÛ Ä³½Ã
+	// rdInst ì„œë¸Œì‹œìŠ¤í…œ ìºì‹œ
 	InstanceSubsystem = GetWorld()->GetSubsystem<UWorldItemInstanceSubsystem>();
 }
 
-// »ı¼ºµÈ ¾×ÅÍ°¡ ÀÚ½ÅÀ» Pool¿¡ µî·Ï. ATSItemPoolActor°¡ BeginPlay¿¡¼­ ÀÌ ÇÔ¼ö¸¦ È£Ãâ
+// ìƒì„±ëœ ì•¡í„°ê°€ ìì‹ ì„ Poolì— ë“±ë¡. ATSItemPoolActorê°€ BeginPlayì—ì„œ ì´ í•¨ìˆ˜ë¥¼ í˜¸ì¶œ
 void UWorldItemPoolSubsystem::RegisterPoolActor(ATSItemPoolActor* PoolActor)
 {
-	// ÀÌ¹Ì ´Ù¸¥ Ç®ÀÌ µî·ÏµÇ¾ú´ÂÁö È®ÀÎ
+	// ì´ë¯¸ ë‹¤ë¥¸ í’€ì´ ë“±ë¡ë˜ì—ˆëŠ”ì§€ í™•ì¸
 	if (WorldItemPool != nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UWorldItemPoolSubsystem : PoolActor is already registered"));
@@ -48,7 +48,7 @@ void UWorldItemPoolSubsystem::RegisterPoolActor(ATSItemPoolActor* PoolActor)
 		return;
 	}
 
-	// EAP Ç®À» Ã£¾ÒÀ¸¹Ç·Î, ¿©±â¼­ Ç®À» Ä³½ÃÇÏ°í ÃÊ±âÈ­¸¦ ½ÃÀÛ
+	// EAP í’€ì„ ì°¾ì•˜ìœ¼ë¯€ë¡œ, ì—¬ê¸°ì„œ í’€ì„ ìºì‹œí•˜ê³  ì´ˆê¸°í™”ë¥¼ ì‹œì‘
 	WorldItemPool = PoolActor;
 	ATSItemPoolActor* TSPoolActor = PoolActor;
 
@@ -60,7 +60,7 @@ void UWorldItemPoolSubsystem::RegisterPoolActor(ATSItemPoolActor* PoolActor)
 			WorldItemClass = AWorldItem::StaticClass();
 		}
 
-		// BP¿¡¼­ ¼³Á¤ÇÑ º¯¼öµéÀ» ÀĞ¾î¿Í¼­ Ç® ÃÊ±âÈ­ ½ÃÀÛ
+		// BPì—ì„œ ì„¤ì •í•œ ë³€ìˆ˜ë“¤ì„ ì½ì–´ì™€ì„œ í’€ ì´ˆê¸°í™” ì‹œì‘
 		TSPoolActor->StartInitializePoolAsync(
 			WorldItemClass,
 			TSPoolActor->InitialPoolsize,
@@ -78,7 +78,7 @@ TStatId UWorldItemPoolSubsystem::GetStatId() const
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UWorldItemPoolSubsystem, STATGROUP_Tickables);
 }
 
-// EAP°¡ ¿Ï·áµÇ¾ú´ÂÁö È®ÀÎ
+// EAPê°€ ì™„ë£Œë˜ì—ˆëŠ”ì§€ í™•ì¸
 bool UWorldItemPoolSubsystem::IsPoolReady() const
 {
 	return WorldItemPool && WorldItemPool->IsInitializationComplete();
@@ -91,7 +91,7 @@ void UWorldItemPoolSubsystem::Tick(float DeltaTime)
 	if (!IsPoolReady() || !InstanceSubsystem)
 		return;
 
-	// SwapCheckInterval¸¶´Ù ÇÑ ¹ø¾¿¸¸ ½º¿Ò ·ÎÁ÷ ½ÇÇà (¼º´É ÃÖÀûÈ­)
+	// SwapCheckIntervalë§ˆë‹¤ í•œ ë²ˆì”©ë§Œ ìŠ¤ì™‘ ë¡œì§ ì‹¤í–‰ (ì„±ëŠ¥ ìµœì í™”)
 	LastSwapCheckTime += DeltaTime;
 	if (LastSwapCheckTime >= SwapCheckInterval)
 	{
@@ -100,7 +100,7 @@ void UWorldItemPoolSubsystem::Tick(float DeltaTime)
 	}
 }
 
-// ÀÎº¥Åä¸®¿¡¼­ È£Ãâ
+// ì¸ë²¤í† ë¦¬ì—ì„œ í˜¸ì¶œ
 bool UWorldItemPoolSubsystem::DropItem(const FSlotStructMaster& ItemData, const FTransform& Transform,
 	FVector PlayerLocation)
 {
@@ -110,26 +110,26 @@ bool UWorldItemPoolSubsystem::DropItem(const FSlotStructMaster& ItemData, const 
 	float DistanceSq = FVector::DistSquared(PlayerLocation, Transform.GetLocation());
 
 	if (DistanceSq < FMath::Square(SwapToActorDistance))
-		// °Å¸®°¡ °¡±î¿ì¸é ¾×ÅÍ ½ºÆù
+		// ê±°ë¦¬ê°€ ê°€ê¹Œìš°ë©´ ì•¡í„° ìŠ¤í°
 		SpawnItemActor(ItemData, Transform);
 	else
-		// °Å¸®°¡ ¸Ö¸é ÀÎ½ºÅÏ½º ½ºÆù
+		// ê±°ë¦¬ê°€ ë©€ë©´ ì¸ìŠ¤í„´ìŠ¤ ìŠ¤í°
 		SpawnItemInstance(ItemData, Transform);
 
 	return true;
 }
 
-// AWorldItemÀÌ Ç®¿¡ ¹İ³³µÉ ¶§ È£Ãâ
+// AWorldItemì´ í’€ì— ë°˜ë‚©ë  ë•Œ í˜¸ì¶œ
 void UWorldItemPoolSubsystem::ReleaseItemActor(AWorldItem* ActorToRelease)
 {
 	if (WorldItemPool && ActorToRelease)
 	{
 		WorldItemPool->ReleaseActor(ActorToRelease);
-		ActiveWorldItems.Remove(ActorToRelease);		// È°¼º ¸ñ·Ï¿¡¼­ Á¦°Å
+		ActiveWorldItems.Remove(ActorToRelease);		// í™œì„± ëª©ë¡ì—ì„œ ì œê±°
 	}
 }
 
-// ³»ºÎ EAP
+// ë‚´ë¶€ EAP
 AWorldItem* UWorldItemPoolSubsystem::SpawnItemActor(const FSlotStructMaster& ItemData, const FTransform& Transform)
 {
 	if (!WorldItemPool)
@@ -141,18 +141,18 @@ AWorldItem* UWorldItemPoolSubsystem::SpawnItemActor(const FSlotStructMaster& Ite
 
 	if (WorldItem)
 	{
-		// À§Ä¡ ¼³Á¤
+		// ìœ„ì¹˜ ì„¤ì •
 		WorldItem->SetActorTransform(Transform, false, nullptr, ETeleportType::TeleportPhysics);
-		// µ¥ÀÌÅÍ ÁÖÀÔ(AWorldItem::SetItemData°¡ ³»ºÎÀûÀ¸·Î UpdateAppearance È£Ãâ)
+		// ë°ì´í„° ì£¼ì…(AWorldItem::SetItemDataê°€ ë‚´ë¶€ì ìœ¼ë¡œ UpdateAppearance í˜¸ì¶œ)
 		WorldItem->SetItemData(ItemData);
 
-		ActiveWorldItems.Add(WorldItem);			// È°¼º ¸ñ·Ï¿¡ Ãß°¡
+		ActiveWorldItems.Add(WorldItem);			// í™œì„± ëª©ë¡ì— ì¶”ê°€
 	}
 
 	return WorldItem;
 }
 
-// ³»ºÎ rdInst
+// ë‚´ë¶€ rdInst
 void UWorldItemPoolSubsystem::SpawnItemInstance(const FSlotStructMaster& ItemData, const FTransform& Transform)
 {
 	if (InstanceSubsystem)
@@ -165,7 +165,7 @@ void UWorldItemPoolSubsystem::UpdateItemSwapping()
 	if (!World || !InstanceSubsystem)
 		return;
 	
-	// ¸ğµç ÇÃ·¹ÀÌ¾î À§Ä¡¸¦ ¼öÁı
+	// ëª¨ë“  í”Œë ˆì´ì–´ ìœ„ì¹˜ë¥¼ ìˆ˜ì§‘
 	TArray<FVector> PlayerLocations;
 	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 	{
@@ -174,15 +174,15 @@ void UWorldItemPoolSubsystem::UpdateItemSwapping()
 			PlayerLocations.Add(PC->GetPawnOrSpectator()->GetActorLocation());
 	}
 
-	// ¼­¹ö¿¡ ÇÃ·¹ÀÌ¾î°¡ ÇÑ ¸íµµ ¾øÀ¸¸é Æ½ ÁßÁö
+	// ì„œë²„ì— í”Œë ˆì´ì–´ê°€ í•œ ëª…ë„ ì—†ìœ¼ë©´ í‹± ì¤‘ì§€
 	if (PlayerLocations.Num() == 0)
 		return;
 
 	const float InstanceDistSq = FMath::Square(SwapToInstanceDistance);
 
-	// Actor -> Instance ¸Ö¾îÁü
+	// Actor -> Instance ë©€ì–´ì§
 	TArray<AWorldItem*> ActorsToSwap;
-	for (AWorldItem* ItemActor : ActiveWorldItems)	// TSet ¼øÈ¸
+	for (AWorldItem* ItemActor : ActiveWorldItems)	// TSet ìˆœíšŒ
 	{
 		if (!ItemActor)
 			continue;
@@ -190,12 +190,12 @@ void UWorldItemPoolSubsystem::UpdateItemSwapping()
 		bool bIsFarFromAllPlayer = true;
 		FVector ActorLocation = ItemActor->GetActorLocation();
 
-		// ¾×ÅÍ°¡ ¸ğµç ÇÃ·¹ÀÌ¾î¿Í ¸Ö¸® ÀÖ´ÂÁö °Ë»ç
+		// ì•¡í„°ê°€ ëª¨ë“  í”Œë ˆì´ì–´ì™€ ë©€ë¦¬ ìˆëŠ”ì§€ ê²€ì‚¬
 		for (const FVector& PlayerLoc : PlayerLocations)
 		{
 			if (FVector::DistSquared(ActorLocation, PlayerLoc) <= InstanceDistSq)
 			{
-				// ÇÑ ¸íÀÌ¶óµµ °¡±îÀÌ ÀÖÀ¸¸é ½º¿Ò(Á¦°Å)ÇÏ¸é ¾ÈµÊ
+				// í•œ ëª…ì´ë¼ë„ ê°€ê¹Œì´ ìˆìœ¼ë©´ ìŠ¤ì™‘(ì œê±°)í•˜ë©´ ì•ˆë¨
 				bIsFarFromAllPlayer = false;
 				break;
 			}
@@ -205,11 +205,11 @@ void UWorldItemPoolSubsystem::UpdateItemSwapping()
 			ActorsToSwap.Add(ItemActor);
 	}
 
-	// ¼öÁıµÈ ¸ñ·ÏÀ» ½º¿Ò
+	// ìˆ˜ì§‘ëœ ëª©ë¡ì„ ìŠ¤ì™‘
 	for (AWorldItem* ItemActor : ActorsToSwap)
 		SwapActorToInstance(ItemActor);
 
-	// Instance -> Actor °¡±î¿öÁü
+	// Instance -> Actor ê°€ê¹Œì›Œì§
 	TArray<int32> NearbyIndices;
 	InstanceSubsystem->FindInstanceNear(PlayerLocations, SwapToActorDistance, NearbyIndices);
 
@@ -228,7 +228,7 @@ void UWorldItemPoolSubsystem::SwapInstanceToActor(int32 InstanceIndex)
 	FTransform InstanceTransform;
 
 	if (InstanceSubsystem->RemoveInstance(InstanceIndex, ItemData, InstanceTransform))
-		SpawnItemActor(ItemData, InstanceTransform);	// ¾×ÅÍ ½ºÆù
+		SpawnItemActor(ItemData, InstanceTransform);	// ì•¡í„° ìŠ¤í°
 }
 
 void UWorldItemPoolSubsystem::SwapActorToInstance(AWorldItem* ItemaActor)
@@ -239,12 +239,12 @@ void UWorldItemPoolSubsystem::SwapActorToInstance(AWorldItem* ItemaActor)
 	FSlotStructMaster ItemData = ItemaActor->GetItemData();
 	if (ItemData.StaticDataID <= 0)
 	{
-		ReleaseItemActor(ItemaActor);	// µ¥ÀÌÅÍ°¡ ¾ø´Â ¾×ÅÍ´Â ±×³É Ç®¿¡ ¹İ³³
+		ReleaseItemActor(ItemaActor);	// ë°ì´í„°ê°€ ì—†ëŠ” ì•¡í„°ëŠ” ê·¸ëƒ¥ í’€ì— ë°˜ë‚©
 		return;
 	}
 
 	FTransform Transform = ItemaActor->GetActorTransform();
-	SpawnItemInstance(ItemData, Transform);		// ÀÎ½ºÅÏ½º ½ºÆù
-	ReleaseItemActor(ItemaActor);				// ¾×ÅÍ ¹İ³³
+	SpawnItemInstance(ItemData, Transform);		// ì¸ìŠ¤í„´ìŠ¤ ìŠ¤í°
+	ReleaseItemActor(ItemaActor);				// ì•¡í„° ë°˜ë‚©
 }
 

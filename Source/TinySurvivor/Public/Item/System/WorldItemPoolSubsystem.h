@@ -23,61 +23,61 @@ public:
 	virtual TStatId GetStatId() const override;
 	virtual void Tick(float DeltaTime) override;
 
-	// ÀÎº¥Åä¸® µî ´Ù¸¥ ½Ã½ºÅÛÀÌ È£Ãâ
+	// ì¸ë²¤í† ë¦¬ ë“± ë‹¤ë¥¸ ì‹œìŠ¤í…œì´ í˜¸ì¶œ
 	
-	// ÀÎº¥Åä¸®¿¡¼­ ¾ÆÀÌÅÛÀ» ¹ö¸± ¶§ È£Ãâ
+	// ì¸ë²¤í† ë¦¬ì—ì„œ ì•„ì´í…œì„ ë²„ë¦´ ë•Œ í˜¸ì¶œ
 	UFUNCTION(BlueprintCallable, Category = "Item Pool")
 	bool DropItem(const FSlotStructMaster& ItemData, const FTransform& Transform, FVector PlayerLocation);
-	// AWorldItemÀÌ ÁÖ¿öÁ³À» ¶§, ÀÚ½ÅÀ» Ç®¿¡ ¹İ³³ÇÏ±â À§ÇØ È£Ãâ
+	// AWorldItemì´ ì£¼ì›Œì¡Œì„ ë•Œ, ìì‹ ì„ í’€ì— ë°˜ë‚©í•˜ê¸° ìœ„í•´ í˜¸ì¶œ
 	UFUNCTION(BlueprintCallable, Category = "Item Pool")
 	void ReleaseItemActor(AWorldItem* ActorToRelease);
-	// Actor°¡ »ı¼ºµÇ¾úÀ» ¶§, ½º½º·Î¸¦ µî·ÏÇÏµµ·Ï È£Ãâ
+	// Actorê°€ ìƒì„±ë˜ì—ˆì„ ë•Œ, ìŠ¤ìŠ¤ë¡œë¥¼ ë“±ë¡í•˜ë„ë¡ í˜¸ì¶œ
 	UFUNCTION(BlueprintCallable, Category = "Item Pool")
 	void RegisterPoolActor(ATSItemPoolActor* PoolActor);
 protected:
-	// Actor Pooling/rdInst Ã³¸® ÇÔ¼ö
+	// Actor Pooling/rdInst ì²˜ë¦¬ í•¨ìˆ˜
 
-	// Ç®¿¡¼­ AWorldItem ¾×ÅÍ¸¦ ²¨³» ½ºÆù
+	// í’€ì—ì„œ AWorldItem ì•¡í„°ë¥¼ êº¼ë‚´ ìŠ¤í°
 	AWorldItem* SpawnItemActor(const FSlotStructMaster& ItemData, const FTransform& Transform);
-	// rdInst ¼­ºê½Ã½ºÅÛ¿¡ °¡Â¥ ¸Ş½Ã ÀÎ½ºÅÏ½º ½ºÆùÀ» ¿äÃ»
+	// rdInst ì„œë¸Œì‹œìŠ¤í…œì— ê°€ì§œ ë©”ì‹œ ì¸ìŠ¤í„´ìŠ¤ ìŠ¤í°ì„ ìš”ì²­
 	void SpawnItemInstance(const FSlotStructMaster& ItemData, const FTransform& Transform);
 
-	// Actor Pooling Äİ¹é
+	// Actor Pooling ì½œë°±
 
-	// ºñµ¿±â Ç® »ı¼ºÀÌ ¿Ï·áµÇ¾úÀ» ¶§ È£ÃâµÉ Äİ¹é
+	// ë¹„ë™ê¸° í’€ ìƒì„±ì´ ì™„ë£Œë˜ì—ˆì„ ë•Œ í˜¸ì¶œë  ì½œë°±
 	void OnPoolInitialized();
-	// Ç®ÀÌ ºñµ¿±â ÃÊ±âÈ­¸¦ ¿Ï·áÇß´ÂÁö ¿©ºÎ
+	// í’€ì´ ë¹„ë™ê¸° ì´ˆê¸°í™”ë¥¼ ì™„ë£Œí–ˆëŠ”ì§€ ì—¬ë¶€
 	bool IsPoolReady() const;
 
-	// Actor Pooling/rdInst ½º¿Ò ·ÎÁ÷
+	// Actor Pooling/rdInst ìŠ¤ì™‘ ë¡œì§
 
-	// ¸Å Æ½¸¶´Ù ÇÃ·¹ÀÌ¾î ÁÖº¯ÀÇ ¾×ÅÍ¿Í ÀÎ½ºÅÏ½º¸¦ °Ë»çÇÏ¿© ½º¿ÒÀ» ½ÇÇà
+	// ë§¤ í‹±ë§ˆë‹¤ í”Œë ˆì´ì–´ ì£¼ë³€ì˜ ì•¡í„°ì™€ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ê²€ì‚¬í•˜ì—¬ ìŠ¤ì™‘ì„ ì‹¤í–‰
 	void UpdateItemSwapping();
-	// °¨ÁöµÈ °¡±î¿î rdInst ÀÎ½ºÅÏ½º¸¦ ÁøÂ¥ AWorldItem ¾×ÅÍ·Î ±³Ã¼
+	// ê°ì§€ëœ ê°€ê¹Œìš´ rdInst ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì§„ì§œ AWorldItem ì•¡í„°ë¡œ êµì²´
 	void SwapInstanceToActor(int32 InstanceIndex);
-	// °¨ÁöµÈ ¸Ö¾îÁø AWorldItem ¾×ÅÍ¸¦ °¡Â¥ rdInst ÀÎ½ºÅÏ½º·Î ±³Ã¼
+	// ê°ì§€ëœ ë©€ì–´ì§„ AWorldItem ì•¡í„°ë¥¼ ê°€ì§œ rdInst ì¸ìŠ¤í„´ìŠ¤ë¡œ êµì²´
 	void SwapActorToInstance(AWorldItem* ItemaActor);
 
-	// EAP°¡ ½ºÆùÇÒ AWorldItemÀÇ ºí·çÇÁ¸°Æ® Å¬·¡½º¸¦ ÁöÁ¤
+	// EAPê°€ ìŠ¤í°í•  AWorldItemì˜ ë¸”ë£¨í”„ë¦°íŠ¸ í´ë˜ìŠ¤ë¥¼ ì§€ì •
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item Pool Config")
 	TSubclassOf<AWorldItem> WorldItemClass;
-	// Actor Pooling ÇÃ·¯±×ÀÎÀÇ ¾×ÅÍ Ç® °´Ã¼
+	// Actor Pooling í”ŒëŸ¬ê·¸ì¸ì˜ ì•¡í„° í’€ ê°ì²´
 	UPROPERTY()
 	TObjectPtr<AActorPool> WorldItemPool;
-	// rdInst °ü¸® ¼­ºê½Ã½ºÅÛÀÇ Ä³½ÃµÈ Æ÷ÀÎÅÍ
+	// rdInst ê´€ë¦¬ ì„œë¸Œì‹œìŠ¤í…œì˜ ìºì‹œëœ í¬ì¸í„°
 	UPROPERTY()
 	TObjectPtr<UWorldItemInstanceSubsystem> InstanceSubsystem;
-	// È°¼º ¾×ÅÍ ÃßÀû Set
+	// í™œì„± ì•¡í„° ì¶”ì  Set
 	UPROPERTY()
 	TSet<TObjectPtr<AWorldItem>> ActiveWorldItems;
-	// ÀÌ °ªº¸´Ù °¡±î¿ì¸é Actor Pooling ¾×ÅÍ·Î ½ºÆù/½º¿Ò
+	// ì´ ê°’ë³´ë‹¤ ê°€ê¹Œìš°ë©´ Actor Pooling ì•¡í„°ë¡œ ìŠ¤í°/ìŠ¤ì™‘
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item Pool Config")
 	float SwapToActorDistance = 500.0f; // 5m
-	// ÀÌ °ªº¸´Ù ¸Ö¸é rdInst ÀÎ½ºÅÏ½º·Î ½ºÆù/½º¿Ò
+	// ì´ ê°’ë³´ë‹¤ ë©€ë©´ rdInst ì¸ìŠ¤í„´ìŠ¤ë¡œ ìŠ¤í°/ìŠ¤ì™‘
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item Pool Config")
 	float SwapToInstanceDistance = 600.0f; // 6m
 	
-	// ½º¿Ò ·ÎÁ÷ ¼º´É ÃÖÀûÈ­¸¦ À§ÇÑ Æ½ Á¶Àı
+	// ìŠ¤ì™‘ ë¡œì§ ì„±ëŠ¥ ìµœì í™”ë¥¼ ìœ„í•œ í‹± ì¡°ì ˆ
 	float LastSwapCheckTime = 0.0f;
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item Pool Config")
 	float SwapCheckInterval = 0.5f;

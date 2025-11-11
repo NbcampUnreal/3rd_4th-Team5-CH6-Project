@@ -27,7 +27,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemData, Category = "Item")
 	FSlotStructMaster ItemData;
 
-	// ºñµ¿±â ¸Ş½Ã ·ÎµùÀ» À§ÇÑ ÇÚµé
+	// ë¹„ë™ê¸° ë©”ì‹œ ë¡œë”©ì„ ìœ„í•œ í•¸ë“¤
 	TSharedPtr<FStreamableHandle> MeshLoadHandle;
 	
 	UFUNCTION()
@@ -40,9 +40,9 @@ protected:
 	void UpdateAppearance();
 
 public:
-	// Ç®¿¡¼­ ¾×ÅÍ ²¨³¾ ¶§
+	// í’€ì—ì„œ ì•¡í„° êº¼ë‚¼ ë•Œ
 	virtual void OnAcquire_Implementation(const int32& IntParam, const FString& StringParam, const UObject* ObjectParam) override;
-	// Ç®·Î ¾×ÅÍ¸¦ ¹İ³³ÇÒ ¶§
+	// í’€ë¡œ ì•¡í„°ë¥¼ ë°˜ë‚©í•  ë•Œ
 	virtual void OnRelease_Implementation() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	

@@ -7,7 +7,7 @@
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
 
-// ¼­¹ö¿¡¼­¸¸ ¼­ºê ½Ã½ºÅÛ ½ÇÇà
+// ì„œë²„ì—ì„œë§Œ ì„œë¸Œ ì‹œìŠ¤í…œ ì‹¤í–‰
 bool UWorldItemInstanceSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	if (!Super::ShouldCreateSubsystem(Outer))
@@ -17,7 +17,7 @@ bool UWorldItemInstanceSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 	if (!World || !World->IsGameWorld())
 		return false;
 
-	// ¼­¹ö¿¡¼­¸¸ »ı¼º
+	// ì„œë²„ì—ì„œë§Œ ìƒì„±
 	return World->GetNetMode() != NM_Client;
 }
 
@@ -40,11 +40,11 @@ void UWorldItemInstanceSubsystem::RegisterInstanceActor(ArdActor* InstanceActor)
 		return;
 	}
 
-	// ArdActor¸¦ Ã£¾ÒÀ¸¹Ç·Î, ¿©±â¼­ º¯¼ö¿¡ Ä³½Ã
+	// ArdActorë¥¼ ì°¾ì•˜ìœ¼ë¯€ë¡œ, ì—¬ê¸°ì„œ ë³€ìˆ˜ì— ìºì‹œ
 	ItemInstanceManager = InstanceActor;
 }
 
-// ID·Î ¸Ş½Ã¸¦ µ¿±â½Ä ·Îµå
+// IDë¡œ ë©”ì‹œë¥¼ ë™ê¸°ì‹ ë¡œë“œ
 UStaticMesh* UWorldItemInstanceSubsystem::GetMeshFromID(UWorld* World, int32 ItemID)
 {
 	if (!World || ItemID <= 0)
@@ -77,13 +77,13 @@ UStaticMesh* UWorldItemInstanceSubsystem::GetMeshFromID(UWorld* World, int32 Ite
 	return nullptr;
 }
 
-// rdAddInstance¸¦ È£Ãâ
+// rdAddInstanceë¥¼ í˜¸ì¶œ
 int32 UWorldItemInstanceSubsystem::AddInstance(const FSlotStructMaster& ItemData, const FTransform& Transform)
 {
 	if (!ItemInstanceManager || ItemData.StaticDataID <= 0)
 		return -1;
 
-	// ID·Î UStaticMesh¸¦ °¡Á®¿É´Ï´Ù
+	// IDë¡œ UStaticMeshë¥¼ ê°€ì ¸ì˜µë‹ˆë‹¤
 	UStaticMesh* Mesh = GetMeshFromID(GetWorld(), ItemData.StaticDataID);
 	if (!Mesh)
 	{
@@ -91,17 +91,17 @@ int32 UWorldItemInstanceSubsystem::AddInstance(const FSlotStructMaster& ItemData
 		return -1;
 	}
 
-	// rdAddInstance¸¦ È£Ãâ
+	// rdAddInstanceë¥¼ í˜¸ì¶œ
 	int32 NewIndex = ItemInstanceManager->rdAddInstance(Mesh, Transform);
 
 	if (NewIndex != -1)
-		// ¼º°ø ½Ã ÀÎ½ºÅÏ½º ¸Ê¿¡ µî·Ï
+		// ì„±ê³µ ì‹œ ì¸ìŠ¤í„´ìŠ¤ ë§µì— ë“±ë¡
 		InstanceDataMap.Add(NewIndex, ItemData);
 
 	return NewIndex;
 }
 
-// rdRemoveInstance¸¦ È£Ãâ
+// rdRemoveInstanceë¥¼ í˜¸ì¶œ
 bool UWorldItemInstanceSubsystem::RemoveInstance(int32 InstanceIndex, FSlotStructMaster& OutItemData, FTransform& OutTransform)
 {
 	if (!ItemInstanceManager)
@@ -120,23 +120,23 @@ bool UWorldItemInstanceSubsystem::RemoveInstance(int32 InstanceIndex, FSlotStruc
 		return false;
 	}
 
-	// ArdActorÀÇ rdGetInstanceTransformÀ» È£ÃâÇÏ¿© TransformÀ» °¡Á®¿É´Ï´Ù
+	// ArdActorì˜ rdGetInstanceTransformì„ í˜¸ì¶œí•˜ì—¬ Transformì„ ê°€ì ¸ì˜µë‹ˆë‹¤
 	bool bSuccess = ItemInstanceManager->rdGetInstanceTransform(Mesh, InstanceIndex, OutTransform);
 
 	if (!bSuccess)
 		UE_LOG(LogTemp, Warning, TEXT("RemoveInstance : rdGetInstanceTransform failed for index '%d'"), InstanceIndex);
 
-	// ¸Ê¿¡¼­ µ¥ÀÌÅÍ¸¦ Á¦°Å
+	// ë§µì—ì„œ ë°ì´í„°ë¥¼ ì œê±°
 	OutItemData = *FoundData;
 	InstanceDataMap.Remove(InstanceIndex);
 	
-	// rdInst¿¡¼­ µ¥ÀÌÅÍ Á¦°Å(½ÇÆĞÇßÀ» °æ¿ì¿¡µµ Á¦°Å)
+	// rdInstì—ì„œ ë°ì´í„° ì œê±°(ì‹¤íŒ¨í–ˆì„ ê²½ìš°ì—ë„ ì œê±°)
 	ItemInstanceManager->rdRemoveInstance(Mesh, InstanceIndex);
 
 	return bSuccess;
 }
 
-// Actor ±ÙÃ³ÀÇ ÀÎ½ºÅÏ½º¸¦ Ã£´Â ±â´É(¿£ÁøÀÇ °ø°£ Äõ¸®(Sphere Sweep) »ç¿ë)
+// Actor ê·¼ì²˜ì˜ ì¸ìŠ¤í„´ìŠ¤ë¥¼ ì°¾ëŠ” ê¸°ëŠ¥(ì—”ì§„ì˜ ê³µê°„ ì¿¼ë¦¬(Sphere Sweep) ì‚¬ìš©)
 void UWorldItemInstanceSubsystem::FindInstanceNear(const TArray<FVector>& Locations, float Radius, TArray<int32>& OutInstanceIndices)
 {
 	// OutInstanceIndices.Empty();
@@ -150,42 +150,42 @@ void UWorldItemInstanceSubsystem::FindInstanceNear(const TArray<FVector>& Locati
 
 	const ECollisionChannel CollisionChannel = ECC_Visibility;
 
-	// ¸ğµç ÇÃ·¹ÀÌ¾î À§Ä¡¿¡ ´ëÇØ ½ºÇÇ¾î ½ºÀ¬(Sphere Sweep)À» ½ÇÇà
+	// ëª¨ë“  í”Œë ˆì´ì–´ ìœ„ì¹˜ì— ëŒ€í•´ ìŠ¤í”¼ì–´ ìŠ¤ìœ•(Sphere Sweep)ì„ ì‹¤í–‰
 	for (const FVector& Loc : Locations)
 	{
 		World->SweepMultiByChannel(
 			Hits,
-			Loc,	// ½ÃÀÛ À§Ä¡
-			Loc,	// ³¡ À§Ä¡
+			Loc,	// ì‹œì‘ ìœ„ì¹˜
+			Loc,	// ë ìœ„ì¹˜
 			FQuat::Identity,
 			CollisionChannel,
-			FCollisionShape::MakeSphere(Radius),	// °Ë»ö ¹İ°æ
+			FCollisionShape::MakeSphere(Radius),	// ê²€ìƒ‰ ë°˜ê²½
 			QueryParams
 		);
 	}
 
 	if (Hits.Num() > 0)
 	{
-		// Áßº¹µÈ ÀÎµ¦½º Á¦°Å¸¦ À§ÇØ TSetÀ» »ç¿ë
+		// ì¤‘ë³µëœ ì¸ë±ìŠ¤ ì œê±°ë¥¼ ìœ„í•´ TSetì„ ì‚¬ìš©
 		TSet<int32> FoundIndices;
 
 		for (const FHitResult& Hit : Hits)
 		{
-			// Ã£Àº °ÍÀÌ Instanced Static Mesh(ISM)°¡ ¸Â´ÂÁö È®ÀÎ
+			// ì°¾ì€ ê²ƒì´ Instanced Static Mesh(ISM)ê°€ ë§ëŠ”ì§€ í™•ì¸
 			UInstancedStaticMeshComponent* HitISM = Cast<UInstancedStaticMeshComponent>(Hit.GetComponent());
 
-			// ISMÀÌ 'rdInst' ÇÃ·¯±×ÀÎÀÌ °ü¸®ÇÏ´Â ISMÀÎÁö È®ÀÎ 
+			// ISMì´ 'rdInst' í”ŒëŸ¬ê·¸ì¸ì´ ê´€ë¦¬í•˜ëŠ” ISMì¸ì§€ í™•ì¸ 
 			if (HitISM)
 			{
-				// ºÎµúÈù ÀÎ½ºÅÏ½ºÀÇ ÀÎµ¦½º¸¦ °¡Á®¿È
+				// ë¶€ë”ªíŒ ì¸ìŠ¤í„´ìŠ¤ì˜ ì¸ë±ìŠ¤ë¥¼ ê°€ì ¸ì˜´
 				int32 InstanceIndex = Hit.Item;
 
-				// ÀÌ ÀÎµ¦½º°¡ ¸Ê¿¡ ÀÖ´ÂÁö È®ÀÎ
+				// ì´ ì¸ë±ìŠ¤ê°€ ë§µì— ìˆëŠ”ì§€ í™•ì¸
 				if (InstanceDataMap.Contains(InstanceIndex))
 					FoundIndices.Add(InstanceIndex);
 			}
 		}
-		// TSetÀÇ °á°ú¸¦ OutInstanceIndices¿¡ º¹»ç
+		// TSetì˜ ê²°ê³¼ë¥¼ OutInstanceIndicesì— ë³µì‚¬
 		OutInstanceIndices = FoundIndices.Array();
 	}
 }

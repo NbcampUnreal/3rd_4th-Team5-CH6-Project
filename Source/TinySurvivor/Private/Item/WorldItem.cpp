@@ -15,7 +15,7 @@
 AWorldItem::AWorldItem()
 {
 	bReplicates = true;
-	// Å¬¶óÀÌ¾ğÆ®°¡ ÀÌ ¾×ÅÍ¸¦ ½ºÆùÇÒ ¼ö ÀÖµµ·Ï ¼³Á¤
+	// í´ë¼ì´ì–¸íŠ¸ê°€ ì´ ì•¡í„°ë¥¼ ìŠ¤í°í•  ìˆ˜ ìˆë„ë¡ ì„¤ì •
 	SetReplicatingMovement(true);
 	
 	if (!RootComponent)
@@ -23,19 +23,19 @@ AWorldItem::AWorldItem()
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(RootComponent);
-	// ½ÃÀÛ½Ã ¹°¸® ½Ã¹Ä·¹ÀÌ¼Ç ºñÈ°¼ºÈ­ (Ç®¿¡¼­ ²¨³¾ ¶§ ÄÓ ¼ö ÀÖÀ½)
+	// ì‹œì‘ì‹œ ë¬¼ë¦¬ ì‹œë®¬ë ˆì´ì…˜ ë¹„í™œì„±í™” (í’€ì—ì„œ êº¼ë‚¼ ë•Œ ì¼¤ ìˆ˜ ìˆìŒ)
 	MeshComponent->SetSimulatePhysics(false);
 
-	// »óÈ£ÀÛ¿ë Äİ¸®Àü »ı¼º (Áİ±â °¨Áö¿ë)
+	// ìƒí˜¸ì‘ìš© ì½œë¦¬ì „ ìƒì„± (ì¤ê¸° ê°ì§€ìš©)
 	InteractionCollision = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionCollision"));
 	InteractionCollision->SetupAttachment(RootComponent);
-	InteractionCollision->SetSphereRadius(150.0f);	// Áİ±â ¹İ°æ (ÀÓ½Ã)
+	InteractionCollision->SetSphereRadius(150.0f);	// ì¤ê¸° ë°˜ê²½ (ì„ì‹œ)
 
-	// »ı¼ºÀÚ¿¡¼­ Äİ¸®ÀüÀ» ºñÈ°¼ºÈ­
+	// ìƒì„±ìì—ì„œ ì½œë¦¬ì „ì„ ë¹„í™œì„±í™”
 	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractionCollision->SetGenerateOverlapEvents(false);
 	
-	// ¿À¹ö·¥ ÀÌº¥Æ® ¹ÙÀÎµù (¼­¹ö¿¡¼­¸¸)
+	// ì˜¤ë²„ë¨ ì´ë²¤íŠ¸ ë°”ì¸ë”© (ì„œë²„ì—ì„œë§Œ)
 	if (HasAuthority())
 	{
 		InteractionCollision->OnComponentBeginOverlap.AddDynamic(this, &AWorldItem::OnInteractionOverlap);
@@ -43,93 +43,93 @@ AWorldItem::AWorldItem()
 	}
 }
 
-// ¾î¶² º¯¼ö¸¦ Å¬¶óÀÌ¾ğÆ®·Î º¹Á¦ÇÒ Áö ¼³Á¤
+// ì–´ë–¤ ë³€ìˆ˜ë¥¼ í´ë¼ì´ì–¸íŠ¸ë¡œ ë³µì œí•  ì§€ ì„¤ì •
 void AWorldItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// ItemData º¯¼ö°¡ º¯°æµÉ ¶§¸¶´Ù Å¬¶óÀÌ¾ğÆ®·Î º¹Á¦ÇÏ°í OnRep_ItemData ÇÔ¼ö È£Ãâ
+	// ItemData ë³€ìˆ˜ê°€ ë³€ê²½ë  ë•Œë§ˆë‹¤ í´ë¼ì´ì–¸íŠ¸ë¡œ ë³µì œí•˜ê³  OnRep_ItemData í•¨ìˆ˜ í˜¸ì¶œ
 	DOREPLIFETIME(AWorldItem, ItemData);
 }
 
-// Ç®¿¡¼­ ¾×ÅÍ¸¦ ²¨³¾ ¶§ ÀÚµ¿À¸·Î È£Ãâ
+// í’€ì—ì„œ ì•¡í„°ë¥¼ êº¼ë‚¼ ë•Œ ìë™ìœ¼ë¡œ í˜¸ì¶œ
 void AWorldItem::OnAcquire_Implementation(const int32& IntParam, const FString& StringParam, const UObject* ObjectParam)
 {
 	Super::OnAcquire_Implementation(IntParam, StringParam, ObjectParam);
 
-	// »ı¼ºµÈ ÈÄ, ºÎ¸ğ¿¡¼­ Äİ¸®ÀüÀ» ÄÑÁÖÁö¸¸, ¸í½ÃÀûÀ¸·Î ÇÑ ¹ø ´õ ÄÑÁİ´Ï´Ù
+	// ìƒì„±ëœ í›„, ë¶€ëª¨ì—ì„œ ì½œë¦¬ì „ì„ ì¼œì£¼ì§€ë§Œ, ëª…ì‹œì ìœ¼ë¡œ í•œ ë²ˆ ë” ì¼œì¤ë‹ˆë‹¤
 	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	InteractionCollision->SetGenerateOverlapEvents(true);
-	// ¾ÆÀÌÅÛ È¿°ú ·ÎÁ÷
+	// ì•„ì´í…œ íš¨ê³¼ ë¡œì§
 }
 
-// Ç®·Î ¾×ÅÍ¸¦ ¹İ³³ÇÒ ¶§ ÀÚµ¿À¸·Î È£Ãâ
+// í’€ë¡œ ì•¡í„°ë¥¼ ë°˜ë‚©í•  ë•Œ ìë™ìœ¼ë¡œ í˜¸ì¶œ
 void AWorldItem::OnRelease_Implementation()
 {
 	Super::OnRelease_Implementation();
 
-	// ¹İ³³ÇÒ ¶§, Äİ¸®Àü ºñÈ°¼ºÈ­
+	// ë°˜ë‚©í•  ë•Œ, ì½œë¦¬ì „ ë¹„í™œì„±í™”
 	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractionCollision->SetGenerateOverlapEvents(false);
-	// Ãß°¡ ºñÈ°¼ºÈ­/ÃÊ±âÈ­ ·ÎÁ÷
+	// ì¶”ê°€ ë¹„í™œì„±í™”/ì´ˆê¸°í™” ë¡œì§
 
-	// ÁøÇà ÁßÀÌ´ø ºñµ¿±â ·ÎµùÀÌ ÀÖ´Ù¸é Áï½Ã Ãë¼Ò
+	// ì§„í–‰ ì¤‘ì´ë˜ ë¹„ë™ê¸° ë¡œë”©ì´ ìˆë‹¤ë©´ ì¦‰ì‹œ ì·¨ì†Œ
 	if (MeshLoadHandle.IsValid())
 	{
 		MeshLoadHandle->CancelHandle();
 		MeshLoadHandle.Reset();
 	}
 
-	// ¸Ş½Ã ÄÄÆ÷³ÍÆ® Å¬¸®¾î
+	// ë©”ì‹œ ì»´í¬ë„ŒíŠ¸ í´ë¦¬ì–´
 	if (MeshComponent)
 	{
 		MeshComponent->SetStaticMesh(nullptr);
-		// ¹°¸® ½Ã¹ÄÀ» Ä×À» °æ¿ì ¿©±â¼­ ¹İµå½Ã ÇØÁ¦
+		// ë¬¼ë¦¬ ì‹œë®¬ì„ ì¼°ì„ ê²½ìš° ì—¬ê¸°ì„œ ë°˜ë“œì‹œ í•´ì œ
 	}
 
 	ItemData = FSlotStructMaster();
 }
 
-// Ç®¿¡¼­ ²¨³½ ¾×ÅÍ¿¡°Ô ¾î¶² ¾ÆÀÌÅÛÀÎÁö µ¥ÀÌÅÍ ÁÖÀÔ
+// í’€ì—ì„œ êº¼ë‚¸ ì•¡í„°ì—ê²Œ ì–´ë–¤ ì•„ì´í…œì¸ì§€ ë°ì´í„° ì£¼ì…
 void AWorldItem::SetItemData(const FSlotStructMaster& NewItemData)
 {
 	ItemData = NewItemData;
 
-	// ÀÌ ÇÔ¼ö´Â ¼­¹ö¿¡¼­¸¸ È£Ãâ
+	// ì´ í•¨ìˆ˜ëŠ” ì„œë²„ì—ì„œë§Œ í˜¸ì¶œ
 	if (HasAuthority())
 	{
-		// ¿ÜÇü ¾÷µ¥ÀÌÆ®
+		// ì™¸í˜• ì—…ë°ì´íŠ¸
 		UpdateAppearance();
 	}
 }
 
-// Å¬¶óÀÌ¾ğÆ®¿¡¼­ ItemData º¯¼ö°¡ º¹Á¦µÇ¾úÀ» ¶§ È£Ãâ
+// í´ë¼ì´ì–¸íŠ¸ì—ì„œ ItemData ë³€ìˆ˜ê°€ ë³µì œë˜ì—ˆì„ ë•Œ í˜¸ì¶œ
 void AWorldItem::OnRep_ItemData()
 {
 	UpdateAppearance();
 }
 
-// ItemData.StaticDataID¸¦ ÀÌ¿ëÇØ ¸Ş½Ã¸¦ Ã£¾Æ ºñµ¿±â ·ÎµåÇÏ°í Àû¿ë
+// ItemData.StaticDataIDë¥¼ ì´ìš©í•´ ë©”ì‹œë¥¼ ì°¾ì•„ ë¹„ë™ê¸° ë¡œë“œí•˜ê³  ì ìš©
 void AWorldItem::UpdateAppearance()
 {
 	if (!MeshComponent)
 		return;
 
-	// ÁøÇà ÁßÀÌ´ø ÀÌÀü ·Îµå ¿äÃ»ÀÌ ÀÖÀ¸¸é Ãë¼Ò
+	// ì§„í–‰ ì¤‘ì´ë˜ ì´ì „ ë¡œë“œ ìš”ì²­ì´ ìˆìœ¼ë©´ ì·¨ì†Œ
 	if (MeshLoadHandle.IsValid())
 	{
 		MeshLoadHandle->CancelHandle();
 		MeshLoadHandle.Reset();
 	}
 
-	// ID°¡ À¯È¿ÇÑÁö È®ÀÎ (À½¼öÀÌ¸é ºó ½½·ÔÀ¸·Î °£ÁÖ)
+	// IDê°€ ìœ íš¨í•œì§€ í™•ì¸ (ìŒìˆ˜ì´ë©´ ë¹ˆ ìŠ¬ë¡¯ìœ¼ë¡œ ê°„ì£¼)
 	if (ItemData.StaticDataID <= 0)
 	{
 		MeshComponent->SetStaticMesh(nullptr);
 		return;
 	}
 	
-	// µ¥ÀÌÅÍ Å×ÀÌºí ¼­ºê½Ã½ºÅÛÀ» °¡Á®¿É´Ï´Ù
+	// ë°ì´í„° í…Œì´ë¸” ì„œë¸Œì‹œìŠ¤í…œì„ ê°€ì ¸ì˜µë‹ˆë‹¤
 	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
 	if (!GameInstance)
 	{
@@ -146,11 +146,11 @@ void AWorldItem::UpdateAppearance()
 		return;
 	}
 	
-	// ID·Î FItemData¸¦ Ã£½À´Ï´Ù
+	// IDë¡œ FItemDataë¥¼ ì°¾ìŠµë‹ˆë‹¤
 	FItemData StaticItemData;
 	if (ItemDataSubsystem->GetItemDataSafe(ItemData.StaticDataID, StaticItemData))
 	{
-		// WorldMesh º¯¼ö°¡ À¯È¿ÇÑ Áö È®ÀÎ
+		// WorldMesh ë³€ìˆ˜ê°€ ìœ íš¨í•œ ì§€ í™•ì¸
 		if (StaticItemData.IsWorldMeshValid())
 		{
 			TSoftObjectPtr<UStaticMesh> MeshToLoad = StaticItemData.WorldMesh;
@@ -167,25 +167,25 @@ void AWorldItem::UpdateAppearance()
 		}
 		else
 		{
-			// FItemData¸¦ ¸ø Ã£Àº °æ¿ì
+			// FItemDataë¥¼ ëª» ì°¾ì€ ê²½ìš°
 			UE_LOG(LogTemp, Warning, TEXT("AWorldItem : Could not find StaticDataID '%d' in Data Table"), ItemData.StaticDataID);
 			MeshComponent->SetStaticMesh(nullptr);
 		}
 	}
 }
 
-// ÇÃ·¹ÀÌ¾î°¡ Áİ±â Äİ¸®Àü¿¡ µé¾î¿ÓÀ» ¶§ ¼­¹ö¿¡¼­¸¸ È£Ãâ
+// í”Œë ˆì´ì–´ê°€ ì¤ê¸° ì½œë¦¬ì „ì— ë“¤ì–´ì™“ì„ ë•Œ ì„œë²„ì—ì„œë§Œ í˜¸ì¶œ
 void AWorldItem::OnInteractionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// ¼­¹ö¿¡¼­¸¸ ½ÇÇàµÊ
+	// ì„œë²„ì—ì„œë§Œ ì‹¤í–‰ë¨
 	// TODO:
-	// 1. OtherActor°¡ Áİ±â °¡´ÉÇÑ ÇÃ·¹ÀÌ¾î(Pawn)ÀÎÁö È®ÀÎ
-	// 2. ÇÃ·¹ÀÌ¾î¶ó¸é Áİ±â UI Ç¥½Ã ¿äÃ» (ÇÃ·¹ÀÌ¾î ÄÁÆ®·Ñ·¯/HUD·Î ¾Ë¸²)
-	// 3. ÇÃ·¹ÀÌ¾î°¡ Áİ±â Å°¸¦ ´©¸£¸é (ÀÌ ÇÔ¼ö°¡ ¾Æ´Ñ º°µµ RPC·Î)
-	// 4.   ÇØ´ç ÇÃ·¹ÀÌ¾îÀÇ InventoryComponent->TryAddItem(this->ItemData) È£Ãâ
-	// 5.   TryAddItemÀÌ true¸¦ ¹İÈ¯ÇÏ¸é (Áİ±â ¼º°ø)
+	// 1. OtherActorê°€ ì¤ê¸° ê°€ëŠ¥í•œ í”Œë ˆì´ì–´(Pawn)ì¸ì§€ í™•ì¸
+	// 2. í”Œë ˆì´ì–´ë¼ë©´ ì¤ê¸° UI í‘œì‹œ ìš”ì²­ (í”Œë ˆì´ì–´ ì»¨íŠ¸ë¡¤ëŸ¬/HUDë¡œ ì•Œë¦¼)
+	// 3. í”Œë ˆì´ì–´ê°€ ì¤ê¸° í‚¤ë¥¼ ëˆ„ë¥´ë©´ (ì´ í•¨ìˆ˜ê°€ ì•„ë‹Œ ë³„ë„ RPCë¡œ)
+	// 4.   í•´ë‹¹ í”Œë ˆì´ì–´ì˜ InventoryComponent->TryAddItem(this->ItemData) í˜¸ì¶œ
+	// 5.   TryAddItemì´ trueë¥¼ ë°˜í™˜í•˜ë©´ (ì¤ê¸° ì„±ê³µ)
 	// 6.      UWorldItemPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>();
-	// 7.      PoolSubsystem->ReleaseItemActor(this); // Ç®¿¡ ¹İ³³
+	// 7.      PoolSubsystem->ReleaseItemActor(this); // í’€ì— ë°˜ë‚©
 	
 	UE_LOG(LogTemp, Warning, TEXT("AWorldItem overlapped by %s"), *OtherActor->GetName());
 }

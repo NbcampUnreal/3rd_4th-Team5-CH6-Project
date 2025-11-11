@@ -15,31 +15,31 @@ class TINYSURVIVOR_API UWorldItemInstanceSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
-	// ¼­¹ö¿¡¼­¸¸ »ı¼º
+	// ì„œë²„ì—ì„œë§Œ ìƒì„±
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
-	// ·¹º§¿¡ ¹èÄ¡µÈ ArdActor¸¦ Ã£¾Æ Ä³½Ã
+	// ë ˆë²¨ì— ë°°ì¹˜ëœ ArdActorë¥¼ ì°¾ì•„ ìºì‹œ
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
-	// ·¹º§¿¡ ¹èÄ¡µÈ ArdActor°¡ ÀÌ ÇÔ¼ö¸¦ È£ÃâÇØ¼­ ÀÚ½ÅÀ» µî·Ï
+	// ë ˆë²¨ì— ë°°ì¹˜ëœ ArdActorê°€ ì´ í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•´ì„œ ìì‹ ì„ ë“±ë¡
 	UFUNCTION(BlueprintCallable, Category = "Item Instance")
 	void RegisterInstanceActor(ArdActor* InstanceActor);
 	
-	// rdInst ÀÎ½ºÅÏ½º Ãß°¡
+	// rdInst ì¸ìŠ¤í„´ìŠ¤ ì¶”ê°€
 	int32 AddInstance(const FSlotStructMaster& ItemData, const FTransform& Transform);
-	// rdInst ÀÎ½ºÅÍ½º Á¦°Å ¹× µ¥ÀÌÅÍ/Æ®·£½ºÆû ¹İÈ¯
+	// rdInst ì¸ìŠ¤í„°ìŠ¤ ì œê±° ë° ë°ì´í„°/íŠ¸ëœìŠ¤í¼ ë°˜í™˜
 	bool RemoveInstance(int32 InstanceIndex, FSlotStructMaster& OutItemData, FTransform& OutTransform);
-	// Æ¯Á¤ À§Ä¡ ÁÖº¯ÀÇ ÀÎ½ºÅÏ½º ÀÎµ¦½º °Ë»ö
+	// íŠ¹ì • ìœ„ì¹˜ ì£¼ë³€ì˜ ì¸ìŠ¤í„´ìŠ¤ ì¸ë±ìŠ¤ ê²€ìƒ‰
 	void FindInstanceNear(const TArray<FVector>& Locations, float Radius, TArray<int32>& OutInstanceIndices);
 
 protected:
-	// ·¹º§¿¡ ¹èÄ¡µÈ rdInstÀÇ ¸ŞÀÎ ¾×ÅÍ (º»Ã¼)
+	// ë ˆë²¨ì— ë°°ì¹˜ëœ rdInstì˜ ë©”ì¸ ì•¡í„° (ë³¸ì²´)
 	UPROPERTY()
 	TObjectPtr<ArdActor> ItemInstanceManager;
-	// rdInst aoq ÀÎµ¦½º(key)/¾ÆÀÌÅÛ µ¥ÀÌÅÍ(Value)
+	// rdInst aoq ì¸ë±ìŠ¤(key)/ì•„ì´í…œ ë°ì´í„°(Value)
 	UPROPERTY()
 	TMap<int32, FSlotStructMaster> InstanceDataMap;
 
 private:
-	// ID·Î ¸Ş½Ã¸¦ µ¿±â ·ÎµåÇÏ´Â ³»ºÎ ÇïÆÛ ÇÔ¼ö
+	// IDë¡œ ë©”ì‹œë¥¼ ë™ê¸° ë¡œë“œí•˜ëŠ” ë‚´ë¶€ í—¬í¼ í•¨ìˆ˜
 	UStaticMesh* GetMeshFromID(UWorld* World, int32 ItemID);
 };
