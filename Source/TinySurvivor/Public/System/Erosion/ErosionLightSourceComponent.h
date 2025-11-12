@@ -31,7 +31,7 @@ protected:
 protected:
 	// 침식도 감소량 주기 (초)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Config")
-	float MaintenanceEffectTime = 30.0f;
+	float MaintenanceEffectTime = 10.0f;
 
 	// 침식도 감소량 (음수 -> 감소)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Config")

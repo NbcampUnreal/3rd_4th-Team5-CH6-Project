@@ -6,6 +6,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(ErosionManager, Log, All);
 
+// 주석 달자.
+
 class UErosionConfigData;
 class UErosionLightSourceComponent;
 class AErosionStateInfo;
@@ -45,6 +47,8 @@ class TINYSURVIVOR_API UTSErosionSubSystem : public UWorldSubsystem
 	//-----------------------------
 	
 public:
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Deinitialize() override;
 
@@ -96,25 +100,25 @@ protected:
 	// 로직 단위 처리 함수
 	void ApplyNaturalIncrease(); // 자연 상승 
 
-	// UI 용
+	// UI용
 	void EnsureStateInfoExists(); // UI 업데이트 액터 생성 함수 
 	void BroadcastToStateInfo();  // UI 업데이트 발신 함수 
 	
 	// 이벤트용
 	void OnErosionChangedBroadcast(); // 침식도 수준에 따라 이벤트 발신
+
+	// 스테이지용
+	void StabilizeStage();
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	//-----------------------------
-	// UTSErosionSubSystem 타이머
+	// UTSErosionSubSystem 침식도 업데이트 총괄 함수
 	//-----------------------------
 
 protected:
-	// 타이머 (침식도 증가 타이머)
+	UFUNCTION()
 	void UpdateErosion();  
-
-	FTimerHandle ErosionTimerHandle;     // 타이머 핸들
-	float TickInterval = 1.0f;           // 1초 주기 (모든 침식도 관련 X당 Y증감의 최소 주기이어야 한다.)
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
@@ -131,6 +135,12 @@ protected:
 	UPROPERTY()
 	TObjectPtr<AErosionStateInfo> StateInfo;
 
+	// 스테이지 안정화 주기 변수
+	float StageStabilizeStack = 0.f;
+	
+	// 스테이지 안정화 주기 변수
+	float StageStabilizeTime = 0.f;
+	
 	// 마지막 침식도
 	float LastErosion = 0.f;
 	
@@ -146,15 +156,19 @@ protected:
 	// 현재 침식 속도 (캐싱)
 	float CachedCurrentNaturalErosionSpeed = 10.f;
 
-	// MAx 영향 on/off
+	// MAX 영향 on/off
 	bool bMaxInfluenceActive = false;
-
-	// 현재 침식도 스테이지 (30/60/90/100==MAX)
-	EErosionStage CurrentStage = EErosionStage::None;
 
 	// 디버깅 캐싱
 	bool bShowDebug = false;
 
+	// 스테이지 안정화 변수
+	bool bIsStageStabling = false;
+	
+	// 현재 침식도 스테이지 (30/60/90/100==MAX)
+	EErosionStage CurrentStage = EErosionStage::None;
+	
+	
 public:
 	bool GetShowDebug() const { return bShowDebug; }
 };

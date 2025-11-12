@@ -5,6 +5,7 @@
 #include "EngineUtils.h"
 #include "TimerManager.h"
 #include "Engine/AssetManager.h"
+#include "System/Time/TimeTickManager.h"
 
 DEFINE_LOG_CATEGORY(ErosionManager)
 
@@ -13,6 +14,54 @@ DEFINE_LOG_CATEGORY(ErosionManager)
 	//-----------------------------
 	// UTSErosionSubSystem 라이프사이클
 	//-----------------------------
+
+bool UTSErosionSubSystem::ShouldCreateSubsystem(UObject* Outer) const
+{
+	// 부모 클래스 체크
+	if (!Super::ShouldCreateSubsystem(Outer))
+	{
+		return false;
+	}
+	
+	// World 유효성 체크
+	UWorld* World = Cast<UWorld>(Outer);
+	if (!World)
+	{// World가 없으면 서브시스템을 생성하지 않음
+		return false;
+	}
+	
+	// 게임 월드인지 확인 (에디터 프리뷰, PIE 등은 제외)
+	if (!World->IsGameWorld())
+	{// 게임 실행 중인 월드가 아니면 생성하지 않음
+		return false;
+	}
+	
+	// 서버에서만 생성 (클라이언트에서는 생성하지 않음)
+	// NetMode 종류:
+	//  - NM_Standalone      (0): 싱글플레이 → 서버 역할
+	//  - NM_DedicatedServer (1): 데디케이티드 서버 → 서버
+	//  - NM_ListenServer    (2): 리슨 서버 → 서버
+	//  - NM_Client          (3): 클라이언트 → 생성 안 함!
+	const bool bIsServer = World->GetNetMode() != NM_Client;
+	if (bIsServer)
+	{// 서버
+		UE_LOG(ErosionManager, Log, TEXT("ShouldCreateSubsystem: 서버에서 생성 (NetMode: %d)"), 
+			static_cast<int32>(World->GetNetMode()));
+	}
+	else
+	{// 클라이언트
+		UE_LOG(ErosionManager, Log, TEXT("ShouldCreateSubsystem: 클라이언트에서는 생성하지 않음"));
+	}
+	
+	return bIsServer;
+}
+
+void UTSErosionSubSystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	// TimeTickManager가 먼저 초기화되도록 명시적 의존성 설정
+	Collection.InitializeDependency(UTimeTickManager::StaticClass());
+}
 
 void UTSErosionSubSystem::OnWorldBeginPlay(UWorld& InWorld)
 {
@@ -65,13 +114,19 @@ void UTSErosionSubSystem::OnWorldBeginPlay(UWorld& InWorld)
 	// UI 업데이트
 	BroadcastToStateInfo();
 	
-	// 1초마다 UpdateErosion 실행
-	// 1초 갱신 타이머를 쓰는 매니저가 맣아질 경우 추후 시관 관리 전역 매니저가 1초 갱신 타이머를 세팅하고
-	// 다른 매니저들이 이를 구독하여 쓰는 형식으로 타이머 갯수를 줄일 필요가 있다.
-	if (UWorld* World = GetWorld())
+	// TimeTickManager 가져오기
+	UTimeTickManager* TimeTickManager = GetWorld()->GetSubsystem<UTimeTickManager>();
+	if (!TimeTickManager)
 	{
-		World->GetTimerManager().SetTimer(ErosionTimerHandle,this,&UTSErosionSubSystem::UpdateErosion,TickInterval,true);
+		// TimeTickManager가 없으면 부패(Decay) 시스템 동작 불가
+		UE_LOG(ErosionManager, Error, TEXT("Initialize: TimeTickManager를 찾을 수 없습니다!"));
+		return;
 	}
+	
+	// TimeTickManager의 1초 신호 구독
+	TimeTickManager->OnSecondTick.AddDynamic(this, &UTSErosionSubSystem::UpdateErosion);
+	
+	UE_LOG(ErosionManager, Log, TEXT("DecayManager 초기화 완료 (TimeTickManager에 구독됨)"));
 
 	// 매니저 자신이 라이트의 요청 델리게이트를 구독함
 	OnErosionLightSourceBroadcastDelegate.AddDynamic(this, &UTSErosionSubSystem::AddOrSubtractErosion);
@@ -80,17 +135,21 @@ void UTSErosionSubSystem::OnWorldBeginPlay(UWorld& InWorld)
 	CachedCurrentNaturalErosion = Config->NaturalErosionRate;
 	CachedCurrentNaturalErosionSpeed = Config->NaturalErosionSpeed;
 	bShowDebug = Config->bShowDebug;
+	StageStabilizeTime = Config->StageStabilizeTime;
 }
 
 void UTSErosionSubSystem::Deinitialize()
 {
-	// 타이머 해제
-	if (UWorld* World = GetWorld())
+	// TimeTickManager가 아직 유효한 경우에만 구독 해제 시도
+	UTimeTickManager* TimeTickManager = GetWorld()->GetSubsystem<UTimeTickManager>();
+	if (IsValid(TimeTickManager))
 	{
-		if (World->GetTimerManager().IsTimerActive(ErosionTimerHandle))
-		{
-			World->GetTimerManager().ClearTimer(ErosionTimerHandle);
-		}
+		TimeTickManager->OnSecondTick.RemoveDynamic(this, &UTSErosionSubSystem::UpdateErosion);
+		UE_LOG(ErosionManager, Log, TEXT("TimeTickManager 구독 해제 완료"));
+	}
+	else
+	{
+		UE_LOG(ErosionManager, Verbose, TEXT("TimeTickManager가 이미 소멸됨 (구독 해제 생략)"));
 	}
 	
 	// 모든 구독 해제 (자신)
@@ -130,10 +189,17 @@ void UTSErosionSubSystem::AddOrSubtractErosion(float AddOrSubtract)
 	// 1) 값 갱신
 	CurrentErosion = FMath::Clamp(CurrentErosion + AddOrSubtract, Config->MinErosion, Config->MaxErosion);
 
-	// 2) 침식 스테이지 업데이트 
-	OnErosionChangedBroadcast();
+	// 2) 침식도 안정화 중인가? (안정화 중인면 스테이지 변경 업데이트 하지 않음)
+	if (bIsStageStabling) return;
+
+	// 침식도 안정화 중인가? (안정화 중인면 스테이지 변경 업데이트 하지 않음)
+	if (bIsStageStabling == false)
+	{
+		// 3) 침식도에 따른 이벤트 발신
+		OnErosionChangedBroadcast();
+	}
 	
-	// 3) UI 업데이트
+	// 4) UI 업데이트
 	BroadcastToStateInfo();
 
 	if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("건축물 / AI 몬스터 / 거인에 의해 변경된 [Erosion] 값 +%.1f"), CurrentErosion);
@@ -182,13 +248,22 @@ void UTSErosionSubSystem::UpdateErosion()
 	// 2) 빛 건축물 침식도 업데이트 요청
 	OnErosionLightSourceSubDelegate.Broadcast();
 
-	// 현재 침식도와 마지막 침식도가 같으면 업데이트 X 
-	if (LastErosion == CurrentErosion) return;
+	// 침식도 레벨 안정화 상태인가? (안정화 중인면 스테이지 변경 업데이트 하지 않음)
+	if (bIsStageStabling == false)
+	{
+		// 현재 침식도와 마지막 침식도가 같으면 업데이트 X 
+		if (LastErosion == CurrentErosion) return;
 	
-	// 3) 침식도에 따른 이벤트 발신
-	OnErosionChangedBroadcast();
-
-	// 4) 클라 동기화(Replicated Info 갱신)
+		// 3) 침식도에 따른 이벤트 발신
+		OnErosionChangedBroadcast();
+	}
+	else
+	{
+		StabilizeStage();
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("레벨 전환 안정화 중 %.1f / %.1f"), StageStabilizeStack, StageStabilizeTime);
+	}
+	
+	// 4) UI 클라 동기화(Replicated Info 갱신)
 	BroadcastToStateInfo();
 
 	// 5) 마지막 침식도 값 업데이트 
@@ -278,6 +353,7 @@ void UTSErosionSubSystem::ApplyNaturalIncrease()
 	{
 		NaturalElapsedTime = 0.0f;
 		CurrentErosion += CachedCurrentNaturalErosion;
+		CurrentErosion = FMath::Clamp(CurrentErosion, Config->MinErosion, Config->MaxErosion);
 	}
 
 	// 디버깅용 
@@ -293,6 +369,7 @@ void UTSErosionSubSystem::BroadcastToStateInfo()
 void UTSErosionSubSystem::OnErosionChangedBroadcast()
 {
 	if (!Config) return;
+	if (bIsStageStabling) return;
 
 	EErosionStage NewStage = EErosionStage::None;
 
@@ -318,7 +395,12 @@ void UTSErosionSubSystem::OnErosionChangedBroadcast()
 	// 새로운 스테이지 발송 
 	OnErosionChangedDelegate.Broadcast(CurrentErosion);
 
-	// 디버깅용 
+	// 새로운 스테이지가 되었으므로 침식도 스테이지 변화 안정화 시작
+	bIsStageStabling = true;
+
+	
+	// 디버깅용
+	if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] //========================================================//"));
 	switch (CurrentStage)
 	{
 	case EErosionStage::None:
@@ -340,13 +422,29 @@ void UTSErosionSubSystem::OnErosionChangedBroadcast()
 	default:
 		break;
 	}
+	if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] //========================================================//"));
 	
 	// 참고 : 현재 수치를 보내고 그걸 그냥 받아서 알아서 판단하는 게 좋을 수도 있고,
 	// 참고 : 스테이지가 명확히 나누어져 있으면 그걸로 전부 통일하는 것도 나쁘지 않을 듯 하다.
 	// 참고 : 이는 결국 어떻게 게임 플레이 설계를 잡느냐에 따라 다른 듯.
 }
 
-// TOD : UI 와 침식도 스테이지 업데이트를 타이머에서만 호출할 것인가?
+void UTSErosionSubSystem::StabilizeStage()
+{
+	if (bIsStageStabling == true)
+	{
+		StageStabilizeStack += 1.f;
+
+		if (StageStabilizeStack >= StageStabilizeTime)
+		{
+			StageStabilizeStack = 0.f;
+			bIsStageStabling = false;
+			/*침식도 스테이지 유지시 브로드캐스트 변환 테스트 */CurrentErosion = 1.f;
+		}
+	}
+}
+
+// UI 와 침식도 스테이지 업데이트를 타이머에서만 호출할 것인가?
 // 1번 안 : 무조건 1초 타이머에서만 하기 (브로드 캐스트 줄어듬. 성능 향상) / "(단점 : 1초 뒤에 보이는 변화)
 // 2번 안 : UI, 침식도를 변화에 맞춰 브로드 캐스트 (브로드 캐스트 늘어남) / "(장점 : 변화가 곧바로 보임. 1초 뒤 보임 같은 거 없음.)
 // 현재는 일단 2번안으로 넣어놓음.

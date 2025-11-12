@@ -33,13 +33,13 @@ void UErosionLightSourceComponent::BeginPlay()
 
 void UErosionLightSourceComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	Super::EndPlay(EndPlayReason);
+	
 	UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
 	if (!IsValid(ErosionSubSystem)) return;
 
 	// 구독 해제 
 	ErosionSubSystem->OnErosionLightSourceSubDelegate.RemoveAll(this);
-	
-	Super::EndPlay(EndPlayReason);
 }
 
 void UErosionLightSourceComponent::InitializeFromBuildingData()
