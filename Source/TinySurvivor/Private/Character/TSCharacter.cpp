@@ -193,6 +193,7 @@ void ATSCharacter::ShoulderSwitch(const struct FInputActionValue& Value)
 void ATSCharacter::OnJumpOrClimb(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("SpaceBar pressed"));
+	Jump(); //가스로 할건데 일단은 테스트용
 }
 void ATSCharacter::OnRoll(const struct FInputActionValue& Value)
 {
@@ -210,10 +211,19 @@ void ATSCharacter::OnCrouch(const struct FInputActionValue& Value)
 void ATSCharacter::OnSprintStarted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("shift pressed"));
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = 1000.f;  //가스로 할건데 일단은 테스트용
+	}
+	
 }
 void ATSCharacter::OnSprintCompleted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("shift end"));
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->MaxWalkSpeed = 600.f;  //가스로 할건데 일단은 테스트용
+	}
 }
 void ATSCharacter::OnLyingDown(const struct FInputActionValue& Value)
 {
