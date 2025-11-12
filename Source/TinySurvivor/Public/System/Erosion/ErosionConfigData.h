@@ -23,7 +23,7 @@ public:
 
 	// 자연 상승 속도 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | 자연 상승 속도 (처음 기본 값)")
-	float NaturalErosionSpeed = 0.f;
+	float NaturalErosionSpeed = 15.f;
 	
 	// 침식도 하한값
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | 침식도 하한값", meta=(ClampMin="0"))
@@ -33,6 +33,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | 침식도 상한값", meta=(ClampMin="100"))
 	float MaxErosion = 100.0f;
 
+	// 스테이지 전환 레벨 상승 안정화 주기
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | 스테이지 전환 레벨 상승 안정화 주기")
+	float StageStabilizeTime = 300.0f;
+	
 	// 디버깅
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
 	bool bShowDebug = false;
