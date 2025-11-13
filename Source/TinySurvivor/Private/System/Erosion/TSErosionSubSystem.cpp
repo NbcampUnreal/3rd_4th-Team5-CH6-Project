@@ -136,6 +136,10 @@ void UTSErosionSubSystem::OnWorldBeginPlay(UWorld& InWorld)
 	CachedCurrentNaturalErosionSpeed = Config->NaturalErosionSpeed;
 	bShowDebug = Config->bShowDebug;
 	StageStabilizeTime = Config->StageStabilizeTime;
+
+	// 처음 시작 시 현재 침식도 레벨 브로드 캐스트
+	FTimerHandle FirstTimeUpdateErosionStage;
+	GetWorld()->GetTimerManager().SetTimer(FirstTimeUpdateErosionStage,this,&UTSErosionSubSystem::FirstTimeStageStabilize,1.0f,	false);
 }
 
 void UTSErosionSubSystem::Deinitialize()
@@ -150,6 +154,12 @@ void UTSErosionSubSystem::Deinitialize()
 	else
 	{
 		UE_LOG(ErosionManager, Verbose, TEXT("TimeTickManager가 이미 소멸됨 (구독 해제 생략)"));
+	}
+
+	// 모든 타이머 해제
+	if (IsValid(GetWorld()))
+	{
+		GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 	}
 	
 	// 모든 구독 해제 (자신)
@@ -429,6 +439,61 @@ void UTSErosionSubSystem::OnErosionChangedBroadcast()
 	// 참고 : 이는 결국 어떻게 게임 플레이 설계를 잡느냐에 따라 다른 듯.
 }
 
+void UTSErosionSubSystem::FirstTimeStageStabilize()
+{
+	if (!Config) return;
+	if (bIsStageStabling) return;
+
+	EErosionStage NewStage = EErosionStage::None;
+
+	// 추후 기획이 잡히는대로 스테이지를 명획히야 데이터 에셋으로부터 캐싱하여 가져오는 것으로 변경해야 한다.
+	// 혹은 기획쪽에서 굳이 필요없다고 하면 이대로 가도 무방할 듯. 
+	if (CurrentErosion < 30)
+		NewStage = EErosionStage::None;
+	else if (30 <= CurrentErosion && CurrentErosion < 60)
+		NewStage = EErosionStage::Stage30;
+	else if (60 <= CurrentErosion && CurrentErosion < 90)
+		NewStage = EErosionStage::Stage60;
+	else if (90 <= CurrentErosion && CurrentErosion < Config->MaxErosion)
+		NewStage = EErosionStage::Stage90;
+	else if (Config->MaxErosion <= CurrentErosion)
+		NewStage = EErosionStage::Max;
+
+	// 스테이지 갱신 
+	CurrentStage = NewStage;
+	
+	// 새로운 스테이지 발송 
+	OnErosionChangedDelegate.Broadcast(CurrentErosion);
+
+	// 새로운 스테이지가 되었으므로 침식도 스테이지 변화 안정화 시작 ? (일단 보류)
+	// bIsStageStabling = true;
+
+	// 디버깅용
+	if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] //========================================================//"));
+	switch (CurrentStage)
+	{
+	case EErosionStage::None:
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] 안정 구간(30 미만)으로 돌아왔다."));
+		break;
+	case EErosionStage::Stage30:
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] 30이 넘었다. (현재 30~60 미만)"));
+		break;
+	case EErosionStage::Stage60:
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] 60이 넘었다.(현재 60~90 미만)"));
+		break;
+	case EErosionStage::Stage90:
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] 90이 넘었다.(현재 90~Max 미만)"));
+		break;
+	case EErosionStage::Max:
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] Max다. (현재 MAX)"));
+		bMaxInfluenceActive = true;
+		break;
+	default:
+		break;
+	}
+	if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("[Erosion] //========================================================//"));
+}
+
 void UTSErosionSubSystem::StabilizeStage()
 {
 	if (bIsStageStabling == true)
@@ -439,7 +504,6 @@ void UTSErosionSubSystem::StabilizeStage()
 		{
 			StageStabilizeStack = 0.f;
 			bIsStageStabling = false;
-			/*침식도 스테이지 유지시 브로드캐스트 변환 테스트 */CurrentErosion = 1.f;
 		}
 	}
 }

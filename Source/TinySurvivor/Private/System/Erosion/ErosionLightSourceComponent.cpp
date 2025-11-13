@@ -3,6 +3,8 @@
 #include "System/Erosion/ErosionLightSourceComponent.h"
 #include "System/Erosion/TSErosionSubsystem.h"
 #include "Engine/World.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "System/Erosion/ErosionLightSourceInterface.h"
 
 UErosionLightSourceComponent::UErosionLightSourceComponent()
 {
@@ -13,6 +15,7 @@ void UErosionLightSourceComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!IsValid(GetOwner())) return;
 	if (GetOwner()->HasAuthority())
 	{
 		UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
@@ -62,6 +65,7 @@ bool UErosionLightSourceComponent::UpdateActiveFlag()
 	// 쉽게 말해서, 유지비가 내어지고 있는지 아닌지 판단해야 한다.
 	// 유지비를 내고 있는 상태가 아니라면 이 함수에 의해 감소 로직이 멈춘다.
 	// 유지비가 건물 각각인지, 기지 전체인지 아직 잘 모르겟으므로 기획 쪽에 물어봐야 한다.
+
 	return true;
 }
 
@@ -71,6 +75,26 @@ void UErosionLightSourceComponent::ReceiveErosionCheckTime()
 	if (false == UpdateActiveFlag())
 	{
 		UE_LOG(ErosionManager, Warning, TEXT("유지비 없음"));
+		if (!IsValid(GetOwner())) return;
+		if (!UKismetSystemLibrary::DoesImplementInterface(GetOwner(), UErosionLightSourceInterface::StaticClass())) return;
+		IErosionLightSourceInterface::Execute_SetErosionLightSource(GetOwner(), false);
+		return;
+	}
+	else
+	{
+		UE_LOG(ErosionManager, Warning, TEXT("유지비 있음"));
+		if (!IsValid(GetOwner())) return;
+		if (!UKismetSystemLibrary::DoesImplementInterface(GetOwner(), UErosionLightSourceInterface::StaticClass())) return;
+		IErosionLightSourceInterface::Execute_SetErosionLightSource(GetOwner(), true);
+	}
+
+	// 유지비 디버깅용
+	if (false == bIsActiveLightForDebug)
+	{
+		UE_LOG(ErosionManager, Warning, TEXT("유지비 디버깅용 : 유지비 없음"));
+		if (!IsValid(GetOwner())) return;
+		if (!UKismetSystemLibrary::DoesImplementInterface(GetOwner(), UErosionLightSourceInterface::StaticClass())) return;
+		IErosionLightSourceInterface::Execute_SetErosionLightSource(GetOwner(), false);
 		return;
 	}
 

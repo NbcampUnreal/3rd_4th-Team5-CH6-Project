@@ -48,9 +48,11 @@ protected:
 	
 public:
 	// 나중에 건물 데이터로부터 값 초기화할 함수 : 몇 초마다 몇을 감소할 거냐?
+	UFUNCTION(BlueprintCallable)
 	void InitializeFromBuildingData();
 
 	// 상태 업데이트 (아이템 데이터로부터 유지비가 가능한 상태인지 아닌지 받아옴)
+	UFUNCTION(BlueprintCallable)
 	bool UpdateActiveFlag();
 
 	// 매 1초마다 침식도 매니저에서 수신되면 호출될 함수
@@ -59,6 +61,10 @@ public:
 
 	// 침식도 감소 실행 : 스택이 쌓이면 이 함수를 호출
 	void OnIntervalTriggered();
+
+	// 상태 변수 (테스트용 : 추후 삭제 예정)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Erosion | Debug")
+	bool bIsActiveLightForDebug = true;
 
 	// 디버깅
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
