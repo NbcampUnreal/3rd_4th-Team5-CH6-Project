@@ -108,6 +108,7 @@ protected:
 	void OnErosionChangedBroadcast(); // 침식도 수준에 따라 이벤트 발신
 
 	// 스테이지용
+	void FirstTimeStageStabilize();
 	void StabilizeStage();
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -170,5 +171,6 @@ protected:
 	
 	
 public:
+	bool GetbIsStageStabling() const { return bIsStageStabling; }
 	bool GetShowDebug() const { return bShowDebug; }
 };

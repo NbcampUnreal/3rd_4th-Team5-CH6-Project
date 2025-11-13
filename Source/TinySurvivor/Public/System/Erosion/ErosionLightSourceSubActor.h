@@ -3,13 +3,36 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ErosionLightSourceInterface.h"
 #include "GameFramework/Actor.h"
 #include "ErosionLightSourceSubActor.generated.h"
 
 class UErosionLightSourceComponent;
+class UPointLightComponent;
+
+USTRUCT(BlueprintType)
+struct FLightScaleStep
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	float StepLess30 = 10.f	;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	float StepMore30Less60 = 8.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	float StepMore60Less90 = 6.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	float StepMore90LessMax = 4.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	float StepMax = 2.f;
+};
 
 UCLASS()
-class TINYSURVIVOR_API AErosionLightSourceSubActor : public AActor
+class TINYSURVIVOR_API AErosionLightSourceSubActor : public AActor, public IErosionLightSourceInterface
 {
 	GENERATED_BODY()
 
@@ -21,18 +44,54 @@ class TINYSURVIVOR_API AErosionLightSourceSubActor : public AActor
 	
 public:
 	AErosionLightSourceSubActor();
+	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// ===============================
-	// UErosionLightSourceComponent 컴포넌트 
+	// UErosionLightSourceComponent 침식도 구독 컴포넌트 
 	// ===============================
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "ErosionLightSource")
 	UErosionLightSourceComponent* GetErosionLightSourceComponent() { return ErosionLightSourceComponent;}
-	
+
 protected:
+	// 침식도 구독 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
 	TObjectPtr<UErosionLightSourceComponent> ErosionLightSourceComponent;
+	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	// ===============================
+	// UErosionLightSourceComponent 라이트 컴포넌트 
+	// ===============================
+
+	// IErosionLightSourceInterface ~
+	virtual void SetErosionLightSource_Implementation(bool bEnable) override;
+	// ~ IErosionLightSourceInterface
+	
+	// 침식도 이벤트 구독 함수 
+	UFUNCTION()
+	void ChangeLightScaleByErosion(float CurrentErosionScale);
+
+	// 밝기 조절 함수 
+	void SetLightScale(float scale);
+
+	// 클라이언트 밝기 동기화 
+	UFUNCTION()
+	void OnRep_LightScale();
+
+	// 밝기 변수 
+	UPROPERTY(ReplicatedUsing = OnRep_LightScale)
+	float LightScale = 1.0f;
+
+	// 포인트 라이트 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	TObjectPtr<UPointLightComponent> PointLightComponent;
+
+	// 밝기 조절 단계
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")
+	FLightScaleStep LightScaleStep;
 };
