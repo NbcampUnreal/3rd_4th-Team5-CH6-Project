@@ -94,6 +94,7 @@ protected:
 	void OnLyingDown(const struct FInputActionValue& Value);
 	
 	// Interaction 함수들
+	void OnOpenBag(const struct FInputActionValue& Value);
 	void OnBuild(const struct FInputActionValue& Value);
 	void OnInteract(const struct FInputActionValue& Value);
 	void OnLeftClick(const struct FInputActionValue& Value); //얘넨 모르겠다 (한 키에 여러가지 함수?)
