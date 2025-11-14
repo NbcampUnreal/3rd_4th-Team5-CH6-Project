@@ -6,6 +6,7 @@
 #include "Character/TSCharacter.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
+#include "Item/Runtime/DecayManager.h"
 
 UTSInventoryMasterComponent::UTSInventoryMasterComponent()
 {
@@ -36,8 +37,14 @@ void UTSInventoryMasterComponent::BeginPlay()
 
 	if (GetOwner()->HasAuthority())
 	{
-		// TODO : 부패도 매니저와 OnDecayTick 바인딩
-		
+		// 부패도 매니저 OnDecayTick 바인딩
+		UDecayManager* DecayMgr = GetWorld()->GetSubsystem<UDecayManager>();
+		if (DecayMgr)
+		{
+			DecayMgr->OnDecayTick.AddDynamic(this, &UTSInventoryMasterComponent::OnDecayTick);
+			CachedDecayedItemID = DecayMgr->GetDecayItemID();
+		}
+
 		// 핫키 인벤토리 초기화
 		HotkeyInventory.InventoryType = EInventoryType::HotKey;
 		HotkeyInventory.InventorySlotContainer.SetNum(HotkeySlotCount);
@@ -74,12 +81,20 @@ void UTSInventoryMasterComponent::BeginPlay()
 			UE_LOG(LogTemp, Log, TEXT("Inventory initialized: Hotkey=%d, Equipment=%d, Bag=Disabled (0 slots)"),
 			       HotkeySlotCount, EquipmentSlotTypes.Num());
 		}
+
+		// 초기화 브로드캐스트
+		HandleInventoryChanged();
+		OnInventoryInitialized.Broadcast();
+		// GetOwner()->ForceNetUpdate();
 	}
 }
 
 #pragma region Replication Callback
 void UTSInventoryMasterComponent::OnRep_HotkeyInventory()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[%s][%s] OnRep_HotkeyInventory called!"),
+	       GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"),
+	       *GetOwner()->GetName());
 	HandleInventoryChanged();
 }
 
@@ -287,13 +302,13 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	if (SourceInventory)
 	{
 		SourceInventory->HandleInventoryChanged();
-		SourceInventory->GetOwner()->ForceNetUpdate();
+		// SourceInventory->GetOwner()->ForceNetUpdate();
 	}
 	// 타겟 인벤토리의 델리게이트 브로드캐스트
 	if (TargetInventory && TargetInventory != SourceInventory)
 	{
 		TargetInventory->HandleInventoryChanged();
-		TargetInventory->GetOwner()->ForceNetUpdate();
+		// TargetInventory->GetOwner()->ForceNetUpdate();
 	}
 }
 
@@ -377,12 +392,12 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
 
 	HandleInventoryChanged();
-	GetOwner()->ForceNetUpdate();
+	// GetOwner()->ForceNetUpdate();
 }
 #pragma endregion
 
 #pragma region Add/Remove Item
-bool UTSInventoryMasterComponent::AddItem(FItemInstance& ItemData, int32 Quantity)
+bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Quantity)
 {
 	if (!GetOwner()->HasAuthority() || ItemData.StaticDataID == 0 || Quantity <= 0)
 	{
@@ -558,7 +573,7 @@ bool UTSInventoryMasterComponent::AddItem(FItemInstance& ItemData, int32 Quantit
 	if (bInventoryChanged)
 	{
 		HandleInventoryChanged();
-		GetOwner()->ForceNetUpdate();
+		// GetOwner()->ForceNetUpdate();
 	}
 
 	return RemainingQuantity == 0;
@@ -597,7 +612,7 @@ bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32
 	}
 
 	HandleInventoryChanged();
-	GetOwner()->ForceNetUpdate();
+	// GetOwner()->ForceNetUpdate();
 
 	return true;
 }
@@ -715,7 +730,7 @@ bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 	}
 
 	OnBagSizeChanged.Broadcast(NewSlotCount);
-	GetOwner()->ForceNetUpdate();
+	// GetOwner()->ForceNetUpdate();
 
 	UE_LOG(LogTemp, Log, TEXT("Bag expanded: %d -> %d (Max: %d)"),
 	       OldSize, NewSlotCount, MaxBagSlotCount);
@@ -785,7 +800,7 @@ void UTSInventoryMasterComponent::OnDecayTick()
 	ConvertToDecayedItem(EInventoryType::HotKey);
 	ConvertToDecayedItem(EInventoryType::BackPack);
 	HandleInventoryChanged();
-	GetOwner()->ForceNetUpdate();
+	// GetOwner()->ForceNetUpdate();
 }
 
 void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryType)
@@ -813,14 +828,14 @@ void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryT
 			{
 				continue;
 			}
-			if (CachedDecayedItemInfo.ItemID != DecayedItemID)
+			if (CachedDecayedItemInfo.ItemID != CachedDecayedItemID)
 			{
-				if (!GetItemData(DecayedItemID, CachedDecayedItemInfo))
+				if (!GetItemData(CachedDecayedItemID, CachedDecayedItemInfo))
 				{
 					continue;
 				}
 			}
-			Slot.ItemData.StaticDataID = DecayedItemID;
+			Slot.ItemData.StaticDataID = CachedDecayedItemID;
 			Slot.ExpirationTime = 0;
 			Slot.bCanStack = CachedDecayedItemInfo.IsStackable();
 			Slot.MaxStackSize = CachedDecayedItemInfo.MaxStack;

@@ -25,6 +25,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotInde
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBagSizeChanged, int32, NewSize);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryInitialized);
+
 UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
 class TINYSURVIVOR_API UTSInventoryMasterComponent : public UActorComponent
 {
@@ -97,6 +99,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
 	FOnBagSizeChanged OnBagSizeChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
+	FOnInventoryInitialized OnInventoryInitialized;
+
 	// ========================================
 	// 리플리케이션 콜백
 	// ========================================
@@ -155,7 +160,7 @@ public:
 	// ========================================
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(FItemInstance& ItemData, int32 Quantity);
+	bool AddItem(const FItemInstance& ItemData, int32 Quantity);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
@@ -221,7 +226,7 @@ private:
 	// ========================================
 	// TODO : 부패물 아이템 아이디 어디서 가져올지 확인 필요
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Settings")
-	int32 DecayedItemID = 0;
+	int32 CachedDecayedItemID;
 	FItemData CachedDecayedItemInfo;
 	void ConvertToDecayedItem(EInventoryType InventoryType);
 	// ========================================
