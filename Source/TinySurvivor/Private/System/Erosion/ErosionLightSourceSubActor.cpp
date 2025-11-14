@@ -19,9 +19,21 @@ AErosionLightSourceSubActor::AErosionLightSourceSubActor()
 	SetReplicatingMovement(true);
 	SetNetUpdateFrequency(1.f);
 	
+	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(Root);
+	
 	ErosionLightSourceComponent = CreateDefaultSubobject<UErosionLightSourceComponent>(TEXT("ErosionLightSourceComponent"));
-	PointLightComponent = CreateDefaultSubobject<UPointLightComponent>(TEXT("PointLightComponent"));
-	PointLightComponent->SetupAttachment(GetRootComponent());
+	
+	if (true == bUsePointLight)
+	{
+		PointLightComponent = CreateDefaultSubobject<UPointLightComponent>(TEXT("PointLightComponent"));
+		PointLightComponent->SetupAttachment(GetRootComponent());
+	}
+	else
+	{
+		StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
+		StaticMeshComponent->SetupAttachment(GetRootComponent());
+	}
 }
 
 void AErosionLightSourceSubActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -67,28 +79,112 @@ void AErosionLightSourceSubActor::SetErosionLightSource_Implementation(bool bEna
 
 void AErosionLightSourceSubActor::ChangeLightScaleByErosion(float CurrentErosionScale)
 {
-	if (CurrentErosionScale < 30)
-		SetLightScale(LightScaleStep.StepLess30);
-	else if (30 <= CurrentErosionScale && CurrentErosionScale < 60)
-		SetLightScale(LightScaleStep.StepMore30Less60);
-	else if (60 <= CurrentErosionScale && CurrentErosionScale < 90)
-		SetLightScale(LightScaleStep.StepMore60Less90);
-	else if (90 <= CurrentErosionScale && CurrentErosionScale < 100.f)
-		SetLightScale(LightScaleStep.StepMore90LessMax);
-	else if (100.f <= CurrentErosionScale)
-		SetLightScale(LightScaleStep.StepMax);
+	if (true == bUsePointLight)
+	{
+		if (CurrentErosionScale < 30)
+			SetLightScale(LightScaleStep.StepLess30);
+		else if (30 <= CurrentErosionScale && CurrentErosionScale < 60)
+			SetLightScale(LightScaleStep.StepMore30Less60);
+		else if (60 <= CurrentErosionScale && CurrentErosionScale < 90)
+			SetLightScale(LightScaleStep.StepMore60Less90);
+		else if (90 <= CurrentErosionScale && CurrentErosionScale < 100.f)
+			SetLightScale(LightScaleStep.StepMore90LessMax);
+		else if (100.f <= CurrentErosionScale)
+			SetLightScale(LightScaleStep.StepMax);
+	}
+	else
+	{
+		if (CurrentErosionScale < 30)
+			SetLightScale(EmissiveScaleStep.StepLess30);
+		else if (30 <= CurrentErosionScale && CurrentErosionScale < 60)
+			SetLightScale(EmissiveScaleStep.StepMore30Less60);
+		else if (60 <= CurrentErosionScale && CurrentErosionScale < 90)
+			SetLightScale(EmissiveScaleStep.StepMore60Less90);
+		else if (90 <= CurrentErosionScale && CurrentErosionScale < 100.f)
+			SetLightScale(EmissiveScaleStep.StepMore90LessMax);
+		else if (100.f <= CurrentErosionScale)
+			SetLightScale(EmissiveScaleStep.StepMax);
+	}
+	UE_LOG(ErosionManager, Warning, TEXT("가로등 : 침식도 이벤트 수신 받음"));
 }
 
 void AErosionLightSourceSubActor::SetLightScale(float scale)
 {
-	LightScale = scale;
-	PointLightComponent->SetIntensity(LightScale);
-	UE_LOG(ErosionManager, Warning, TEXT("가로등 밝기 변화됨"));
+	LightScale = scale + 0.01f;
+	
+	if (true == bUsePointLight)
+	{
+		PointLightComponent->SetIntensity(LightScale);
+		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화됨 (포인트 라이트)"));
+		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화 성공"));
+		return;
+	}
+	else
+	{
+		int32 MatIndex = StaticMeshComponent->GetMaterialIndex("Light");
+		if (MatIndex == INDEX_NONE)
+		{
+			UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인덱스 찾지 못함"));
+			return;
+		}
+		
+		UMaterialInterface* BaseMat = StaticMeshComponent->GetMaterial(MatIndex);
+		if (!BaseMat)
+		{
+			UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인터페이스 찾지 못함"));
+			return;
+		}
+		
+		if (!LightMID)
+		{
+			LightMID = UMaterialInstanceDynamic::Create(BaseMat, this);
+			StaticMeshComponent->SetMaterial(MatIndex, LightMID);
+		}
+
+		LightMID->SetScalarParameterValue("EmissiveIntensity", LightScale);
+		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화됨 (머티리얼)"));
+		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화 성공"));
+		return;
+	}
 }
 
 void AErosionLightSourceSubActor::OnRep_LightScale()
 {
-	PointLightComponent->SetIntensity(LightScale);
-	UE_LOG(ErosionManager, Warning, TEXT("가로등 밝기 변화됨"));
+	UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : OnRep_LightScale 호출됨"));
+	
+	if (true == bUsePointLight)
+	{
+		PointLightComponent->SetIntensity(LightScale);
+		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화됨 (포인트 라이트)"));
+		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화 성공"));
+		return;
+	}
+	else
+	{
+		int32 MatIndex = StaticMeshComponent->GetMaterialIndex("Light");
+		if (MatIndex == INDEX_NONE)
+		{
+			UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인덱스 찾지 못함"));
+			return;
+		}
+		
+		UMaterialInterface* BaseMat = StaticMeshComponent->GetMaterial(MatIndex);
+		if (!BaseMat)
+		{
+			UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인터페이스 찾지 못함"));
+			return;
+		}
+		
+		if (!LightMID)
+		{
+			LightMID = UMaterialInstanceDynamic::Create(BaseMat, this);
+			StaticMeshComponent->SetMaterial(MatIndex, LightMID);
+		}
+
+		LightMID->SetScalarParameterValue("EmissiveIntensity", LightScale);
+		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화됨 (머티리얼)"));
+		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화 성공"));
+		return;
+	}
 }
 
