@@ -37,6 +37,26 @@ public:
 	TObjectPtr<class USpringArmComponent> SpringArmComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly,Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UCameraComponent> CameraComponent;
+	
+	//shoulder Switch 설정	
+	UPROPERTY(EditAnywhere, Category="ShoulderSwitchCamera")
+	float RightShoulderOffset = 40.0f;
+
+	UPROPERTY(EditAnywhere, Category = "ShoulderSwitchCamera")
+	float LeftShoulderOffset = -80.0f;
+	
+	UPROPERTY(EditAnywhere, Category="ShoulderSwitchCamera")
+	float ShoulderSwitchDuration = 0.5f; //0.5초 동안 이동
+
+	bool bIsRightShoulder = true; //현재 오른쪽 어깨 카메라인가?
+	bool bIsSwitchingShoulder = false; // 전환 중인지
+	float ShoulderSwitchElapsed = 0.f; // 경과 시간
+	
+	FVector ShoulderStartOffset; // 시작 위치
+	FVector ShoulderTargetOffset; // 목표 위치
+	FVector SpringArmBaseLocation;
+	FVector SpringArmRightLocation;
+	FVector SpringArmLeftLocation;
 #pragma endregion
 
 #pragma region Input
@@ -94,7 +114,20 @@ protected:
 	void OnHotKey0(const struct FInputActionValue& Value);
 	
 #pragma endregion
+		
+#pragma region LineTrace
+private:
+	void LineTrace();
 	
+	UPROPERTY(EditAnywhere,Category = "LineTrace")
+	float TraceLength = 500.f; // 상호작용 가능한 최대 거리
+	UPROPERTY(EditAnywhere,Category = "LineTrace")
+	TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Visibility; //탐지에 사용할 트레이스 채널
+	UPROPERTY()
+	TWeakObjectPtr<AActor> CurrentHitActor; //현재 라인트레이스에 맞고 있는 액터
+	UPROPERTY()
+	TWeakObjectPtr<AActor> LastHitActor; //직전 프레임에서 맞고 있던 액터
+#pragma endregion
 private:
 	void SendHotKeyEvent(int HotKeyIndex);
 	

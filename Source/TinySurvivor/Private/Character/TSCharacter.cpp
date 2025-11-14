@@ -15,10 +15,13 @@
 #include "Controller/TSPlayerController.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 ATSCharacter::ATSCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	SpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm Component"));
 	SpringArmComponent->SetupAttachment(RootComponent);
@@ -132,7 +135,15 @@ void ATSCharacter::InitializeAbilities()
 void ATSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	if (SpringArmComponent)
+	{
+		SpringArmBaseLocation = SpringArmComponent->GetRelativeLocation();
+		SpringArmRightLocation = SpringArmBaseLocation +FVector (0.f, RightShoulderOffset, 0.f); // +40
+		SpringArmLeftLocation  = SpringArmBaseLocation + FVector(0.f, LeftShoulderOffset, 0.f);  // -80
 
+		SpringArmComponent->SetRelativeLocation(SpringArmRightLocation);
+		bIsRightShoulder = true;
+	}
 	APlayerController* PlayerController = Cast<APlayerController>(Controller);
 	if (PlayerController && PlayerController->IsLocalController())
 	{
@@ -187,6 +198,15 @@ void ATSCharacter::Look(const FInputActionValue& Value)
 void ATSCharacter::ShoulderSwitch(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("q pressed"));
+	if (!SpringArmComponent) return;
+	if (bIsSwitchingShoulder) return; //이미 전환중이면 무시
+	
+	bIsSwitchingShoulder = true; 
+	ShoulderSwitchElapsed = 0.f;
+	
+	ShoulderStartOffset = SpringArmComponent->GetRelativeLocation();
+	ShoulderTargetOffset = bIsRightShoulder ? SpringArmLeftLocation : SpringArmRightLocation;
+	bIsRightShoulder = !bIsRightShoulder;
 }
 
 //---- Non GAS
@@ -325,6 +345,52 @@ void ATSCharacter::OnHotKey0(const struct FInputActionValue& Value)
 	SendHotKeyEvent(9); // 0번키 = 9번 슬롯 !!!!!!!!
 }
 
+void ATSCharacter::LineTrace()
+{
+	// 오직 로컬 플레이어 컨트롤러에서만 실행
+	APlayerController* PC = Cast<APlayerController>(Controller);
+	if (!IsValid(PC) || !PC->IsLocalController()) return;
+	
+	// 화면 중앙 위치 가져오기
+	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
+	
+	FVector2D ViewPortSize = FVector2D::ZeroVector;
+	GEngine->GameViewport->GetViewportSize(ViewPortSize);
+	const FVector2D ViewportCenter = ViewPortSize / 2.f;
+	
+	FVector TraceStart; // 시작 점 
+	FVector Forward;
+	
+	// "화면 중앙 픽셀"이 실제 3D 세계에서 어느 방향을 가리키는가? -> 성공 여부 반환
+	bool DeprojectScreenToWorld= UGameplayStatics::DeprojectScreenToWorld(GetWorld()->GetFirstPlayerController(), ViewportCenter, TraceStart, Forward);
+	if (!DeprojectScreenToWorld) return;
+	
+	// 끝 위치
+	const FVector TraceEnd = TraceStart + Forward * TraceLength;
+	FHitResult HitResult;
+	
+	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, TraceChannel);
+	LastHitActor = CurrentHitActor;
+	CurrentHitActor = HitResult.GetActor();
+	
+	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_GameTraceChannel1);
+	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green, false, 1.f, 0, 1.f);
+	if (HitResult.bBlockingHit)
+	{
+		DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 8.f, 12, FColor::Red, false, 1.f);
+	}
+	// 같은 걸 바라보면 아무것도 하지 않음.
+	if (CurrentHitActor == LastHitActor) return;
+	
+	/*
+	 * 
+	 * 
+	 * 
+	 * 아이템, door, wall 이런거 판정 로직 여기에 구현하면 될 듯
+	 */
+	
+}
+
 void ATSCharacter::SendHotKeyEvent(int HotKeyIndex)
 {
 	if (!ASC) return;
@@ -343,6 +409,25 @@ void ATSCharacter::SendHotKeyEvent(int HotKeyIndex)
 void ATSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (bIsSwitchingShoulder && SpringArmComponent)
+	{
+		ShoulderSwitchElapsed += DeltaTime;
+
+		if (ShoulderSwitchElapsed > ShoulderSwitchDuration)
+		{
+			ShoulderSwitchElapsed = ShoulderSwitchDuration;
+		}
+		float Alpha = ShoulderSwitchElapsed / ShoulderSwitchDuration;
+		
+		const FVector NewLoc = FMath::Lerp(ShoulderStartOffset, ShoulderTargetOffset, Alpha);
+		SpringArmComponent->SetRelativeLocation(NewLoc);
+
+		if (ShoulderSwitchElapsed >= ShoulderSwitchDuration)
+		{
+			bIsSwitchingShoulder = false;
+		}
+	}
+	LineTrace();
 }
 
 void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
