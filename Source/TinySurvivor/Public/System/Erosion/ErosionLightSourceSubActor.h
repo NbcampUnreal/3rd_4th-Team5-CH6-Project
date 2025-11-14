@@ -87,11 +87,27 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_LightScale)
 	float LightScale = 1.0f;
 
+	// 포인트 라이트 사용 변수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")
+	bool bUsePointLight = false;
+	
 	// 포인트 라이트 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
 	TObjectPtr<UPointLightComponent> PointLightComponent;
 
-	// 밝기 조절 단계
+	// 밝기 조절 단계 (포인트 라이트)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")
 	FLightScaleStep LightScaleStep;
+	
+	// 스태틱 메쉬(라이트 미사용 시)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
+	
+	// 밝기 조절 단계 (스태틱 메쉬 머티리얼)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")
+	FLightScaleStep EmissiveScaleStep;
+	
+	// 머리티리얼 인스턴스
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
+	UMaterialInstanceDynamic* LightMID = nullptr;
 };
