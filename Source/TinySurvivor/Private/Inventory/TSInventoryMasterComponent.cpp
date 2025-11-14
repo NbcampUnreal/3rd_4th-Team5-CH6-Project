@@ -279,9 +279,18 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		// 일반 교환
 		if (bIsFullStack)
 		{
+			// SlotType 백업
+			ESlotType FromSlotType = FromSlot.SlotType;
+			ESlotType ToSlotType = ToSlot.SlotType;
+
+			// 아이템 데이터 교환
 			FSlotStructMaster Temp = FromSlot;
 			FromSlot = ToSlot;
 			ToSlot = Temp;
+
+			// SlotType 복원
+			FromSlot.SlotType = FromSlotType;
+			ToSlot.SlotType = ToSlotType;
 		}
 		else
 		{
@@ -683,12 +692,17 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 	// 방어구 아이템 타입 검증
 	if (InventoryType == EInventoryType::Equipment)
 	{
+		if (ItemInfo.Category != EItemCategory::ARMOR)
+		{
+			return false;
+		}
 		const FInventoryStructMaster* Inventory = GetInventoryByType(InventoryType);
 		if (!Inventory)
 		{
 			return false;
 		}
 		ESlotType TargetSlotType = Inventory->InventorySlotContainer[SlotIndex].SlotType;
+
 		if (EquipmentSlotTypes[TargetSlotType] != ItemInfo.ArmorData.EquipSlot)
 		{
 			return false;
