@@ -5,6 +5,7 @@
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
 #include "Abilities/GameplayAbility.h"
+#include "Item/Data/Common/ItemCommonEnums.h"
 #include "ItemData.generated.h"
 
 #pragma region Enums
@@ -19,19 +20,6 @@ enum class EItemCategory : uint8
 	TOOL        UMETA(DisplayName = "Tool", ToolTip="도구"),
 	CONSUMABLE  UMETA(DisplayName = "Consumable", ToolTip="소모품"),
 	ARMOR       UMETA(DisplayName = "Armor", ToolTip="방어구")
-};
-
-/*
-	아이템의 희귀도를 나타내는 Enum
-*/
-UENUM(BlueprintType)
-enum class EItemRarity : uint8
-{
-	NONE    UMETA(DisplayName = "None", ToolTip="등급 없음"),
-	COMMON  UMETA(DisplayName = "Common", ToolTip="일반"),
-	NORMAL  UMETA(DisplayName = "Normal", ToolTip="보통"),
-	RARE    UMETA(DisplayName = "Rare", ToolTip="희귀"),
-	UNIQUE  UMETA(DisplayName = "Unique", ToolTip="유일/특별")
 };
 
 /*
@@ -176,7 +164,8 @@ public:
 	
 	// 부패 속도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="DecayRate (부패 속도)", ToolTip="부패가 진행되는 속도"))
+		meta = (EditCondition="bDecayEnabled", EditConditionHides,
+			DisplayName="DecayRate (부패 속도)", ToolTip="부패가 진행되는 속도"))
 	float DecayRate;
 };
 #pragma endregion
@@ -272,26 +261,27 @@ struct FItemData : public FTableRowBase
 	GENERATED_BODY()
 
 public:
-	// 생성자: 기본값 초기화
+	// 생성자: FItemData 구조체 기본값 초기화
 	FItemData()
-		: ItemID(0)
-		, Name_KR(FText::FromString(TEXT("")))
-		, Name_EN(FText::FromString(TEXT("")))
-		, Category(EItemCategory::MATERIAL)
-		, WeaponData()         // FWeaponData 기본 생성자 호출
-		, ToolData()           // FToolData 기본 생성자 호출
-		, ConsumableData()     // FConsumableData 기본 생성자 호출
-		, ArmorData()          // FArmorData 기본 생성자 호출
-		, Rarity(EItemRarity::NONE)
-		, MaxStack(1)
-		, EffectTag()          // 단일 효과 태그 초기화
-		, EffectValue(0.f)     // 단일 효과 수치 초기화
-		//, ItemEffects()        // TArray 기본 생성자
-		, Icon(nullptr)
-		, WorldMesh(nullptr)
-		, bSpawnAsActor(false)
-		, ActorClass(nullptr)
-		, AbilityBP(nullptr)
+		: ItemID(0)                                        // 아이템 고유 ID 초기화 (0 = 기본/미지정)
+		, MainCategory(EItemMainCategory::ITEM)            // 아이템 대분류 초기화 (기본값: ITEM)
+		, Name_KR(FText::FromString(TEXT("")))             // 한국어 이름 초기화 (빈 문자열)
+		, Name_EN(FText::FromString(TEXT("")))             // 영어 이름 초기화 (빈 문자열)
+		, Category(EItemCategory::MATERIAL)                // 세부 카테고리 초기화 (기본: MATERIAL)
+		, WeaponData()                                     // 무기 데이터 구조체 기본 생성자 호출
+		, ToolData()                                       // 도구 데이터 구조체 기본 생성자 호출
+		, ConsumableData()                                 // 소모품 데이터 구조체 기본 생성자 호출
+		, ArmorData()                                      // 방어구 데이터 구조체 기본 생성자 호출
+		, Rarity(EItemRarity::NONE)                        // 아이템 등급 초기화 (기본값: NONE)
+		, MaxStack(1)                                      // 최대 스택 수 초기화 (기본: 1)
+		, EffectTag()                                      // 단일 효과 태그 초기화 (빈 상태)
+		, EffectValue(0.f)                                 // 단일 효과 수치 초기화 (0.0f)
+		// , ItemEffects()                                 // TArray 기본 생성자 호출 (배열 초기화)
+		, Icon(nullptr)                                    // UI 아이콘 초기화 (nullptr)
+		, WorldMesh(nullptr)                               // 월드에 표시될 메시 초기화 (nullptr)
+		, bSpawnAsActor(false)                             // 월드 스폰 여부 초기화 (false)
+		, ActorClass(nullptr)                         // 스폰될 액터 클래스 초기화 (nullptr)
+		, AbilityBP(nullptr)                          // 관련 어빌리티 블루프린트 초기화 (nullptr)
 	{}
 	
 #pragma region Identifier
@@ -302,6 +292,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Identifier",
 		meta=(ClampMin="1", ClampMax="999", DisplayName="ItemID (아이템 ID)", ToolTip="아이템 고유 ID"))
 	int32 ItemID;
+	
+	// 기획 비포함, 개발 편의상 추가: 아이템 대분류 (Item / Building / Resource)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Identifier",
+		meta=(DisplayName="Main Category", ToolTip="아이템 대분류: Item / Building / Resource"))
+	EItemMainCategory MainCategory;
 	
 	// 한국어 이름
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Identifier",
@@ -349,17 +344,13 @@ public:
 	
 	// 등급
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-System",
-		meta = (DisplayName="Rarity (등급)", ToolTip="아이템의 등급"))
+		meta = (DisplayName="Rarity (등급)", ToolTip="등급"))
 	EItemRarity Rarity;
 	
 	// 최대 중첩 개수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-System",
 		meta = (DisplayName="MaxStack (최대 중첩 개수)", ToolTip="아이템의 최대 스택 수"))
 	int32 MaxStack;
-
-	// 런타임 내구도
-	UPROPERTY(Transient, BlueprintReadWrite, Category="Runtime")
-	int32 CurrentDurability;
 #pragma endregion
 
 #pragma region Effect
@@ -555,7 +546,9 @@ public:
 	{
 		return AbilityBP != nullptr;
 	}
-
+#pragma endregion
+	
+#pragma region Validation
 	/*
 		카테고리별 데이터 유효성 검증
 		@return 해당 카테고리의 전용 데이터가 올바르게 설정되어 있으면 true
@@ -576,68 +569,41 @@ public:
 		case EItemCategory::CONSUMABLE:
 			return ConsumableData.ConsumptionTime > 0.0f;
 			
+		case EItemCategory::ARMOR:
+		{
+			// 피해 감소율은 0~1 사이여야 함
+			const bool bValidDamageReduction =
+				ArmorData.DamageReductionRate >= 0.0f &&
+				ArmorData.DamageReductionRate <= 1.0f;
+			
+			// 내구도는 1 이상이어야 장비 의미가 있음
+			const bool bValidDurability = ArmorData.MaxDurability > 0;
+			
+			// 이동 속도 증가 보너스는 음수만 아니면 OK
+			const bool bValidMoveSpeed = ArmorData.MoveSpeedBonus >= 0.0f;
+			
+			// // RequiredRarity는 1 이상
+			// const bool bValidRequiredRarity = ArmorData.RequiredRarity >= 1;
+			
+			return bValidDamageReduction
+				&& bValidDurability
+				&& bValidMoveSpeed;
+				//&& bValidRequiredRarity;
+		}
+			
 		case EItemCategory::MATERIAL:
-			return true; // 재료는 공통 데이터만 사용
+			return true; // 재료는 공통 데이터만 사용, 전용 데이터 없음
 			
 		default:
 			return false;
 		}
 	}
-
-	/*
-		디버그용 아이템 정보 문자열 생성
-		@return 아이템 정보를 담은 문자열
-	*/
-	FString ToString() const
-	{
-		FString CategoryStr;
-		switch(Category)
-		{
-		case EItemCategory::MATERIAL: CategoryStr = TEXT("Material"); break;
-		case EItemCategory::WEAPON: CategoryStr = TEXT("Weapon"); break;
-		case EItemCategory::TOOL: CategoryStr = TEXT("Tool"); break;
-		case EItemCategory::CONSUMABLE: CategoryStr = TEXT("Consumable"); break;
-		default: CategoryStr = TEXT("Unknown"); break;
-		}
-
-		return FString::Printf(
-			TEXT("[ID:%d] %s (%s) | MaxStack:%d | Rarity:%d"),
-			ItemID,
-			*Name_KR.ToString(),
-			*CategoryStr,
-			MaxStack,
-			static_cast<int32>(Rarity)
-		);
-	}
-
+#pragma endregion
+	
+#pragma region Debug
 	/*
 		디버그용 상세 정보 로그 출력
 	*/
-	void PrintDebugInfo() const
-	{
-		UE_LOG(LogTemp, Log, TEXT("=== Item Debug Info ==="));
-		UE_LOG(LogTemp, Log, TEXT("ID: %d"), ItemID);
-		UE_LOG(LogTemp, Log, TEXT("Name (KR): %s"), *Name_KR.ToString());
-		UE_LOG(LogTemp, Log, TEXT("Name (EN): %s"), *Name_EN.ToString());
-		UE_LOG(LogTemp, Log, TEXT("Category: %d"), static_cast<int32>(Category));
-		UE_LOG(LogTemp, Log, TEXT("MaxStack: %d"), MaxStack);
-		UE_LOG(LogTemp, Log, TEXT("Equipable: %s"), IsEquipable() ? TEXT("Yes") : TEXT("No"));
-		UE_LOG(LogTemp, Log, TEXT("Has Durability: %s"), HasDurability() ? TEXT("Yes") : TEXT("No"));
-		
-		if (HasDurability())
-		{
-			UE_LOG(LogTemp, Log, TEXT("Max Durability: %d"), GetMaxDurability());
-		}
-		
-		if (HasEffect())
-		{
-			UE_LOG(LogTemp, Log, TEXT("Effect Tag: %s"), *EffectTag.ToString());
-			UE_LOG(LogTemp, Log, TEXT("Effect Value: %.2f"), EffectValue);
-		}
-		
-		UE_LOG(LogTemp, Log, TEXT("======================"));
-	}
-	
+	void PrintDebugInfo() const;
 #pragma endregion
 };
-#pragma endregion
