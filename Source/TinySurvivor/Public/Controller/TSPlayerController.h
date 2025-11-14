@@ -30,4 +30,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void UpdateHUDWithCharacter(ATSCharacter* TSCharacter);
+	
+	UFUNCTION(BlueprintCallable)
+	void ToggleInventory();
 };

@@ -2,6 +2,7 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Character/TSCharacter.h"
+#include "Components/WidgetSwitcher.h"
 
 void ATSPlayerController::AcknowledgePossession(class APawn* P)
 {
@@ -100,5 +101,29 @@ void ATSPlayerController::UpdateHUDWithCharacter(ATSCharacter* TSCharacter)
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("  ⚠️ UpdateHUDWithCharacter function not found in widget BP"));
+	}
+}
+
+void ATSPlayerController::ToggleInventory()
+{
+	if (!HUDWidget)
+	{
+		return;
+	}
+	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Backpack")));
+	if (Switcher)
+	{
+		int32 ActiveIndex = Switcher->GetActiveWidgetIndex();
+		if (ActiveIndex == 0)
+		{
+			SetInputMode(FInputModeGameAndUI());
+			SetShowMouseCursor(true);
+		}
+		else
+		{
+			SetInputMode(FInputModeGameOnly());
+			SetShowMouseCursor(false);
+		}
+		Switcher->SetActiveWidgetIndex(ActiveIndex == 0 ? 1 : 0);
 	}
 }
