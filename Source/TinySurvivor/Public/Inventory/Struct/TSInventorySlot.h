@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Item/Runtime/ItemInstance.h"
 #include "TSInventorySlot.generated.h"
 
 /**
@@ -56,13 +57,13 @@ struct TINYSURVIVOR_API FSlotStructMaster
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "MaxStackSize")
 	int32 MaxStackSize = 1;
 
-	// 아이템 정적데이터 ID
+	// 부패 만료 시간
+	UPROPERTY(BlueprintReadOnly, Category = "Decay")
+	double ExpirationTime;
+	
+	// 아이템 인스턴스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ItemData")
-	int32 StaticDataID = INDEX_NONE;
-
-	// 아이템 동적데이터 ID
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ItemData")
-	int32 DynamicDataID = INDEX_NONE;
+	FItemInstance ItemData;
 };
 
 /**

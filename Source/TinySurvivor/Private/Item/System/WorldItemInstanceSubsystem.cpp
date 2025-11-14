@@ -80,14 +80,14 @@ UStaticMesh* UWorldItemInstanceSubsystem::GetMeshFromID(UWorld* World, int32 Ite
 // rdAddInstance를 호출
 int32 UWorldItemInstanceSubsystem::AddInstance(const FSlotStructMaster& ItemData, const FTransform& Transform)
 {
-	if (!ItemInstanceManager || ItemData.StaticDataID <= 0)
+	if (!ItemInstanceManager || ItemData.ItemData.StaticDataID <= 0)
 		return -1;
 
 	// ID로 UStaticMesh를 가져옵니다
-	UStaticMesh* Mesh = GetMeshFromID(GetWorld(), ItemData.StaticDataID);
+	UStaticMesh* Mesh = GetMeshFromID(GetWorld(), ItemData.ItemData.StaticDataID);
 	if (!Mesh)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AddInstance : Failed to load mesh for ID '%d'"), ItemData.StaticDataID);
+		UE_LOG(LogTemp, Warning, TEXT("AddInstance : Failed to load mesh for ID '%d'"), ItemData.ItemData.StaticDataID);
 		return -1;
 	}
 
@@ -111,10 +111,10 @@ bool UWorldItemInstanceSubsystem::RemoveInstance(int32 InstanceIndex, FSlotStruc
 	if (!FoundData)
 		return false;
 
-	UStaticMesh* Mesh = GetMeshFromID(GetWorld(), FoundData->StaticDataID);
+	UStaticMesh* Mesh = GetMeshFromID(GetWorld(), FoundData->ItemData.StaticDataID);
 	if (!Mesh)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveInstance : Mesh not found for ID '%d'(index '%d'. Removing from map"), FoundData->StaticDataID, InstanceIndex);
+		UE_LOG(LogTemp, Warning, TEXT("RemoveInstance : Mesh not found for ID '%d'(index '%d'. Removing from map"), FoundData->ItemData.StaticDataID, InstanceIndex);
 		InstanceDataMap.Remove(InstanceIndex);
 		// ItemInstanceManager->rdRemoveInstanceX(const FName sid, int32 index);
 		return false;

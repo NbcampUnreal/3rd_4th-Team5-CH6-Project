@@ -123,7 +123,7 @@ void AWorldItem::UpdateAppearance()
 	}
 
 	// ID가 유효한지 확인 (음수이면 빈 슬롯으로 간주)
-	if (ItemData.StaticDataID <= 0)
+	if (ItemData.ItemData.StaticDataID <= 0)
 	{
 		MeshComponent->SetStaticMesh(nullptr);
 		return;
@@ -148,7 +148,7 @@ void AWorldItem::UpdateAppearance()
 	
 	// ID로 FItemData를 찾습니다
 	FItemData StaticItemData;
-	if (ItemDataSubsystem->GetItemDataSafe(ItemData.StaticDataID, StaticItemData))
+	if (ItemDataSubsystem->GetItemDataSafe(ItemData.ItemData.StaticDataID, StaticItemData))
 	{
 		// WorldMesh 변수가 유효한 지 확인
 		if (StaticItemData.IsWorldMeshValid())
@@ -168,7 +168,7 @@ void AWorldItem::UpdateAppearance()
 		else
 		{
 			// FItemData를 못 찾은 경우
-			UE_LOG(LogTemp, Warning, TEXT("AWorldItem : Could not find StaticDataID '%d' in Data Table"), ItemData.StaticDataID);
+			UE_LOG(LogTemp, Warning, TEXT("AWorldItem : Could not find StaticDataID '%d' in Data Table"), ItemData.ItemData.StaticDataID);
 			MeshComponent->SetStaticMesh(nullptr);
 		}
 	}

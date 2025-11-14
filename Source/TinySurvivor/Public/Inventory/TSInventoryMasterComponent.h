@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Struct/TSInventorySlot.h"
+#include "Item/Data/ItemData.h"
 #include "TSInventoryMasterComponent.generated.h"
 
 // ========================================
@@ -11,12 +12,20 @@
 // ========================================
 
 struct FItemData;
+struct FItemInstance;
 class UItemDataSubsystem;
 class UAbilitySystemComponent;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInventorySlotUpdated, EInventoryType, InventoryType);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventorySlotUpdated, const FInventoryStructMaster&, HotkeyInventory,
+                                               const FInventoryStructMaster&, EquipmentInventory,
+                                               const FInventoryStructMaster&, BagInventory);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot)
+;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBagSizeChanged, int32, NewSize);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryInitialized);
 
 UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
 class TINYSURVIVOR_API UTSInventoryMasterComponent : public UActorComponent
@@ -55,13 +64,10 @@ public:
 	int32 HotkeySlotCount = 10;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 EquipmentSlotCount = 3;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	TArray<ESlotType> EquipmentSlotTypes = {
-		ESlotType::Head,
-		ESlotType::Torso,
-		ESlotType::Leg
+	TMap<ESlotType, EEquipSlot> EquipmentSlotTypes = {
+		{ESlotType::Head, EEquipSlot::HEAD},
+		{ESlotType::Torso, EEquipSlot::TORSO},
+		{ESlotType::Leg, EEquipSlot::LEG}
 	};
 
 	/** 가방 초기 슬롯 개수 (0이면 가방 아이템 사용 전까지 사용 불가) */
@@ -93,6 +99,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
 	FOnBagSizeChanged OnBagSizeChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
+	FOnInventoryInitialized OnInventoryInitialized;
+
 	// ========================================
 	// 리플리케이션 콜백
 	// ========================================
@@ -115,8 +124,8 @@ public:
 
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
 	void ServerTransferItem(
-	UTSInventoryMasterComponent* SourceInventory,
-	UTSInventoryMasterComponent* TargetInventory,
+		UTSInventoryMasterComponent* SourceInventory,
+		UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
 		EInventoryType ToInventoryType, int32 ToSlotIndex,
 		bool bIsFullStack = true);
@@ -137,8 +146,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
 	void Internal_TransferItem(
-	UTSInventoryMasterComponent* SourceInventory,
-	UTSInventoryMasterComponent* TargetInventory,
+		UTSInventoryMasterComponent* SourceInventory,
+		UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
 		EInventoryType ToInventoryType, int32 ToSlotIndex,
 		bool bIsFullStack = true);
@@ -151,7 +160,7 @@ public:
 	// ========================================
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(int32 StaticDataID, int32 DynamicDataID, int32 Quantity);
+	bool AddItem(const FItemInstance& ItemData, int32 Quantity);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
@@ -209,6 +218,17 @@ public:
 	void UnequipCurrentItem();
 
 private:
+	// 부패도 매니저 델리게이트 바인딩 함수
+	UFUNCTION()
+	void OnDecayTick();
+	// ========================================
+	// 헬퍼 함수 - 부패
+	// ========================================
+	// TODO : 부패물 아이템 아이디 어디서 가져올지 확인 필요
+	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Settings")
+	int32 CachedDecayedItemID;
+	FItemData CachedDecayedItemInfo;
+	void ConvertToDecayedItem(EInventoryType InventoryType);
 	// ========================================
 	// 헬퍼 함수 - 슬롯 조작
 	// ========================================
@@ -233,9 +253,16 @@ private:
 	UItemDataSubsystem* GetItemDataSubsystem() const;
 	bool GetItemData(int32 StaticDataID, FItemData& OutData) const;
 	bool IsItemBagType(int32 StaticDataID) const;
+	double UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack, int NewItemStack, float DecayRate);
 
 	// ========================================
 	// 헬퍼 함수 - ASC
 	// ========================================
 	UAbilitySystemComponent* GetASC();
+
+	// ========================================
+	// 헬퍼 함수 - 델리게이트
+	// ========================================
+	void HandleInventoryChanged();
+	void HandleActiveHotkeyIndexChanged();
 };
