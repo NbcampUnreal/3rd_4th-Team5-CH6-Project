@@ -1,2 +1,39 @@
 // ResourceData.cpp
 #include "Item/Data/ResourceData.h"
+
+// 로그 카테고리 정의
+DEFINE_LOG_CATEGORY_STATIC(LogFResourceData, Log, All);
+
+void FResourceData::PrintDebugInfo() const
+{
+	UE_LOG(LogFResourceData, Display, TEXT("============= Resource Debug Info ============="));
+	
+	// Identifier
+	UE_LOG(LogFResourceData, Display, TEXT("---[Identifier]"));
+	UE_LOG(LogFResourceData, Display, TEXT("ResourceID: %d"), ResourceID);
+	UE_LOG(LogFResourceData, Display, TEXT("MainCategory: %d"), static_cast<int32>(MainCategory));
+	UE_LOG(LogFResourceData, Display, TEXT("Name_KR: %s"), *Name_KR.ToString());
+	UE_LOG(LogFResourceData, Display, TEXT("Name_EN: %s"), *Name_EN.ToString());
+	
+	// System
+	UE_LOG(LogFResourceData, Display, TEXT("---[System]"));
+	UE_LOG(LogFResourceData, Display, TEXT("Rarity: %d"), static_cast<int32>(Rarity));
+	UE_LOG(LogFResourceData, Display, TEXT("NodeType: %d"), static_cast<int32>(NodeType));
+	UE_LOG(LogFResourceData, Display, TEXT("RequiredToolID: %d"), RequiredToolID);
+	UE_LOG(LogFResourceData, Display, TEXT("NodeTier: %d"), static_cast<int32>(NodeTier));
+	UE_LOG(LogFResourceData, Display, TEXT("TotalYield: %d"), TotalYield);
+	UE_LOG(LogFResourceData, Display, TEXT("DropTableID: %d"), DropTableID);
+	UE_LOG(LogFResourceData, Display, TEXT("RespawnTime: %.2f"), RespawnTime);
+	
+	// Visual
+	UE_LOG(LogFResourceData, Display, TEXT("---[Visual]"));
+	FString MeshName = WorldMesh.IsValid() ? WorldMesh->GetName() : TEXT("None");
+	UE_LOG(LogFResourceData, Display, TEXT("WorldMesh: %s"), *MeshName);
+	
+	// Spawn
+	UE_LOG(LogFResourceData, Display, TEXT("---[Spawn]"));
+	FString ActorName = ActorClass ? ActorClass->GetName() : TEXT("None");
+	UE_LOG(LogFResourceData, Display, TEXT("ActorClass: %s"), *ActorName);
+	
+	UE_LOG(LogFResourceData, Display, TEXT("============================================"));
+}
