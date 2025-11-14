@@ -3,6 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Character/TSCharacter.h"
 #include "Components/WidgetSwitcher.h"
+#include "UI/Interface/IWidgetActivation.h"
 
 void ATSPlayerController::AcknowledgePossession(class APawn* P)
 {
@@ -125,5 +126,10 @@ void ATSPlayerController::ToggleInventory()
 			SetShowMouseCursor(false);
 		}
 		Switcher->SetActiveWidgetIndex(ActiveIndex == 0 ? 1 : 0);
+		UWidget* ActiveWidget = Switcher->GetActiveWidget();
+		if (ActiveWidget && ActiveWidget->Implements<UIWidgetActivation>())
+		{
+			IIWidgetActivation::Execute_OnWidgetActivated(ActiveWidget);
+		}
 	}
 }
