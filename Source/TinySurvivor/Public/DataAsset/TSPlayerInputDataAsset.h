@@ -54,6 +54,9 @@ public:
 
 
 	///////////// InteractionInputMappingContext /////////////
+	//Open Bag -> 얘는 가스 안씀 (그냥 가방 열기 닫기 토글)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> OpenBagAction;
 	//bulid
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> BuildAction;

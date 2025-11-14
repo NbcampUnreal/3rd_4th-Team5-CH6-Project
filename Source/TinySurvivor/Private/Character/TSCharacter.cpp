@@ -255,6 +255,15 @@ void ATSCharacter::OnLyingDown(const struct FInputActionValue& Value)
 	UE_LOG(LogTemp, Log, TEXT("z pressed"));
 }
 
+void ATSCharacter::OnOpenBag(const struct FInputActionValue& Value)
+{
+	if (!IsLocallyControlled()) return;
+	if (ATSPlayerController* TSController = Cast<ATSPlayerController>(Controller))
+	{
+		TSController -> ToggleInventory();
+	}
+}
+
 void ATSCharacter::OnBuild(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("b pressed"));
@@ -450,6 +459,8 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnRoll);
 		EnhancedInputComponent->BindAction(InputDataAsset->LyingDownAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnLyingDown);
+		EnhancedInputComponent->BindAction(InputDataAsset->OpenBagAction, ETriggerEvent::Started, this,
+									   &ATSCharacter::OnOpenBag);
 		EnhancedInputComponent->BindAction(InputDataAsset->BuildAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnBuild);
 		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Started, this,
