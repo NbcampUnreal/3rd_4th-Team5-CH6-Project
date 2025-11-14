@@ -3,7 +3,7 @@
 
 #include "Engine/Engine.h"
 
-// 로그 카테고리 정의 (CPP 파일에 작성: 중복 정의 방지)
+// 로그 카테고리 정의
 DEFINE_LOG_CATEGORY_STATIC(LogItemDataSubsystem, Log, All);
 
 //========================================
@@ -395,7 +395,7 @@ void UItemDataSubsystem::PrintCacheDebugInfo() const
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("Items Cached: %d"), ItemDataCache.Num());
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("Buildings Cached: %d"), BuildingDataCache.Num());
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("Resources Cached: %d"), ResourceDataCache.Num());
-
+	
 	// 아이템 카테고리별 통계 출력
 	if (bIsInitialized && ItemDataCache.Num() > 0)
 	{
@@ -417,11 +417,24 @@ void UItemDataSubsystem::PrintCacheDebugInfo() const
 				case EItemCategory::WEAPON: CategoryName = TEXT("Weapon"); break;
 				case EItemCategory::TOOL: CategoryName = TEXT("Tool"); break;
 				case EItemCategory::CONSUMABLE: CategoryName = TEXT("Consumable"); break;
+				case EItemCategory::ARMOR:      CategoryName = TEXT("Armor"); break;
 				default: CategoryName = TEXT("Unknown"); break;
 			}
 			UE_LOG(LogItemDataSubsystem, Display, TEXT("  %s: %d"), *CategoryName, Pair.Value);
 		}
 	}
+	
+	// 모든 아이템의 상세 정보 로그 출력 추가
+	// if (bIsInitialized && ItemDataCache.Num() > 0)
+	// {
+	// 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- Item Detailed Info ---"));
+	// 	
+	// 	for (const TPair<int32, FItemData>& Pair : ItemDataCache)
+	// 	{
+	// 		UE_LOG(LogItemDataSubsystem, Display, TEXT("ItemID %d Details:"), Pair.Key);
+	// 		Pair.Value.PrintDebugInfo();
+	// 	}
+	// }
 	
 	// 건축물 타입별 통계 출력
 	if (bIsInitialized && BuildingDataCache.Num() > 0)
@@ -450,7 +463,126 @@ void UItemDataSubsystem::PrintCacheDebugInfo() const
 		}
 	}
 	
+	// 모든 건축물의 상세 정보 로그 출력 추가
+	// if (bIsInitialized && BuildingDataCache.Num() > 0)
+	// {
+	// 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- Building Detailed Info ---"));
+	// 	
+	// 	for (const TPair<int32, FBuildingData>& Pair : BuildingDataCache)
+	// 	{
+	// 		UE_LOG(LogItemDataSubsystem, Display, TEXT("BuildingID %d Details:"), Pair.Key);
+	// 		Pair.Value.PrintDebugInfo();
+	// 	}
+	// }
+	
+	// 자원 NodeType별 통계 출력
+	if (bIsInitialized && ResourceDataCache.Num() > 0)
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- Resource Node Types ---"));
+		
+		TMap<ENodeType, int32> NodeTypeCounts;
+		for (const TPair<int32, FResourceData>& Pair : ResourceDataCache)
+		{
+			int32& Count = NodeTypeCounts.FindOrAdd(Pair.Value.NodeType, 0);
+			Count++;
+		}
+		
+		for (const TPair<ENodeType, int32>& Pair : NodeTypeCounts)
+		{
+			FString NodeTypeName;
+			switch (Pair.Key)
+			{
+				case ENodeType::JUNK: NodeTypeName = TEXT("Junk"); break;
+				case ENodeType::PLANT: NodeTypeName = TEXT("Plant"); break;
+				case ENodeType::INTERACT: NodeTypeName = TEXT("Interact"); break;
+				case ENodeType::WOOD: NodeTypeName = TEXT("Wood"); break;
+				case ENodeType::PLASTIC: NodeTypeName = TEXT("Plastic"); break;
+				case ENodeType::DRINK: NodeTypeName = TEXT("Drink"); break;
+				case ENodeType::FOOD: NodeTypeName = TEXT("Food"); break;
+				case ENodeType::MINERAL: NodeTypeName = TEXT("Mineral"); break;
+				case ENodeType::MONSTER_CORPSE: NodeTypeName = TEXT("Monster Corpse"); break;
+				default: NodeTypeName = TEXT("Unknown"); break;
+			}
+			UE_LOG(LogItemDataSubsystem, Display, TEXT("  %s: %d"), *NodeTypeName, Pair.Value);
+		}
+	}
+	
+	// 모든 자원 원천의 상세 정보 로그 출력 추가
+	// if (bIsInitialized && ResourceDataCache.Num() > 0)
+	// {
+	// 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- Resource Detailed Info ---"));
+	// 	
+	// 	for (const TPair<int32, FResourceData>& Pair : ResourceDataCache)
+	// 	{
+	// 		UE_LOG(LogItemDataSubsystem, Display, TEXT("ResourceID %d Details:"), Pair.Key);
+	// 		Pair.Value.PrintDebugInfo();
+	// 	}
+	// }
+	
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("=========================================="));
+}
+
+void UItemDataSubsystem::PrintItemDebugInfo(int32 ItemID) const
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintItemDebugInfo] ItemDataSubsystem is NOT initialized."));
+		return;
+	}
+	
+	const FItemData* FoundData = ItemDataCache.Find(ItemID);
+	
+	if (!FoundData)
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintItemDebugInfo] ItemID %d not found in ItemDataCache."), ItemID);
+		return;
+	}
+	
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for ItemID %d =========="), ItemID);
+	FoundData->PrintDebugInfo();
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("====================================================\n"));
+}
+
+void UItemDataSubsystem::PrintBuildingDebugInfo(int32 BuildingID) const
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintBuildingDebugInfo] ItemDataSubsystem is NOT initialized."));
+		return;
+	}
+	
+	const FBuildingData* FoundData = BuildingDataCache.Find(BuildingID);
+	
+	if (!FoundData)
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintBuildingDebugInfo] BuildingID %d not found in BuildingDataCache."), BuildingID);
+		return;
+	}
+	
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for BuildingID %d =========="), BuildingID);
+	FoundData->PrintDebugInfo();
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("====================================================\n"));
+}
+
+void UItemDataSubsystem::PrintResourceDebugInfo(int32 ResourceID) const
+{
+	if (!bIsInitialized)
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintResourceDebugInfo] ItemDataSubsystem is NOT initialized."));
+		return;
+	}
+	
+	const FResourceData* FoundData = ResourceDataCache.Find(ResourceID);
+	
+	if (!FoundData)
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintResourceDebugInfo] ResourceID %d not found in ResourceDataCache."), ResourceID);
+		return;
+	}
+	
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for ResourceID %d =========="), ResourceID);
+	FoundData->PrintDebugInfo();
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("====================================================\n"));
 }
 
 #if WITH_EDITOR

@@ -4,8 +4,10 @@
 #include "CoreMinimal.h"
 #include "Engine/DataTable.h"
 #include "GameplayTagContainer.h"
+#include "Item/Data/Common/ItemCommonEnums.h"
 #include "BuildingData.generated.h"
 
+#pragma region Enums
 /*
 	건축물 기능 분류
 */
@@ -24,10 +26,11 @@ enum class EBuildingType : uint8
 UENUM(BlueprintType)
 enum class ETier : uint8
 {
-	T1  UMETA(DisplayName = "Tier 1"),
-	T2  UMETA(DisplayName = "Tier 2"),
-	T3  UMETA(DisplayName = "Tier 3")
+	T1  UMETA(DisplayName = "T1"),
+	T2  UMETA(DisplayName = "T2"),
+	T3  UMETA(DisplayName = "T3")
 };
+#pragma endregion
 
 /*
 	자원 소모량 구조체
@@ -58,88 +61,130 @@ struct FBuildingData : public FTableRowBase
 {
 	GENERATED_BODY()
 	
+	// 생성자: FBuildingData 구조체 기본값 초기화
 	FBuildingData()
-	: BuildingID(0)                             // 기본 건축물 ID: 0
-	, Name_KR(FText::GetEmpty())                // 기본 한글 이름: 빈 텍스트
-	, Name_EN(FText::GetEmpty())                // 기본 영어 이름: 빈 텍스트
-	, BuildingType(EBuildingType::DEFENSE)     // 기본 건축 타입: 방어
-	, RequiredTier(ETier::T1)                  // 기본 제작 요구 등급: Tier 1
-	, MaxDurability(100)                       // 기본 내구도: 100
-	, IsErosionController(false)               // 기본: 침식도 관리 기능 없음
-	, MaintenanceCostID(0)                     // 기본 유지비 재료 ID: 0 (없음)
-	, MaintenanceInterval(0)                   // 기본 유지비 소모 간격: 0초
-	, MaintenanceCostQty(0)                    // 기본 유지비 수량: 0
-	, Icon(nullptr)                            // 기본 아이콘: 없음
-	, WorldMesh(nullptr)                       // 기본 월드 메시: 없음
-	, ActorClass(nullptr)                       // 기본 액터 클래스: 없음
+		: BuildingID(0)                              // 건축물 고유 ID 초기화 (0 = 기본/미지정)
+		, MainCategory(EItemMainCategory::BUILDING)  // 아이템 대분류 초기화 (건축물)
+		, Name_KR(FText::GetEmpty())              // 한국어 이름 초기화 (빈 텍스트)
+		, Name_EN(FText::GetEmpty())              // 영어 이름 초기화 (빈 텍스트)
+		, Rarity(EItemRarity::NONE)                  // 등급 초기화 (NONE = 기본값)
+		, BuildingType(EBuildingType::DEFENSE)       // 건축물 유형 초기화 (기본값: 방어용)
+		, RequiredTier(ETier::T1)                    // 제작 요구 등급 초기화 (Tier 1 = 기본값)
+		, MaxDurability(100)                         // 최대 내구도 초기화 (기본값: 100)
+		, IsErosionController(false)                 // 침식 관리 기능 여부 초기화 (기본: 없음)
+		, MaintenanceCostID(0)                       // 유지비 재료 ID 초기화 (0 = 없음)
+		, MaintenanceInterval(0)                     // 유지비 소모 간격 초기화 (0초 = 없음)
+		, MaintenanceCostQty(0)                      // 유지비 수량 초기화 (0 = 없음)
+		, Icon(nullptr)                              // UI 아이콘 초기화 (nullptr = 없음)
+		, WorldMesh(nullptr)                         // 월드 표시용 메시 초기화 (nullptr = 없음)
+		, ActorClass(nullptr)                   // 건축물 액터 클래스 초기화 (nullptr = 없음)
 	{}
-	
+
+#pragma region Identifier
 	// 건축물 고유 ID
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Identifier",
+		meta=(DisplayName="Building ID", ToolTip="건축물 고유 ID"))
 	int32 BuildingID;
 	
-	// 건축물 이름
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	// 기획 비포함, 개발 편의상 추가: 아이템 대분류 (Item / Building / Resource)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Identifier",
+		meta=(DisplayName="Main Category", ToolTip="아이템 대분류: Item / Building / Resource"))
+	EItemMainCategory MainCategory;
+	
+	// 한국어 이름
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Identifier",
+		meta = (DisplayName="Name_KR (한글명)", ToolTip="한국어 이름"))
 	FText Name_KR;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Identifier")
+	// 영어 이름
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Identifier",
+		meta = (DisplayName="Name_EN (영문명)", ToolTip="영어 이름"))
 	FText Name_EN;
+#pragma endregion
 
+#pragma region System
+	// 등급
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta = (DisplayName="Rarity", ToolTip="등급"))
+	EItemRarity Rarity;
+	
 	// 건축 타입
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="BuildingType", ToolTip="건축물 등급"))
 	EBuildingType BuildingType;
-
+	
 	// 설치 구역 제한 (태그 기반)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System",
-		meta=(Categories="Item.Building.Disallowed"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Disallowed Zones", ToolTip="설치 불가 구역 태그 목록",
+			Categories="Item.Building.Disallowed"))
 	FGameplayTagContainer DisallowedZones;
-
+	
 	// 제작 요구 등급
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Required Tier", ToolTip="제작 요구 등급"))
 	ETier RequiredTier;
-
+	
 	// 최대 내구도
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Max Durability", ToolTip="최대 내구도"))
 	int32 MaxDurability;
-
+	
 	// 침식도 관리 여부
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Erosion Controller", ToolTip="침식도 관리 여부"))
 	bool IsErosionController;
 
 	// // 유지비 소모 주기 (초 단위, 0이면 소모 없음)
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", ClampMin="0.0"))
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System", ClampMin="0.0"))
 	// float MaintenancePeriod;
 
 	// // 유지비 목록 (복수 고려)
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
 	// TArray<FResourceAmount> MaintenanceCost;
 	
 	// 유지비 재료 ID (침식도 관리 기능과 연동, 단일 ID)
-	// TODO: 기획서에서는 STRING으로 명시되어 있으나, 기존 시스템 및 데이터에서는 자원 ID를 int로 처리하고 있음.
-	// 현재는 INT로 작성했지만, 기획과 일치 여부 확인 필요.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Maintenance Cost ID", ToolTip="유지비 재료 ID (0이면 없음)",
+			EditCondition="IsErosionController"))
 	int32 MaintenanceCostID;
 	
 	// 유지비 소모 간격 (초 단위)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", meta=(ClampMin=0))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Maintenance Interval", ToolTip="유지비 소모 간격 (초)",
+			ClampMin=0, EditCondition="IsErosionController"))
 	int32 MaintenanceInterval;
 	
 	// 유지비 재료 수량
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-System", meta=(ClampMin=0))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Maintenance Cost Quantity", ToolTip="유지비 재료 수량",
+			ClampMin=0, EditCondition="IsErosionController"))
 	int32 MaintenanceCostQty;
+#pragma endregion
 	
-	//========================================
-	// 기획 비포함, 개발 편의상 추가
-	//========================================
+#pragma region Visual
 	// 아이콘
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Visual")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Visual",
+		meta=(DisplayName="Icon", ToolTip="건축물 아이콘"))
 	TSoftObjectPtr<UTexture2D> Icon;
-
+	
 	// 월드 메시
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Visual")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Visual",
+		meta=(DisplayName="World Mesh (3D 메시)", ToolTip="건축물 월드 메시"))
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
+#pragma endregion
 
-	// 액터 클래스 (스폰용)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Building-Spawn")
+#pragma region Spawn
+	// 기획 비포함, 개발 편의상 추가: 액터 클래스 (스폰용)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spawn",
+		meta=(DisplayName="Actor Class", ToolTip="건축물 액터 클래스"))
 	TSubclassOf<AActor> ActorClass;
+#pragma endregion
+	
+#pragma region Debug
+	/*
+		디버그용 상세 정보 로그 출력
+	*/
+	void PrintDebugInfo() const;
+#pragma endregion
 };
+

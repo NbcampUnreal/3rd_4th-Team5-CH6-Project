@@ -4,6 +4,7 @@
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemTableAsset.h"
 
+// 로그 카테고리 정의
 DEFINE_LOG_CATEGORY_STATIC(LogTSGameInstance, Log, All);
 
 // 게임 인스턴스 생성자
@@ -106,6 +107,16 @@ void UTSGameInstance::TestItemDataSystem(UItemDataSubsystem* ItemSystem)
 		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 아이템 ID 1을 찾을 수 없습니다"));
 	}
 	
+	if (ItemSystem->GetItemDataSafe(300, ItemData))
+	{
+		UE_LOG(LogTSGameInstance, Display, TEXT("✅ 아이템 ID 300 찾음:"));
+		ItemSystem->PrintItemDebugInfo(300);
+	}
+	else
+	{
+		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 아이템 ID 300을 찾을 수 없습니다"));
+	}
+	
 	// 3. 존재하지 않는 ID 테스트
 	UE_LOG(LogTSGameInstance, Display, TEXT("\n--- 존재하지 않는 ID 테스트 ---"));
 	if (ItemSystem->GetItemDataSafe(9999, ItemData))
@@ -120,38 +131,71 @@ void UTSGameInstance::TestItemDataSystem(UItemDataSubsystem* ItemSystem)
 	// 4. 건축물 조회 테스트
 	UE_LOG(LogTSGameInstance, Display, TEXT("\n--- 건축물 조회 테스트 ---"));
 	FBuildingData BuildingData;
-	if (ItemSystem->GetBuildingDataSafe(1, BuildingData))
+	if (ItemSystem->GetBuildingDataSafe(500, BuildingData))
 	{
-		UE_LOG(LogTSGameInstance, Display, TEXT("✅ 건축물 ID 1 찾음:"));
+		UE_LOG(LogTSGameInstance, Display, TEXT("✅ 건축물 ID 500 찾음:"));
 		UE_LOG(LogTSGameInstance, Display, TEXT("  - 이름(KR): %s"), *BuildingData.Name_KR.ToString());
 		UE_LOG(LogTSGameInstance, Display, TEXT("  - 최대 내구도: %d"), BuildingData.MaxDurability);
 	}
 	else
 	{
-		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 건축물 ID 1을 찾을 수 없습니다"));
+		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 건축물 ID 500을 찾을 수 없습니다"));
+	}
+	
+	if (ItemSystem->GetBuildingDataSafe(501, BuildingData))
+	{
+		UE_LOG(LogTSGameInstance, Display, TEXT("✅ 건축물 ID 501 찾음:"));
+		ItemSystem->PrintBuildingDebugInfo(501);
+	}
+	else
+	{
+		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 건축물 ID 501을 찾을 수 없습니다"));
 	}
 	
 	// 5. 자원 조회 테스트
 	UE_LOG(LogTSGameInstance, Display, TEXT("\n--- 자원 원천 조회 테스트 ---"));
 	FResourceData ResourceData;
-	if (ItemSystem->GetResourceDataSafe(1, ResourceData))
+	if (ItemSystem->GetResourceDataSafe(600, ResourceData))
 	{
-		UE_LOG(LogTSGameInstance, Display, TEXT("✅ 자원 ID 1 찾음:"));
+		UE_LOG(LogTSGameInstance, Display, TEXT("✅ 자원 ID 600 찾음:"));
 		UE_LOG(LogTSGameInstance, Display, TEXT("  - 이름(KR): %s"), *ResourceData.Name_KR.ToString());
 		UE_LOG(LogTSGameInstance, Display, TEXT("  - 총 수량: %d"), ResourceData.TotalYield);
 	}
 	else
 	{
-		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 자원 ID 1을 찾을 수 없습니다"));
+		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 자원 ID 600을 찾을 수 없습니다"));
+	}
+	
+	if (ItemSystem->GetResourceDataSafe(606, ResourceData))
+	{
+		UE_LOG(LogTSGameInstance, Display, TEXT("✅ 자원 ID 606 찾음:"));
+		ItemSystem->PrintResourceDebugInfo(606);
+	}
+	else
+	{
+		UE_LOG(LogTSGameInstance, Warning, TEXT("❌ 자원 ID 606을 찾을 수 없습니다"));
 	}
 	
 	// 6. 카테고리별 필터링 테스트
-	UE_LOG(LogTSGameInstance, Display, TEXT("\n--- 카테고리별 아이템 필터링 ---"));
+	// MATERIAL
 	TArray<int32> MaterialIDs = ItemSystem->GetItemIDsByCategory(EItemCategory::MATERIAL);
 	UE_LOG(LogTSGameInstance, Display, TEXT("재료(MATERIAL) 개수: %d"), MaterialIDs.Num());
 	
+	// TOOL
 	TArray<int32> ToolIDs = ItemSystem->GetItemIDsByCategory(EItemCategory::TOOL);
 	UE_LOG(LogTSGameInstance, Display, TEXT("도구(TOOL) 개수: %d"), ToolIDs.Num());
+	
+	// WEAPON
+	TArray<int32> WeaponIDs = ItemSystem->GetItemIDsByCategory(EItemCategory::WEAPON);
+	UE_LOG(LogTSGameInstance, Display, TEXT("무기(WEAPON) 개수: %d"), WeaponIDs.Num());
+	
+	// ARMOR
+	TArray<int32> ArmorIDs = ItemSystem->GetItemIDsByCategory(EItemCategory::ARMOR);
+	UE_LOG(LogTSGameInstance, Display, TEXT("방어구(ARMOR) 개수: %d"), ArmorIDs.Num());
+	
+	// CONSUMABLE
+	TArray<int32> ConsumableIDs = ItemSystem->GetItemIDsByCategory(EItemCategory::CONSUMABLE);
+	UE_LOG(LogTSGameInstance, Display, TEXT("소모품(CONSUMABLE) 개수: %d"), ConsumableIDs.Num());
 	
 	UE_LOG(LogTSGameInstance, Display, TEXT("========================================"));
 	UE_LOG(LogTSGameInstance, Display, TEXT("테스트 완료"));

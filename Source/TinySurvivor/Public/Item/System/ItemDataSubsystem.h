@@ -299,7 +299,25 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category="ItemData|Debug")
 	void PrintCacheDebugInfo() const;
-
+	
+	/*
+		디버그용 아이템 정보 로그 출력
+	*/
+	UFUNCTION(BlueprintCallable, Category="ItemData|Debug")
+	void PrintItemDebugInfo(int32 ItemID) const;
+	
+	/*
+		디버그용 건축물 정보 로그 출력
+	*/
+	UFUNCTION(BlueprintCallable, Category="ItemData|Debug")
+	void PrintBuildingDebugInfo(int32 BuildingID) const;
+	
+	/*
+		디버그용 자원 원천 정보 로그 출력
+	*/
+	UFUNCTION(BlueprintCallable, Category="ItemData|Debug")
+	void PrintResourceDebugInfo(int32 ResourceID) const;
+	
 #if WITH_EDITOR
 	/*
 		에디터 전용: 캐시 리프레시
