@@ -48,9 +48,7 @@ public:
 	//sprint
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> SprintAction;
-	//lyingdown
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UInputAction> LyingDownAction;
+	//lyingdown 삭제
 
 
 	///////////// InteractionInputMappingContext /////////////
