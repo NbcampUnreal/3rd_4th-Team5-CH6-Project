@@ -91,7 +91,7 @@ protected:
 	void OnCrouch(const struct FInputActionValue& Value);
 	void OnSprintStarted(const struct FInputActionValue& Value);
 	void OnSprintCompleted(const struct FInputActionValue& Value);
-	void OnLyingDown(const struct FInputActionValue& Value);
+	//Lying Down 삭제
 	
 	// Interaction 함수들
 	void OnOpenBag(const struct FInputActionValue& Value);

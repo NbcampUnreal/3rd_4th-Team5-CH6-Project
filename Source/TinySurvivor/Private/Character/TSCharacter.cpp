@@ -95,40 +95,42 @@ void ATSCharacter::InitializeAbilities()
 	{
 		return;
 	}
-	if (!ASC)
+	UTSAbilityManagerSubSystem* Manager = UTSAbilityManagerSubSystem::GetAbilityManager(this);
+	if (!Manager)
 	{
 		return;
 	}
-
-	// GAS
-
-	/*const FGameplayTag JumpOrClimbTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.JumpOrClimb"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,JumpOrClimbTag);
-	*/
-	const FGameplayTag RollTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Roll"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC, RollTag);
-	/*const FGameplayTag SprintTag= FGameplayTag::RequestGameplayTag(FName("Ability.Move.Sprint"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,SprintTag);
-	const FGameplayTag LyingDownTag= FGameplayTag::RequestGameplayTag(FName("Ability.Move.LyingDown"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,LyingDownTag);
-	const FGameplayTag BuildTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Build"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,BuildTag);
-	const FGameplayTag InteractTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Interact"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,InteractTag);
-	const FGameplayTag PingTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Ping"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,PingTag);
-	const FGameplayTag PingTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.WheelScroll"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,WheelScrollTag);
-	const FGameplayTag LeftClickTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.LeftClick"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,LeftClickTag);
-	const FGameplayTag RightClickTag= FGameplayTag::RequestGameplayTag(FName("Ability.Interact.RightClick"));
-	UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC,RightClickTag);
-	*/
+	// 람다함수:태그 이름 받아서 어빌리티 부여하도록
+	auto GiveByTag = [Manager, this](const TCHAR* TagName)
+	{
+		const FGameplayTag GameplayTag= FGameplayTag::RequestGameplayTag(FName(TagName));
+		if (GameplayTag.IsValid())
+		{
+			Manager->GiveAbilityByTag(ASC, GameplayTag);
+		} 
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s 태그 없음"),TagName);
+		}
+	};
+	
+	// MOVE
+	GiveByTag(TEXT("Ability.Move.JumpOrClimb"));
+	GiveByTag(TEXT("Ability.Move.Roll"));
+	GiveByTag(TEXT("Ability.Move.Sprint"));
+	
+	// Interact
+	GiveByTag(TEXT("Ability.Interact.Build"));
+	GiveByTag(TEXT("Ability.Interact.Interact"));
+	GiveByTag(TEXT("Ability.Interact.Ping"));
+	GiveByTag(TEXT("Ability.Interact.WheelScroll"));
+	GiveByTag(TEXT("Ability.Interact.LeftClick"));
+	GiveByTag(TEXT("Ability.Interact.RightClick"));
 
 	const FGameplayTag HotKeyTag = FGameplayTag::RequestGameplayTag(FName("Ability.HotKey"));
 	if (HotKeyTag.IsValid())
 	{
-		UTSAbilityManagerSubSystem::GetAbilityManager(this)->GiveAbilityByTag(ASC, HotKeyTag);
+		Manager->GiveAbilityByTag(ASC, HotKeyTag);
 	}
 }
 
@@ -220,6 +222,7 @@ void ATSCharacter::OnJumpOrClimb(const struct FInputActionValue& Value)
 
 void ATSCharacter::OnRoll(const struct FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Log, TEXT("ctrl pressed"));
 	const FGameplayTag RollTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Roll"));
 	if (ASC && RollTag.IsValid())
 	{
@@ -250,13 +253,11 @@ void ATSCharacter::OnSprintCompleted(const struct FInputActionValue& Value)
 	}
 }
 
-void ATSCharacter::OnLyingDown(const struct FInputActionValue& Value)
-{
-	UE_LOG(LogTemp, Log, TEXT("z pressed"));
-}
+//LyingDown 삭제 
 
 void ATSCharacter::OnOpenBag(const struct FInputActionValue& Value)
 {
+	UE_LOG(LogTemp, Log, TEXT("i pressed Open Bag"));
 	if (!IsLocallyControlled()) return;
 	if (ATSPlayerController* TSController = Cast<ATSPlayerController>(Controller))
 	{
@@ -271,7 +272,7 @@ void ATSCharacter::OnBuild(const struct FInputActionValue& Value)
 
 void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Log, TEXT("i pressed"));
+	UE_LOG(LogTemp, Log, TEXT("e pressed"));
 }
 
 void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
@@ -457,8 +458,9 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnJumpOrClimb);
 		EnhancedInputComponent->BindAction(InputDataAsset->RollAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnRoll);
-		EnhancedInputComponent->BindAction(InputDataAsset->LyingDownAction, ETriggerEvent::Started, this,
-		                                   &ATSCharacter::OnLyingDown);
+		EnhancedInputComponent->BindAction(InputDataAsset->CrouchAction, ETriggerEvent::Started, this,
+										   &ATSCharacter::OnCrouch);
+		//LyingDown 삭제
 		EnhancedInputComponent->BindAction(InputDataAsset->OpenBagAction, ETriggerEvent::Started, this,
 									   &ATSCharacter::OnOpenBag);
 		EnhancedInputComponent->BindAction(InputDataAsset->BuildAction, ETriggerEvent::Started, this,
