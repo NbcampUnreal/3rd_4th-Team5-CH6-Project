@@ -1,6 +1,6 @@
 // ItemDataSubsystem.cpp
 #include "Item/System/ItemDataSubsystem.h"
-
+#include "Item/System/ItemSystemSettings.h"
 #include "Engine/Engine.h"
 
 // 로그 카테고리 정의
@@ -45,7 +45,31 @@ void UItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			NetMode == NM_Client ? TEXT("Client") : TEXT("Unknown"));
 	}
 	
-	// 실제 초기화는 GameInstance에서 InitializeFromAsset()을 통해 수행
+	// Project Settings에서 자동 로드
+	const UItemSystemSettings* Settings = UItemSystemSettings::Get();
+	if (!Settings)
+	{
+		UE_LOG(LogItemDataSubsystem, Error, TEXT("ItemSystemSettings를 찾을 수 없습니다!"));
+		return;
+	}
+	
+	// Soft Reference 동기 로드
+	UItemTableAsset* LoadedAsset = Settings->ItemTableAsset.LoadSynchronous();
+	if (!LoadedAsset)
+	{
+		UE_LOG(LogItemDataSubsystem, Error, TEXT("ItemTableAsset 로드 실패! Project Settings > Item System에서 설정하세요."));
+		return;
+	}
+	
+	// 자동 초기화
+	if (InitializeFromAsset(LoadedAsset))
+	{
+		UE_LOG(LogItemDataSubsystem, Log, TEXT("ItemDataSubsystem 자동 초기화 성공"));
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Error, TEXT("ItemDataSubsystem 초기화 실패"));
+	}
 }
 
 void UItemDataSubsystem::Deinitialize()
@@ -71,7 +95,7 @@ UItemDataSubsystem* UItemDataSubsystem::GetItemDataSubsystem(const UObject* Worl
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetItemDataSubsystem: WorldContext가 null입니다"));
 		return nullptr;
 	}
-
+	
 	// WorldContext에서 UWorld 객체 가져오기
 	const UWorld* World = GEngine->GetWorldFromContextObject(
 		WorldContext, 
@@ -83,7 +107,7 @@ UItemDataSubsystem* UItemDataSubsystem::GetItemDataSubsystem(const UObject* Worl
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetItemDataSubsystem: WorldContext에서 UWorld를 가져오지 못했습니다"));
 		return nullptr;
 	}
-
+	
 	// World에서 GameInstance 가져오기
 	UGameInstance* GameInstance = World->GetGameInstance();
 	if (!GameInstance)
@@ -91,7 +115,7 @@ UItemDataSubsystem* UItemDataSubsystem::GetItemDataSubsystem(const UObject* Worl
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetItemDataSubsystem: GameInstance가 null입니다"));
 		return nullptr;
 	}
-
+	
 	// GameInstance에서 ItemDataSubsystem 가져오기
 	UItemDataSubsystem* Subsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
 	if (!Subsystem)
@@ -99,14 +123,14 @@ UItemDataSubsystem* UItemDataSubsystem::GetItemDataSubsystem(const UObject* Worl
 		UE_LOG(LogItemDataSubsystem, Error, TEXT("GetItemDataSubsystem: Subsystem을 찾을 수 없습니다!"));
 		return nullptr;
 	}
-
+	
 	// 서브시스템 초기화 확인
 	if (!Subsystem->IsInitialized())
 	{
 		UE_LOG(LogItemDataSubsystem, Warning, 
 			TEXT("GetItemDataSubsystem: Subsystem은 찾았지만 아직 초기화되지 않았습니다. 먼저 InitializeFromAsset()를 호출하세요."));
 	}
-
+	
 	return Subsystem;
 }
 #pragma endregion
@@ -122,27 +146,32 @@ bool UItemDataSubsystem::InitializeFromAsset(UItemTableAsset* InTableAsset)
 		UE_LOG(LogItemDataSubsystem, Error, TEXT("초기화 실패: 유효하지 않은 TableAsset"));
 		return false;
 	}
-
+	
 	// 기존 캐시 초기화
 	ClearAllCaches();
-
+	
 	// 데이터 에셋 저장
 	TableAsset = InTableAsset;
-
+	
 	// 각 데이터 테이블 캐싱
 	CacheItemData();		// 아이템 데이터 캐싱
 	CacheBuildingData();	// 건축물 데이터 캐싱
 	CacheResourceData();	// 자원 데이터 캐싱
-
+	
 	// 초기화 완료 플래그 설정
 	bIsInitialized = true;
-
+	
 #if UE_BUILD_DEVELOPMENT || UE_BUILD_DEBUG
 	// 개발/디버그 빌드에서 캐시 상태 로그 출력
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("ItemDataSubsystem 초기화 성공"));
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("- Items: %d"), ItemDataCache.Num());
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("- Buildings: %d"), BuildingDataCache.Num());
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("- Resources: %d"), ResourceDataCache.Num());
+	
+	// 에디터에서만 자동 테스트 실행
+#if WITH_EDITOR
+	RunInitializationTests();
+#endif
 #endif
 	
 	return true;
@@ -160,12 +189,12 @@ const FItemData& UItemDataSubsystem::GetItemData(int32 ItemID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetItemData 호출 시점: 아직 초기화되지 않음"));
 		return EmptyItemData;
 	}
-
+	
 	if (const FItemData* Found = ItemDataCache.Find(ItemID))
 	{// 캐시에서 아이템 데이터 검색
 		return *Found;
 	}
-
+	
 	// 아이템 ID를 캐시에서 찾지 못했을 경우 경고 로그 출력
 	UE_LOG(LogItemDataSubsystem, Warning, TEXT("ItemID %d를 캐시에서 찾을 수 없음"), ItemID);
 	return EmptyItemData;
@@ -201,7 +230,7 @@ TArray<int32> UItemDataSubsystem::GetItemIDsByCategory(EItemCategory Category) c
 {
 	// 지정한 카테고리에 속하는 아이템 ID만 필터링하여 반환
 	TArray<int32> FilteredIDs;
-
+	
 	// 캐시에 저장된 모든 아이템을 순회
 	for (const TPair<int32, FItemData>& Pair : ItemDataCache)
 	{
@@ -226,12 +255,12 @@ const FBuildingData& UItemDataSubsystem::GetBuildingData(int32 BuildingID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetBuildingData 호출 시점: 아직 초기화되지 않음"));
 		return EmptyBuildingData;
 	}
-
+	
 	if (const FBuildingData* Found = BuildingDataCache.Find(BuildingID))
 	{// 캐시에서 건축물 데이터 검색
 		return *Found;
 	}
-
+	
 	// 건축물 ID를 캐시에서 찾지 못했을 경우 경고 로그 출력
 	UE_LOG(LogItemDataSubsystem, Warning, TEXT("BuildingID %d를 캐시에서 찾을 수 없음"), BuildingID);
 	return EmptyBuildingData;
@@ -244,13 +273,13 @@ bool UItemDataSubsystem::GetBuildingDataSafe(int32 BuildingID, FBuildingData& Ou
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetBuildingDataSafe 호출 시점: 아직 초기화되지 않음"));
 		return false;
 	}
-
+	
 	if (const FBuildingData* Found = BuildingDataCache.Find(BuildingID))
 	{// 캐시에서 건축물 데이터 검색
 		OutData = *Found; // 안전하게 OutData에 복사
 		return true;
 	}
-
+	
 	// 건축물 ID를 캐시에서 찾지 못했을 경우 false 반환
 	return false;
 }
@@ -267,7 +296,7 @@ TArray<int32> UItemDataSubsystem::GetBuildingIDsByType(EBuildingType BuildingTyp
 {
 	// 지정한 건축물 타입에 속하는 건축물 ID만 필터링하여 반환
 	TArray<int32> FilteredIDs;
-
+	
 	// 캐시에 저장된 모든 건축물 데이터를 순회
 	for (const TPair<int32, FBuildingData>& Pair : BuildingDataCache)
 	{
@@ -292,12 +321,12 @@ const FResourceData& UItemDataSubsystem::GetResourceData(int32 ResourceID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetResourceData 호출 시점: 아직 초기화되지 않음"));
 		return EmptyResourceData;
 	}
-
+	
 	if (const FResourceData* Found = ResourceDataCache.Find(ResourceID))
 	{// 캐시에서 자원 데이터 검색
 		return *Found;
 	}
-
+	
 	// 자원 ID를 캐시에서 찾지 못했을 경우 경고 로그 출력
 	UE_LOG(LogItemDataSubsystem, Warning, TEXT("ResourceID %d를 캐시에서 찾을 수 없음"), ResourceID);
 	return EmptyResourceData;
@@ -310,13 +339,13 @@ bool UItemDataSubsystem::GetResourceDataSafe(int32 ResourceID, FResourceData& Ou
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("GetResourceDataSafe 호출 시점: 아직 초기화되지 않음"));
 		return false;
 	}
-
+	
 	if (const FResourceData* Found = ResourceDataCache.Find(ResourceID))
 	{// 캐시에서 자원 데이터 검색
 		OutData = *Found; // 안전하게 OutData에 복사
 		return true;
 	}
-
+	
 	// 자원 ID를 캐시에서 찾지 못했을 경우 false 반환
 	return false;
 }
@@ -333,7 +362,7 @@ TArray<int32> UItemDataSubsystem::GetResourceIDsByNodeType(ENodeType NodeType) c
 {
 	// 지정한 노드 타입에 속하는 자원 ID만 필터링하여 반환
 	TArray<int32> FilteredIDs;
-
+	
 	// 캐시에 저장된 모든 자원 데이터를 순회
 	for (const TPair<int32, FResourceData>& Pair : ResourceDataCache)
 	{
@@ -607,6 +636,122 @@ void UItemDataSubsystem::RefreshCache()
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("캐시 새로고침 완료"));
 	// 새로고침 후 캐시 상태 디버그 출력
 	PrintCacheDebugInfo();
+}
+
+void UItemDataSubsystem::RunInitializationTests()
+{
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("ItemDataSubsystem 초기화 테스트 시작"));
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
+	
+	// 1. 통계 출력
+	PrintCacheDebugInfo();
+	
+	// 2. 아이템 조회 테스트
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- 아이템 조회 테스트 ---"));
+	FItemData ItemData;
+	if (GetItemDataSafe(1, ItemData))
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("✅ 아이템 ID 1 찾음:"));
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("  - 이름(KR): %s"), *ItemData.Name_KR.ToString());
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("  - 이름(EN): %s"), *ItemData.Name_EN.ToString());
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("  - MaxStack: %d"), ItemData.MaxStack);
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("❌ 아이템 ID 1을 찾을 수 없습니다"));
+	}
+	
+	if (GetItemDataSafe(300, ItemData))
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("✅ 아이템 ID 300 찾음:"));
+		PrintItemDebugInfo(300);
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("❌ 아이템 ID 300을 찾을 수 없습니다"));
+	}
+	
+	// 3. 존재하지 않는 ID 테스트
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- 존재하지 않는 ID 테스트 ---"));
+	if (GetItemDataSafe(9999, ItemData))
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("✅ ID 9999 찾음 (이상함!)"));
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("❌ ID 9999를 찾을 수 없습니다 (정상)"));
+	}
+	
+	// 4. 건축물 조회 테스트
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- 건축물 조회 테스트 ---"));
+	FBuildingData BuildingData;
+	if (GetBuildingDataSafe(500, BuildingData))
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("✅ 건축물 ID 500 찾음:"));
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("  - 이름(KR): %s"), *BuildingData.Name_KR.ToString());
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("  - 최대 내구도: %d"), BuildingData.MaxDurability);
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("❌ 건축물 ID 500을 찾을 수 없습니다"));
+	}
+	
+	if (GetBuildingDataSafe(501, BuildingData))
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("✅ 건축물 ID 501 찾음:"));
+		PrintBuildingDebugInfo(501);
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("❌ 건축물 ID 501을 찾을 수 없습니다"));
+	}
+	
+	// 5. 자원 조회 테스트
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- 자원 원천 조회 테스트 ---"));
+	FResourceData ResourceData;
+	if (GetResourceDataSafe(600, ResourceData))
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("✅ 자원 ID 600 찾음:"));
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("  - 이름(KR): %s"), *ResourceData.Name_KR.ToString());
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("  - 총 수량: %d"), ResourceData.TotalYield);
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("❌ 자원 ID 600을 찾을 수 없습니다"));
+	}
+	
+	if (GetResourceDataSafe(606, ResourceData))
+	{
+		UE_LOG(LogItemDataSubsystem, Display, TEXT("✅ 자원 ID 606 찾음:"));
+		PrintResourceDebugInfo(606);
+	}
+	else
+	{
+		UE_LOG(LogItemDataSubsystem, Warning, TEXT("❌ 자원 ID 606을 찾을 수 없습니다"));
+	}
+	
+	// 6. 카테고리별 필터링 테스트
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n--- 카테고리별 필터링 테스트 ---"));
+	
+	TArray<int32> MaterialIDs = GetItemIDsByCategory(EItemCategory::MATERIAL);
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("재료(MATERIAL) 개수: %d"), MaterialIDs.Num());
+	
+	TArray<int32> ToolIDs = GetItemIDsByCategory(EItemCategory::TOOL);
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("도구(TOOL) 개수: %d"), ToolIDs.Num());
+	
+	TArray<int32> WeaponIDs = GetItemIDsByCategory(EItemCategory::WEAPON);
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("무기(WEAPON) 개수: %d"), WeaponIDs.Num());
+	
+	TArray<int32> ArmorIDs = GetItemIDsByCategory(EItemCategory::ARMOR);
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("방어구(ARMOR) 개수: %d"), ArmorIDs.Num());
+	
+	TArray<int32> ConsumableIDs = GetItemIDsByCategory(EItemCategory::CONSUMABLE);
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("소모품(CONSUMABLE) 개수: %d"), ConsumableIDs.Num());
+	
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("테스트 완료"));
+	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
 }
 #endif
 #pragma endregion
