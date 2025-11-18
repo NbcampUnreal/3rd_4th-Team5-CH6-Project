@@ -325,6 +325,12 @@ public:
 	*/
 	UFUNCTION(CallInEditor, Category="ItemData|Editor")
 	void RefreshCache();
+	
+	/*
+		에디터 전용: 초기화 후 자동 테스트
+		InitializeFromAsset() 완료 후 호출됨
+	*/
+	void RunInitializationTests();
 #endif
 #pragma endregion
 

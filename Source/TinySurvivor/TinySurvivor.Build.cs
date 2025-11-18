@@ -26,7 +26,8 @@ public class TinySurvivor : ModuleRules
 			// Object Pooling
 			"rdInst",
 			"ActorPoolManager",
-			
+			// DeveloperSettings 모듈 링크 (UDeveloperSettings 관련)
+			"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
