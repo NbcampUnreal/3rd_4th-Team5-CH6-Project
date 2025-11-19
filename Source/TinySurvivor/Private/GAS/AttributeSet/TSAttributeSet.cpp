@@ -27,6 +27,8 @@ UTSAttributeSet::UTSAttributeSet()
 	InitTemperature(100.f); //36.5??
 	InitMaxTemperature(100.0f); //36.5? max는 한 39? 일단 100으로 다 맞춰둠
 	
+	InitMoveSpeed(600.f);
+	InitMaxMoveSpeed(1000.0f);
 }
 //***********************************************
 //복제 설정
@@ -48,6 +50,8 @@ void UTSAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxSanity, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, Temperature, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxTemperature, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxMoveSpeed, COND_None, REPNOTIFY_Always);
 }
 //***********************************************
 //값 변경 전 Clamp
@@ -191,4 +195,14 @@ void UTSAttributeSet::OnRep_Temperature(const FGameplayAttributeData& OldTempera
 void UTSAttributeSet::OnRep_MaxTemperature(const FGameplayAttributeData& OldMaxTemperature)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxTemperature, OldMaxTemperature);
+}
+
+void UTSAttributeSet::OnRep_MoveSpeed(const FGameplayAttributeData& OldMoveSpeed)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MoveSpeed, OldMoveSpeed);
+}
+
+void UTSAttributeSet::OnRep_MaxMoveSpeed(const FGameplayAttributeData& OldMaxMoveSpeed)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxMoveSpeed, OldMaxMoveSpeed);
 }

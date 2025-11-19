@@ -18,6 +18,7 @@
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "GAS/AttributeSet/TSAttributeSet.h"
 
 ATSCharacter::ATSCharacter()
 {
@@ -86,6 +87,14 @@ void ATSCharacter::InitAbilitySystem()
 		return;
 	}
 	ASC->InitAbilityActorInfo(PS, this);
+	
+	
+	if (IsValid(ASC) && IsValid(Attributes))
+	{
+		ASC->GetGameplayAttributeValueChangeDelegate(
+			UTSAttributeSet::GetMoveSpeedAttribute()
+		).AddUObject(this, &ATSCharacter::OnMoveSpeedChanged);
+	}
 }
 
 void ATSCharacter::InitializeAbilities()
@@ -118,12 +127,12 @@ void ATSCharacter::InitializeAbilities()
 	GiveByTag(TEXT("Ability.Move.JumpOrClimb"));
 	GiveByTag(TEXT("Ability.Move.Roll"));
 	GiveByTag(TEXT("Ability.Move.Sprint"));
+	GiveByTag(TEXT("Ability.Move.Crouch"));
 	
 	// Interact
 	GiveByTag(TEXT("Ability.Interact.Build"));
 	GiveByTag(TEXT("Ability.Interact.Interact"));
 	GiveByTag(TEXT("Ability.Interact.Ping"));
-	GiveByTag(TEXT("Ability.Interact.WheelScroll"));
 	GiveByTag(TEXT("Ability.Interact.LeftClick"));
 	GiveByTag(TEXT("Ability.Interact.RightClick"));
 
@@ -132,6 +141,8 @@ void ATSCharacter::InitializeAbilities()
 	{
 		Manager->GiveAbilityByTag(ASC, HotKeyTag);
 	}
+	
+	
 }
 
 void ATSCharacter::BeginPlay()
@@ -217,7 +228,11 @@ void ATSCharacter::ShoulderSwitch(const struct FInputActionValue& Value)
 void ATSCharacter::OnJumpOrClimb(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("SpaceBar pressed"));
-	Jump(); //가스로 할건데 일단은 테스트용
+	const FGameplayTag JumpOrClimbTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.JumpOrClimb"));
+	if (ASC && JumpOrClimbTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(JumpOrClimbTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnRoll(const struct FInputActionValue& Value)
@@ -233,23 +248,32 @@ void ATSCharacter::OnRoll(const struct FInputActionValue& Value)
 void ATSCharacter::OnCrouch(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("c pressed"));
+	const FGameplayTag CrouchTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Crouch"));
+	if (ASC && CrouchTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(CrouchTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnSprintStarted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("shift pressed"));
-	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	const FGameplayTag SprintTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Sprint"));
+	if (ASC && SprintTag.IsValid())
 	{
-		MoveComp->MaxWalkSpeed = 1000.f; //가스로 할건데 일단은 테스트용
+		ASC->TryActivateAbilitiesByTag(SprintTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
 	}
 }
 
 void ATSCharacter::OnSprintCompleted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("shift end"));
-	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	const FGameplayTag SprintTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Sprint"));
+	if (ASC && SprintTag.IsValid())
 	{
-		MoveComp->MaxWalkSpeed = 600.f; //가스로 할건데 일단은 테스트용
+		FGameplayTagContainer WithTags;
+		WithTags.AddTag(SprintTag);
+		ASC->CancelAbilities(&WithTags);
 	}
 }
 
@@ -268,31 +292,57 @@ void ATSCharacter::OnOpenBag(const struct FInputActionValue& Value)
 void ATSCharacter::OnBuild(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("b pressed"));
+	const FGameplayTag BuildTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Build"));
+	if (ASC && BuildTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(BuildTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("e pressed"));
+	const FGameplayTag InteractTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Interact"));
+	if (ASC && InteractTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(InteractTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("l-click pressed"));
+	const FGameplayTag LeftClickTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.LeftClick"));
+	if (ASC && LeftClickTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(LeftClickTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnRightClick(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("r-click pressed"));
+	const FGameplayTag RightClickTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.RightClick"));
+	if (ASC && RightClickTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(RightClickTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnPing(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel pressed"));
+	const FGameplayTag PingTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Ping"));
+	if (ASC && PingTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(PingTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Vaule)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel scroll pressed"));
+	// 가스 안쓸거임
 }
 
 void ATSCharacter::OnHotKey1(const struct FInputActionValue& Value)
@@ -353,6 +403,11 @@ void ATSCharacter::OnHotKey0(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("0 pressed"));
 	SendHotKeyEvent(9); // 0번키 = 9번 슬롯 !!!!!!!!
+}
+
+void ATSCharacter::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
 }
 
 void ATSCharacter::LineTrace()
