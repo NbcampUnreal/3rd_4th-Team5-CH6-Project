@@ -74,6 +74,13 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_MaxTemperature)
 	FGameplayAttributeData MaxTemperature;
+	
+	// 7. Speed (속도) 
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", ReplicatedUsing = OnRep_MoveSpeed)
+	FGameplayAttributeData MoveSpeed;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", ReplicatedUsing = OnRep_MaxMoveSpeed)
+	FGameplayAttributeData MaxMoveSpeed;
 
 public:
 	// 매크로
@@ -89,6 +96,8 @@ public:
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxSanity)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, Temperature)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxTemperature)
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MoveSpeed)
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxMoveSpeed)
 	
 protected:
 	//OnRep 클라 반영
@@ -116,4 +125,8 @@ protected:
 	void OnRep_Temperature(const FGameplayAttributeData& OldTemperature);
 	UFUNCTION()
 	void OnRep_MaxTemperature(const FGameplayAttributeData& OldMaxTemperature);
+	UFUNCTION()
+	void OnRep_MoveSpeed(const FGameplayAttributeData& OldMoveSpeed);
+	UFUNCTION()
+	void OnRep_MaxMoveSpeed(const FGameplayAttributeData& OldMaxMoveSpeed);
 };
