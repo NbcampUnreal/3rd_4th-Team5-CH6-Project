@@ -23,10 +23,14 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 	
-	
+	//GA 에서 재생할 기본 몽타주
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly , Category = "Montage")
 	TObjectPtr<UAnimMontage> FirstMontage;
-	 
+	
+	// 몽타주 재생할 때 호출 하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Montage")
+	void PlayMontage();
+	
 	// 몽타주가 정상적으로 재생을 시작했을 때 호출
 	UFUNCTION()
 	virtual void OnMontageStarted();
