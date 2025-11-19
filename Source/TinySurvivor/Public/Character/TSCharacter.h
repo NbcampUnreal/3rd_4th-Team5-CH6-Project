@@ -114,6 +114,8 @@ protected:
 	void OnHotKey9(const struct FInputActionValue& Value);
 	void OnHotKey0(const struct FInputActionValue& Value);
 	
+	
+	virtual void OnMoveSpeedChanged(const FOnAttributeChangeData& Data);
 #pragma endregion
 		
 #pragma region LineTrace
