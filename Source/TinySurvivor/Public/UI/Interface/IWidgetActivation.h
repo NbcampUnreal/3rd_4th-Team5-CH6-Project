@@ -22,7 +22,9 @@ class TINYSURVIVOR_API IIWidgetActivation
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	// ✅ 위젯이 활성화될 때 호출
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Widget")
-	void OnWidgetActivated();
+
+	// 컨테이너 데이터 설정
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Container")
+	void SetContainerData(AActor* OwnerActor, UTSInventoryMasterComponent* ContainerInventory);
+
 };

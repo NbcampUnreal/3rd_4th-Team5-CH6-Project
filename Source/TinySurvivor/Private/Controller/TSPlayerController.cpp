@@ -3,6 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Character/TSCharacter.h"
 #include "Components/WidgetSwitcher.h"
+#include "Inventory/TSInventoryMasterComponent.h"
 #include "UI/Interface/IWidgetActivation.h"
 
 void ATSPlayerController::AcknowledgePossession(class APawn* P)
@@ -30,11 +31,82 @@ void ATSPlayerController::OnUnPossess()
 
 void ATSPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// 타이머 정리
+	if (GetWorld() && ContainerDistanceCheckTimer.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(ContainerDistanceCheckTimer);
+	}
+
 	if (HUDWidget)
 	{
 		HUDWidget->RemoveFromParent();
 	}
 	Super::EndPlay(EndPlayReason);
+}
+
+void ATSPlayerController::ServerTransferItem_Implementation(AActor* SourceActor,
+                                                            AActor* TargetActor,
+                                                            EInventoryType FromInventoryType, int32 FromSlotIndex,
+                                                            EInventoryType ToInventoryType, int32 ToSlotIndex,
+                                                            bool bIsFullStack)
+{
+	if (!SourceActor || !TargetActor)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ServerTransferItemBetweenActors: Invalid actors"));
+		return;
+	}
+
+	// 소스 인벤토리
+	UTSInventoryMasterComponent* SourceInventory =
+		SourceActor->FindComponentByClass<UTSInventoryMasterComponent>();
+
+	// 타겟 인벤토리
+	UTSInventoryMasterComponent* TargetInventory =
+		TargetActor->FindComponentByClass<UTSInventoryMasterComponent>();
+
+	if (!SourceInventory || !TargetInventory)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ServerTransferItemBetweenActors: Missing inventory components"));
+		return;
+	}
+
+	// Internal 함수 호출
+	SourceInventory->Internal_TransferItem(
+		SourceInventory,
+		TargetInventory,
+		FromInventoryType,
+		FromSlotIndex,
+		ToInventoryType,
+		ToSlotIndex,
+		bIsFullStack
+	);
+}
+
+bool ATSPlayerController::ServerTransferItem_Validate(AActor* SourceActor,
+                                                      AActor* TargetActor,
+                                                      EInventoryType FromInventoryType, int32 FromSlotIndex,
+                                                      EInventoryType ToInventoryType, int32 ToSlotIndex,
+                                                      bool bIsFullStack)
+{
+	// 기본 검증
+	if (!SourceActor || !TargetActor)
+	{
+		return false;
+	}
+
+	if (FromSlotIndex < 0 || ToSlotIndex < 0)
+	{
+		return false;
+	}
+
+	// 컨트롤하는 폰
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void ATSPlayerController::InitializePlayerHUD()
@@ -115,21 +187,310 @@ void ATSPlayerController::ToggleInventory()
 	if (Switcher)
 	{
 		int32 ActiveIndex = Switcher->GetActiveWidgetIndex();
-		if (ActiveIndex == 0)
-		{
-			SetInputMode(FInputModeGameAndUI());
-			SetShowMouseCursor(true);
-		}
-		else
-		{
-			SetInputMode(FInputModeGameOnly());
-			SetShowMouseCursor(false);
-		}
 		Switcher->SetActiveWidgetIndex(ActiveIndex == 0 ? 1 : 0);
 		UWidget* ActiveWidget = Switcher->GetActiveWidget();
+		UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
+			GetPawn()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+
+		if (!ContainerInventory)
+		{
+			return;
+		}
 		if (ActiveWidget && ActiveWidget->Implements<UIWidgetActivation>())
 		{
-			IIWidgetActivation::Execute_OnWidgetActivated(ActiveWidget);
+			IIWidgetActivation::Execute_SetContainerData(ActiveWidget, GetPawn(), ContainerInventory);
+		}
+
+		UpdateInputMode();
+	}
+}
+
+void ATSPlayerController::ToggleContainer(AActor* ContainerActor)
+{
+	if (!HUDWidget || !ContainerActor)
+	{
+		return;
+	}
+	if (CurrentContainer == ContainerActor)
+	{
+		CloseCurrentContainer();
+		return;
+	}
+	if (CurrentContainer)
+	{
+		CloseCurrentContainer();
+	}
+
+	CurrentContainer = ContainerActor;
+
+	UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
+		CurrentContainer->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+
+	if (!ContainerInventory)
+	{
+		return;
+	}
+
+	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
+	if (!Switcher)
+	{
+		return;
+	}
+
+	Switcher->SetActiveWidgetIndex(Container);
+	UWidget* ActiveWidget = Switcher->GetActiveWidget();
+	if (ActiveWidget)
+	{
+		if (ActiveWidget->Implements<UIWidgetActivation>())
+		{
+			IIWidgetActivation::Execute_SetContainerData(ActiveWidget, ContainerActor, ContainerInventory);
 		}
 	}
+
+	GetWorld()->GetTimerManager().SetTimer(
+		ContainerDistanceCheckTimer,
+		this,
+		&ThisClass::CheckContainerDistance,
+		DistanceCheckInterval,
+		true
+	);
+	UpdateInputMode();
+}
+
+void ATSPlayerController::ToggleBuildingMode()
+{
+	if (!HUDWidget)
+	{
+		return;
+	}
+
+	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
+	if (!Switcher)
+	{
+		return;
+	}
+	int32 CurrentIndex = Switcher->GetActiveWidgetIndex();
+
+	// 토글: 빌딩모드 ↔ 빈 위젯
+	if (CurrentIndex == BuildingMode)
+	{
+		Switcher->SetActiveWidgetIndex(Empty_Content);
+	}
+	else
+	{
+		if (CurrentContainer)
+		{
+			CloseCurrentContainer();
+		}
+		Switcher->SetActiveWidgetIndex(BuildingMode);
+		UWidget* ActiveWidget = Switcher->GetActiveWidget();
+		if (ActiveWidget)
+		{
+			// TODO : 빌딩모드 관련 내용 추후 업데이트
+		}
+	}
+
+	UpdateInputMode();
+}
+
+void ATSPlayerController::HandleEscapeKey()
+{
+	// 1순위: 환경설정이 열려있으면 → 환경설정만 닫기
+	if (bIsSettingsOpen)
+	{
+		CloseSettings();
+		return;
+	}
+
+	// 2순위: 게임 UI가 열려있으면 → 모두 닫기
+	if (IsAnyUIOpen())
+	{
+		CloseAllGameUI();
+		return;
+	}
+
+	// 3순위: 아무것도 안 열려있으면 → 환경설정 열기
+	OpenSettings();
+}
+
+void ATSPlayerController::OpenSettings()
+{
+	if (!HUDWidget)
+	{
+		return;
+	}
+	CloseCurrentContainer();
+	bIsSettingsOpen = true;
+
+	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
+	if (!Switcher)
+	{
+		return;
+	}
+
+	Switcher->SetActiveWidgetIndex(Settings);
+
+	UpdateInputMode();
+}
+
+void ATSPlayerController::CloseSettings()
+{
+	if (!bIsSettingsOpen || !HUDWidget)
+	{
+		return;
+	}
+
+	bIsSettingsOpen = false;
+	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
+	if (!Switcher)
+	{
+		return;
+	}
+
+	Switcher->SetActiveWidgetIndex(Empty_Content);
+
+	UpdateInputMode();
+}
+
+void ATSPlayerController::CheckContainerDistance()
+{
+	if (!CurrentContainer)
+	{
+		// 타이머 정리
+		GetWorld()->GetTimerManager().ClearTimer(ContainerDistanceCheckTimer);
+		return;
+	}
+
+	APawn* ControlledPawn = GetPawn();
+	if (!ControlledPawn)
+	{
+		return;
+	}
+
+	// 거리 체크
+	float Distance = FVector::Dist(
+		ControlledPawn->GetActorLocation(),
+		CurrentContainer->GetActorLocation()
+	);
+
+	// 최대 거리 초과 시 자동으로 닫기
+	if (Distance > MaxContainerInteractionDistance)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Container auto-closed: too far (%.1f > %.1f)"),
+		       Distance, MaxContainerInteractionDistance);
+
+		CloseCurrentContainer();
+	}
+}
+
+void ATSPlayerController::CloseCurrentContainer()
+{
+	if (!CurrentContainer)
+	{
+		return;
+	}
+	GetWorld()->GetTimerManager().ClearTimer(ContainerDistanceCheckTimer);
+	CurrentContainer = nullptr;
+
+	if (!HUDWidget)
+	{
+		return;
+	}
+
+	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
+	if (Switcher)
+	{
+		Switcher->SetActiveWidgetIndex(Empty_Content);
+	}
+	UpdateInputMode();
+}
+
+void ATSPlayerController::CloseAllGameUI()
+{
+	if (!HUDWidget)
+	{
+		return;
+	}
+
+	// Backpack 스위처 닫기
+	UWidgetSwitcher* BackpackSwitcher = Cast<UWidgetSwitcher>(
+		HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Backpack"))
+	);
+
+	if (BackpackSwitcher)
+	{
+		BackpackSwitcher->SetActiveWidgetIndex(Empty_Backpack);
+	}
+
+	// Content 스위처 닫기 (컨테이너 포함)
+	if (CurrentContainer)
+	{
+		CloseCurrentContainer();
+	}
+	else
+	{
+		UWidgetSwitcher* ContentSwitcher = Cast<UWidgetSwitcher>(
+			HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content"))
+		);
+
+		if (ContentSwitcher)
+		{
+			ContentSwitcher->SetActiveWidgetIndex(Empty_Content);
+		}
+	}
+
+	UpdateInputMode();
+}
+
+void ATSPlayerController::UpdateInputMode()
+{
+	// 환경설정이 열려있으면 UI Only
+	if (bIsSettingsOpen)
+	{
+		SetInputMode(FInputModeGameAndUI());
+		SetShowMouseCursor(true);
+		return;
+	}
+
+	// 게임 UI가 열려있으면 UI And Game
+	if (IsAnyUIOpen())
+	{
+		SetInputMode(FInputModeGameAndUI());
+		SetShowMouseCursor(true);
+		return;
+	}
+
+	// 아무것도 없으면 Game Only
+	SetInputMode(FInputModeGameOnly());
+	SetShowMouseCursor(false);
+}
+
+bool ATSPlayerController::IsAnyUIOpen() const
+{
+	if (!HUDWidget)
+	{
+		return false;
+	}
+
+	// Backpack 스위처 확인
+	UWidgetSwitcher* BackpackSwitcher = Cast<UWidgetSwitcher>(
+		HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Backpack"))
+	);
+
+	if (BackpackSwitcher && BackpackSwitcher->GetActiveWidgetIndex() != Empty_Backpack)
+	{
+		return true;
+	}
+
+	// Content 스위처 확인
+	UWidgetSwitcher* ContentSwitcher = Cast<UWidgetSwitcher>(
+		HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content"))
+	);
+
+	if (ContentSwitcher && ContentSwitcher->GetActiveWidgetIndex() != Empty_Content)
+	{
+		return true;
+	}
+
+	return false;
 }

@@ -123,14 +123,6 @@ public:
 	// ========================================
 
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
-	void ServerTransferItem(
-		UTSInventoryMasterComponent* SourceInventory,
-		UTSInventoryMasterComponent* TargetInventory,
-		EInventoryType FromInventoryType, int32 FromSlotIndex,
-		EInventoryType ToInventoryType, int32 ToSlotIndex,
-		bool bIsFullStack = true);
-
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
 	void ServerDropItemToWorld(
 		EInventoryType InventoryType, int32 SlotIndex, int32 Quantity);
 
@@ -224,7 +216,6 @@ private:
 	// ========================================
 	// 헬퍼 함수 - 부패
 	// ========================================
-	// TODO : 부패물 아이템 아이디 어디서 가져올지 확인 필요
 	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Settings")
 	int32 CachedDecayedItemID;
 	FItemData CachedDecayedItemInfo;
@@ -253,7 +244,8 @@ private:
 	UItemDataSubsystem* GetItemDataSubsystem() const;
 	bool GetItemData(int32 StaticDataID, FItemData& OutData) const;
 	bool IsItemBagType(int32 StaticDataID) const;
-	double UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack, int NewItemStack, float DecayRate);
+	double UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack, int NewItemStack, float DecayRate) const;
+	float UpdateDecayPercent(double CurrentExpirationTime, float DecayRate) const;
 
 	// ========================================
 	// 헬퍼 함수 - ASC

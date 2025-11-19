@@ -7,6 +7,7 @@
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
 #include "Item/Runtime/DecayManager.h"
+#include "Item/System/WorldItemPoolSubsystem.h"
 
 UTSInventoryMasterComponent::UTSInventoryMasterComponent()
 {
@@ -85,16 +86,12 @@ void UTSInventoryMasterComponent::BeginPlay()
 		// 초기화 브로드캐스트
 		HandleInventoryChanged();
 		OnInventoryInitialized.Broadcast();
-		// GetOwner()->ForceNetUpdate();
 	}
 }
 
 #pragma region Replication Callback
 void UTSInventoryMasterComponent::OnRep_HotkeyInventory()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[%s][%s] OnRep_HotkeyInventory called!"),
-	       GetOwner()->HasAuthority() ? TEXT("Server") : TEXT("Client"),
-	       *GetOwner()->GetName());
 	HandleInventoryChanged();
 }
 
@@ -115,33 +112,6 @@ void UTSInventoryMasterComponent::OnRep_ActiveHotkeyIndex()
 #pragma endregion
 
 #pragma region Server RPC
-void UTSInventoryMasterComponent::ServerTransferItem_Implementation(
-	UTSInventoryMasterComponent* SourceInventory,
-	UTSInventoryMasterComponent* TargetInventory,
-	EInventoryType FromInventoryType, int32 FromSlotIndex,
-	EInventoryType ToInventoryType, int32 ToSlotIndex,
-	bool bIsFullStack)
-{
-	Internal_TransferItem(SourceInventory, TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType,
-	                      ToSlotIndex,
-	                      bIsFullStack);
-}
-
-bool UTSInventoryMasterComponent::ServerTransferItem_Validate(
-	UTSInventoryMasterComponent* SourceInventory,
-	UTSInventoryMasterComponent* TargetInventory,
-	EInventoryType FromInventoryType, int32 FromSlotIndex,
-	EInventoryType ToInventoryType, int32 ToSlotIndex,
-	bool bIsFullStack)
-{
-	if (!SourceInventory || !TargetInventory)
-	{
-		return false;
-	}
-	return SourceInventory->IsValidSlotIndex(FromInventoryType, FromSlotIndex) &&
-		TargetInventory->IsValidSlotIndex(ToInventoryType, ToSlotIndex);
-}
-
 void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
@@ -164,9 +134,16 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	}
 
 	int32 DropQuantity = (Quantity <= 0) ? Slot.CurrentStackSize : FMath::Min(Quantity, Slot.CurrentStackSize);
+	UE_LOG(LogTemp, Log, TEXT("Dropping item: ID=%d x%d at %s. Owner: %s"), Slot.ItemData.StaticDataID, DropQuantity,
+	       *GetOwner()->GetActorLocation().ToString(), *GetOwner()->GetName());
 
-	// TODO: 스폰 매니저에 아이템 액터 스폰 요청
-	UE_LOG(LogTemp, Log, TEXT("Dropping item: ID=%d x%d"), Slot.ItemData.StaticDataID, DropQuantity);
+	UWorldItemPoolSubsystem* IPS = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>();
+	if (IPS)
+	{
+		FSlotStructMaster TempSlot = Slot;
+		TempSlot.CurrentStackSize = DropQuantity;
+		IPS->DropItem(TempSlot, GetOwner()->GetTransform(), GetOwner()->GetActorLocation());
+	}
 
 	Slot.CurrentStackSize -= DropQuantity;
 	if (Slot.CurrentStackSize <= 0)
@@ -311,13 +288,11 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	if (SourceInventory)
 	{
 		SourceInventory->HandleInventoryChanged();
-		// SourceInventory->GetOwner()->ForceNetUpdate();
 	}
 	// 타겟 인벤토리의 델리게이트 브로드캐스트
 	if (TargetInventory && TargetInventory != SourceInventory)
 	{
 		TargetInventory->HandleInventoryChanged();
-		// TargetInventory->GetOwner()->ForceNetUpdate();
 	}
 }
 
@@ -401,7 +376,6 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
 
 	HandleInventoryChanged();
-	// GetOwner()->ForceNetUpdate();
 }
 #pragma endregion
 
@@ -446,6 +420,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
 					                                             ItemInfo.ConsumableData.DecayRate)
 					                      : 0;
+				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled()
+					                           ? UpdateDecayPercent(Slot.ExpirationTime,
+					                                                ItemInfo.ConsumableData.DecayRate)
+					                           : 0.f;
 				Slot.CurrentStackSize += CanAdd;
 				RemainingQuantity -= CanAdd;
 				bInventoryChanged = true;
@@ -491,6 +469,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
 					                                             ItemInfo.ConsumableData.DecayRate)
 					                      : 0;
+				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled()
+					                           ? UpdateDecayPercent(Slot.ExpirationTime,
+					                                                ItemInfo.ConsumableData.DecayRate)
+					                           : 0.f;
 				Slot.CurrentStackSize += CanAdd;
 				RemainingQuantity -= CanAdd;
 				bInventoryChanged = true;
@@ -542,6 +524,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 			                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount,
 			                                             ItemInfo.ConsumableData.DecayRate)
 			                      : 0;
+		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled()
+			                           ? UpdateDecayPercent(Slot.ExpirationTime,
+			                                                ItemInfo.ConsumableData.DecayRate)
+			                           : 0.f;
 		Slot.CurrentStackSize = AddAmount;
 		RemainingQuantity -= AddAmount;
 	}
@@ -569,6 +555,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 			                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount,
 			                                             ItemInfo.ConsumableData.DecayRate)
 			                      : 0;
+		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled()
+			                           ? UpdateDecayPercent(Slot.ExpirationTime,
+			                                                ItemInfo.ConsumableData.DecayRate)
+			                           : 0.f;
 		Slot.CurrentStackSize = AddAmount;
 		RemainingQuantity -= AddAmount;
 	}
@@ -582,7 +572,6 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	if (bInventoryChanged)
 	{
 		HandleInventoryChanged();
-		// GetOwner()->ForceNetUpdate();
 	}
 
 	return RemainingQuantity == 0;
@@ -621,7 +610,6 @@ bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32
 	}
 
 	HandleInventoryChanged();
-	// GetOwner()->ForceNetUpdate();
 
 	return true;
 }
@@ -744,7 +732,6 @@ bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 	}
 
 	OnBagSizeChanged.Broadcast(NewSlotCount);
-	// GetOwner()->ForceNetUpdate();
 
 	UE_LOG(LogTemp, Log, TEXT("Bag expanded: %d -> %d (Max: %d)"),
 	       OldSize, NewSlotCount, MaxBagSlotCount);
@@ -814,7 +801,6 @@ void UTSInventoryMasterComponent::OnDecayTick()
 	ConvertToDecayedItem(EInventoryType::HotKey);
 	ConvertToDecayedItem(EInventoryType::BackPack);
 	HandleInventoryChanged();
-	// GetOwner()->ForceNetUpdate();
 }
 
 void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryType)
@@ -840,6 +826,7 @@ void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryT
 		{
 			if (CurrentTime < Slot.ExpirationTime)
 			{
+				Slot.CurrentDecayPercent = UpdateDecayPercent(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate);
 				continue;
 			}
 			if (CachedDecayedItemInfo.ItemID != CachedDecayedItemID)
@@ -861,8 +848,9 @@ void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryT
 
 void UTSInventoryMasterComponent::ClearSlot(FSlotStructMaster& Slot)
 {
-	Slot.ItemData = FItemInstance();
-	Slot.CurrentStackSize = 0;
+	ESlotType PreservedSlotType = Slot.SlotType; // 백업
+	Slot = FSlotStructMaster(); // 전체 초기화
+	Slot.SlotType = PreservedSlotType;
 }
 
 void UTSInventoryMasterComponent::CopySlotData(
@@ -875,6 +863,7 @@ void UTSInventoryMasterComponent::CopySlotData(
 	Target.MaxStackSize = Source.MaxStackSize;
 	Target.CurrentStackSize = (Quantity < 0) ? Source.CurrentStackSize : Quantity;
 	Target.ExpirationTime = Source.ExpirationTime;
+	Target.CurrentDecayPercent = Source.CurrentDecayPercent;
 }
 
 bool UTSInventoryMasterComponent::TryStackSlots(
@@ -910,6 +899,10 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 				                        ? UpdateExpirationTime(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, CanAdd,
 				                                               ItemInfo.ConsumableData.DecayRate)
 				                        : 0;
+			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled()
+				                             ? UpdateDecayPercent(ToSlot.ExpirationTime,
+				                                                  ItemInfo.ConsumableData.DecayRate)
+				                             : 0.f;
 			ToSlot.CurrentStackSize += CanAdd;
 			FromSlot.CurrentStackSize -= CanAdd;
 
@@ -929,6 +922,10 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 				                        ? UpdateExpirationTime(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, 1,
 				                                               ItemInfo.ConsumableData.DecayRate)
 				                        : 0;
+			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled()
+				                             ? UpdateDecayPercent(ToSlot.ExpirationTime,
+				                                                  ItemInfo.ConsumableData.DecayRate)
+				                             : 0.f;
 			ToSlot.CurrentStackSize += 1;
 			FromSlot.CurrentStackSize -= 1;
 
@@ -1022,11 +1019,17 @@ bool UTSInventoryMasterComponent::IsItemBagType(int32 StaticDataID) const
 }
 
 double UTSInventoryMasterComponent::UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack,
-                                                         int NewItemStack, float DecayRate)
+                                                         int NewItemStack, float DecayRate) const
 {
 	double NewItemExpirationTime = GetWorld()->GetTimeSeconds() + DecayRate;
 	return (CurrentExpirationTime * CurrentStack + NewItemExpirationTime * NewItemStack) / (CurrentStack +
 		NewItemStack);
+}
+
+float UTSInventoryMasterComponent::UpdateDecayPercent(double CurrentExpirationTime, float DecayRate) const
+{
+	double CurrentTime = GetWorld()->GetTimeSeconds();
+	return DecayRate > 0 ? (float)((CurrentExpirationTime - CurrentTime) / DecayRate) : 0.f;
 }
 #pragma endregion
 
