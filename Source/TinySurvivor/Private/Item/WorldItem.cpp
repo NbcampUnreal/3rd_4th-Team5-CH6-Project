@@ -1,5 +1,23 @@
 // WorldItem.cpp
-
+/*
+	===============================================================================
+	[ FILE MODIFICATION NOTICE - DECAY SYSTEM INTEGRATION ]
+	작성자: 양한아
+	날짜: 2025/11/21
+	
+	본 파일에는 '부패(Decay) 시스템'을 통합하기 위한 변경이 포함되어 있습니다.
+	해당 변경들은 모두 아래 표기된 주석 블록 내부에 위치합니다:
+	
+		// ■ Decay
+		//[S]=====================================================================================
+			(Decay 관련 통합 코드)
+		//[E]=====================================================================================
+		
+	위 영역 외의 기존 풀링/스폰/인스턴싱 로직은 변경하지 않았습니다.
+	Decay 시스템만 연동한 최소 변경입니다.
+	후속 작업 시 해당 블록을 참고해주세요.
+	===============================================================================
+*/
 
 #include "Item/WorldItem.h"
 #include "Net/UnrealNetwork.h"
@@ -10,6 +28,10 @@
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
 #include "Item/System/ItemDataSubsystem.h"
+// ■ Decay
+//[S]=====================================================================================
+#include "Item/Runtime/DecayManager.h"
+//[E]=====================================================================================
 #include "Kismet/GameplayStatics.h"
 
 AWorldItem::AWorldItem()
@@ -56,17 +78,87 @@ void AWorldItem::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 void AWorldItem::OnAcquire_Implementation(const int32& IntParam, const FString& StringParam, const UObject* ObjectParam)
 {
 	Super::OnAcquire_Implementation(IntParam, StringParam, ObjectParam);
+	
+	// ■ Decay
+	//[S]=====================================================================================
+	if (HasAuthority())
+	{
+		if (!DecayManager)
+		{
+			DecayManager = GetWorld()->GetSubsystem<UDecayManager>();
+		}
+		
+		if (DecayManager)
+		{
+			DecayManager->OnDecayTick.AddDynamic(this, &AWorldItem::OnDecayTick);
+		}
+	}
+	//[E]=====================================================================================
 
 	// 생성된 후, 부모에서 콜리전을 켜주지만, 명시적으로 한 번 더 켜줍니다
 	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	InteractionCollision->SetGenerateOverlapEvents(true);
 	// 아이템 효과 로직
+	
+	// ■ Decay
+	//[S]=====================================================================================
+	// 부패 만료 시간 초기화 (서버에서만)
+	
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
+	const int32 StaticID = ItemData.ItemData.StaticDataID;
+	if (StaticID <= 0)
+	{
+		return;
+	}
+	
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+	
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem || !ItemDataSubsystem->IsInitialized())
+	{
+		return;
+	}
+	
+	FItemData StaticItemData;
+	if (!ItemDataSubsystem->GetItemDataSafe(StaticID, StaticItemData))
+	{
+		return;
+	}
+	
+	if (!StaticItemData.IsDecayEnabled())
+	{
+		return;
+	}
+	
+	// ExpirationTime이 0이면 (새로 스폰된 경우) 초기화
+	if (ItemData.ExpirationTime <= 0)
+	{
+		ItemData.ExpirationTime = ItemData.ItemData.CreationServerTime + StaticItemData.ConsumableData.DecayRate;
+	}
+	// 이미 설정된 경우는 유지 (인벤토리에서 드랍된 경우)
+	//[E]=====================================================================================
 }
 
 // 풀로 액터를 반납할 때 자동으로 호출
 void AWorldItem::OnRelease_Implementation()
 {
 	Super::OnRelease_Implementation();
+	
+	// ■ Decay
+	//[S]=====================================================================================
+	if (HasAuthority() && DecayManager)
+	{
+		DecayManager->OnDecayTick.RemoveDynamic(this, &AWorldItem::OnDecayTick);
+	}
+	//[E]=====================================================================================
 
 	// 반납할 때, 콜리전 비활성화
 	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -98,6 +190,15 @@ void AWorldItem::SetItemData(const FSlotStructMaster& NewItemData)
 	// 이 함수는 서버에서만 호출
 	if (HasAuthority())
 	{
+		// ■ Decay
+		//[S]=====================================================================================
+		// 서버에서 CreationServerTime 설정 (아직 없는 경우)
+		if (ItemData.ItemData.CreationServerTime <= 0)
+		{
+			ItemData.ItemData.CreationServerTime = GetWorld()->GetTimeSeconds();
+		}
+		//[E]=====================================================================================
+		
 		// 외형 업데이트
 		UpdateAppearance();
 	}
@@ -195,3 +296,114 @@ void AWorldItem::OnInteractionEndOverlap(UPrimitiveComponent* OverlappedComponen
 {
 	
 }
+
+// ■ Decay
+//[S]=====================================================================================
+void AWorldItem::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	// 서버에서만 DecayManager 구독
+	if (HasAuthority())
+	{
+		DecayManager = GetWorld()->GetSubsystem<UDecayManager>();
+		if (DecayManager)
+		{
+			DecayManager->OnDecayTick.AddDynamic(this, &AWorldItem::OnDecayTick);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[WorldItem]: DecayManager not found!"));
+		}
+	}
+}
+
+void AWorldItem::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 구독 해제
+	if (HasAuthority() && DecayManager)
+	{
+		DecayManager->OnDecayTick.RemoveDynamic(this, &AWorldItem::OnDecayTick);
+	}
+	
+	Super::EndPlay(EndPlayReason);
+}
+
+void AWorldItem::OnDecayTick()
+{
+	// ItemData가 비어있으면 처리 안 함
+	if (ItemData.ItemData.StaticDataID <= 0)
+	{
+		return;
+	}
+	
+	// 부패 가능한 아이템인지 확인
+	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+	if (!GameInstance)
+	{
+		return;
+	}
+	
+	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
+	if (!ItemDataSubsystem || !ItemDataSubsystem->IsInitialized())
+	{
+		return;
+	}
+	
+	FItemData StaticItemData;
+	if (!ItemDataSubsystem->GetItemDataSafe(ItemData.ItemData.StaticDataID, StaticItemData))
+	{
+		return;
+	}
+	
+	// 부패 활성화되지 않은 아이템은 처리 안 함
+	if (!StaticItemData.IsDecayEnabled())
+	{
+		return;
+	}
+	
+	// 부패 진행도 계산
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	
+	// ExpirationTime이 설정되지 않았으면 초기화
+	if (ItemData.ExpirationTime <= 0)
+	{
+		ItemData.ExpirationTime = ItemData.ItemData.CreationServerTime + StaticItemData.ConsumableData.DecayRate;
+	}
+	
+	// 부패 완료 체크
+	if (CurrentTime >= ItemData.ExpirationTime)
+	{
+		ConvertToDecayedItem();
+	}
+	else
+	{// UI 표시용 부패 진행도 갱신 (0~1)
+		float DecayRate = StaticItemData.ConsumableData.DecayRate;
+		if (DecayRate > 0)
+		{
+			ItemData.CurrentDecayPercent = (ItemData.ExpirationTime - CurrentTime) / DecayRate;
+		}
+	}
+}
+
+void AWorldItem::ConvertToDecayedItem()
+{
+	if (!HasAuthority() || !DecayManager)
+	{
+		return;
+	}
+	
+	// 부패물 ID 가져오기
+	int32 DecayedItemID = DecayManager->GetDecayItemID();
+	
+	UE_LOG(LogTemp, Log, TEXT("AWorldItem: Item %d decayed to %d"), ItemData.ItemData.StaticDataID, DecayedItemID);
+	
+	// 아이템 데이터를 부패물로 교체
+	ItemData.ItemData.StaticDataID = DecayedItemID;
+	ItemData.ExpirationTime = 0; // 부패물은 더 이상 부패 안 함
+	ItemData.CurrentDecayPercent = 0.f;
+	
+	// 외형 업데이트 (리플리케이션으로 클라이언트도 자동 갱신)
+	UpdateAppearance();
+}
+//[E]=====================================================================================

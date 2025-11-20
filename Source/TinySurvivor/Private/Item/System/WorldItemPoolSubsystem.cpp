@@ -1,4 +1,23 @@
 // WorldItemPoolSubsystem.cpp
+/*
+	===============================================================================
+	[ FILE MODIFICATION NOTICE - DECAY SYSTEM INTEGRATION ]
+	작성자: 양한아
+	날짜: 2025/11/21
+	
+	본 파일에는 '부패(Decay) 시스템'을 통합하기 위한 변경이 포함되어 있습니다.
+	해당 변경들은 모두 아래 표기된 주석 블록 내부에 위치합니다:
+	
+		// ■ Decay
+		//[S]=====================================================================================
+			(Decay 관련 통합 코드)
+		//[E]=====================================================================================
+		
+	위 영역 외의 기존 풀링/스폰/인스턴싱 로직은 변경하지 않았습니다.
+	Decay 시스템만 연동한 최소 변경입니다.
+	후속 작업 시 해당 블록을 참고해주세요.
+	===============================================================================
+*/
 
 #include "Item/System/WorldItemPoolSubsystem.h"
 #include "Item/WorldItem.h"
@@ -144,8 +163,18 @@ AWorldItem* UWorldItemPoolSubsystem::SpawnItemActor(const FSlotStructMaster& Ite
 		// 위치 설정
 		WorldItem->SetActorTransform(Transform, false, nullptr, ETeleportType::TeleportPhysics);
 		// 데이터 주입(AWorldItem::SetItemData가 내부적으로 UpdateAppearance 호출)
-		WorldItem->SetItemData(ItemData);
-
+		//WorldItem->SetItemData(ItemData);
+		// ■ Decay
+		//[S]=====================================================================================
+		// ItemData의 CreationServerTime이 없으면 현재 시각으로 설정
+		FSlotStructMaster ItemDataCopy = ItemData;
+		if (ItemDataCopy.ItemData.CreationServerTime <= 0)
+		{
+			ItemDataCopy.ItemData.CreationServerTime = GetWorld()->GetTimeSeconds();
+		}
+		WorldItem->SetItemData(ItemDataCopy);
+		//[E]=====================================================================================
+		
 		ActiveWorldItems.Add(WorldItem);			// 활성 목록에 추가
 	}
 

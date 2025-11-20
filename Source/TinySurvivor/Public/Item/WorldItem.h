@@ -1,5 +1,23 @@
 // WorldItem.h
-
+/*
+	===============================================================================
+	[ FILE MODIFICATION NOTICE - DECAY SYSTEM INTEGRATION ]
+	작성자: 양한아
+	날짜: 2025/11/21
+	
+	본 파일에는 '부패(Decay) 시스템'을 통합하기 위한 변경이 포함되어 있습니다.
+	해당 변경들은 모두 아래 표기된 주석 블록 내부에 위치합니다:
+	
+		// ■ Decay
+		//[S]=====================================================================================
+			(Decay 관련 통합 코드)
+		//[E]=====================================================================================
+		
+	위 영역 외의 기존 풀링/스폰/인스턴싱 로직은 변경하지 않았습니다.
+	Decay 시스템만 연동한 최소 변경입니다.
+	후속 작업 시 해당 블록을 참고해주세요.
+	===============================================================================
+*/
 #pragma once
 
 #include "CoreMinimal.h"
@@ -10,6 +28,11 @@
 
 class UStaticMeshComponent;
 class USphereComponent;
+
+// ■ Decay
+//[S]=====================================================================================
+class UDecayManager;
+//[E]=====================================================================================
 
 UCLASS()
 class TINYSURVIVOR_API AWorldItem : public APoolableActorBase
@@ -38,6 +61,27 @@ protected:
 	void OnInteractionEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
 	void UpdateAppearance();
+	
+	// ■ Decay
+	//[S]=====================================================================================
+	/*
+		DecayManager 캐시
+	*/
+	UPROPERTY()
+	TObjectPtr<UDecayManager> DecayManager;
+	
+	/*
+		부패도 틱 핸들러
+		1초마다 호출됨 (서버 전용)
+	*/
+	UFUNCTION()
+	void OnDecayTick();
+	
+	/*
+		부패물로 전환 처리
+	*/
+	void ConvertToDecayedItem();
+	//[E]=====================================================================================
 
 public:
 	// 풀에서 액터 꺼낼 때
@@ -48,4 +92,10 @@ public:
 	
 	void SetItemData(const FSlotStructMaster& NewItemData);
 	const FSlotStructMaster& GetItemData() const { return ItemData; }
+	
+	// ■ Decay
+	//[S]=====================================================================================
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	//[E]=====================================================================================
 };
