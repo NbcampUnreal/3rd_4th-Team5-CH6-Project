@@ -27,7 +27,8 @@ public:
 		아이템 데이터 테이블 에셋
 		Project Settings에서 설정
 	*/
-	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category="Item Data Assets", meta=(DisplayName="Item Table Asset"))
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category="Item Data Assets",
+		meta=(DisplayName="Item Table Asset", ToolTip="아이템 데이터 테이블 에셋"))
 	TSoftObjectPtr<UItemTableAsset> ItemTableAsset;
 
 	// 싱글톤 접근자
