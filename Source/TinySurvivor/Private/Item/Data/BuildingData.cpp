@@ -19,7 +19,7 @@ void FBuildingData::PrintDebugInfo() const
 	UE_LOG(LogFBuildingData, Display, TEXT("---[System]"));
 	UE_LOG(LogFBuildingData, Display, TEXT("Rarity: %d"), static_cast<uint8>(Rarity));
 	UE_LOG(LogFBuildingData, Display, TEXT("BuildingType: %d"), static_cast<uint8>(BuildingType));
-	UE_LOG(LogFBuildingData, Display, TEXT("DisallowedZones: %s"), *DisallowedZones.ToString());
+	UE_LOG(LogFBuildingData, Display, TEXT("PlacementArea: %s"), *PlacementArea.ToString());
 	UE_LOG(LogFBuildingData, Display, TEXT("RequiredTier: %d"), static_cast<uint8>(RequiredTier));
 	UE_LOG(LogFBuildingData, Display, TEXT("MaxDurability: %d"), MaxDurability);
 	UE_LOG(LogFBuildingData, Display, TEXT("IsErosionController: %s"), IsErosionController ? TEXT("True") : TEXT("False"));

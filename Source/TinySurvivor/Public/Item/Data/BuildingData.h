@@ -113,11 +113,11 @@ struct FBuildingData : public FTableRowBase
 		meta=(DisplayName="BuildingType", ToolTip="건축물 등급"))
 	EBuildingType BuildingType;
 	
-	// 설치 구역 제한 (태그 기반)
+	// 설치 구역 제한
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Disallowed Zones", ToolTip="설치 불가 구역 태그 목록",
-			Categories="Item.Building.Disallowed"))
-	FGameplayTagContainer DisallowedZones;
+		meta=(DisplayName="PlacementArea", ToolTip="설치 가능 구역 태그 목록",
+			Categories="Item.Building"))
+	FGameplayTagContainer PlacementArea;
 	
 	// 제작 요구 등급
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
