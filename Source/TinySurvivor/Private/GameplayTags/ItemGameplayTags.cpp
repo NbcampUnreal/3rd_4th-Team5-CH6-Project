@@ -41,15 +41,27 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_POISON_HEAL, "Item.Effect.POISON_HEAL");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_HP_DAMAGE, "Item.Effect.HP_DAMAGE");
 #pragma endregion
-
+	
+#pragma region PlacementArea
+	//========================================
+	// 설치 구역 (PlacementArea) 정의
+	//========================================
+	
+	// 건축물 관련 태그 루트
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building, "Item.Building");
+	
+	// SafetyZone
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_PlacementArea_SafetyZone, "Item.Building.PlacementArea.SafetyZone");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_PlacementArea_SafetyZone_LIGHT, "Item.Building.PlacementArea.SafetyZone.LIGHT");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_PlacementArea_SafetyZone_DEFENSE, "Item.Building.PlacementArea.SafetyZone.DEFENSE");
+	
+	// LightSource
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_PlacementArea_LightSource, "Item.Building.PlacementArea.LightSource");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_PlacementArea_LightSource_CRAFTING, "Item.Building.PlacementArea.LightSource.CRAFTING");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_PlacementArea_LightSource_STORAGE, "Item.Building.PlacementArea.LightSource.STORAGE");
+#pragma endregion
+	
 #pragma region Temp
-	//========================================
-	// (임시)
-	// 설치 구역 제한용 임시 태그
-	//========================================
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_Disallowed_CurseSource, "Item.Building.Disallowed.CurseSource");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Building_Disallowed_GiantPath, "Item.Building.Disallowed.GiantPath");
-
 	//========================================
 	// (임시)
 	// 아이템 티어 (등급)
@@ -78,7 +90,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_UseTarget_Self, "Item.UseTarget.Self");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_UseTarget_Other, "Item.UseTarget.Other");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_UseTarget_Field, "Item.UseTarget.Field");
-
+	
 	//========================================
 	// (임시)
 	// 획득 방식 (SourceType)

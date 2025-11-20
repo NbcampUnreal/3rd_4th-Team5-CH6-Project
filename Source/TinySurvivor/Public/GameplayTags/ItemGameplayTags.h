@@ -51,15 +51,27 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_POISON_HEAL);		// 해독 (독 해제)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_HP_DAMAGE);			// 체력 감소
 #pragma endregion
+	
+#pragma region PlacementArea
+	//========================================
+	// 설치 구역 (PlacementArea)
+	//========================================
+	
+	// 건축물 관련 태그의 루트 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building);
+	
+	// SafetyZone
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_SafetyZone);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_SafetyZone_LIGHT);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_SafetyZone_DEFENSE);
+	
+	// LightSource
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource_CRAFTING);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource_STORAGE);
+#pragma endregion
 
 #pragma region Temp
-	//========================================
-	// (임시)
-	// 설치 구역 제한용 임시 태그
-	//========================================
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_Disallowed_CurseSource); // CURSE_SOURCE
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_Disallowed_GiantPath);   // GIANT_PATH
-	
 	//========================================
 	// (임시)
 	// 아이템 티어 (등급)
