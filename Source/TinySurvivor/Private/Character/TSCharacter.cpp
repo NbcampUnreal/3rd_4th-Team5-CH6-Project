@@ -322,11 +322,7 @@ void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
 void ATSCharacter::OnRightClick(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("r-click pressed"));
-	const FGameplayTag RightClickTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.RightClick"));
-	if (ASC && RightClickTag.IsValid())
-	{
-		ASC->TryActivateAbilitiesByTag(RightClickTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
-	}
+	ServerSendUseItemEvent();
 }
 
 void ATSCharacter::OnPing(const struct FInputActionValue& Value)
@@ -348,61 +344,61 @@ void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Vaule)
 void ATSCharacter::OnHotKey1(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("1 pressed"));
-	SendHotKeyEvent(0); //1번키 = 0번 슬롯!!!
+	ServerSendHotKeyEvent(0); //1번키 = 0번 슬롯!!!
 }
 
 void ATSCharacter::OnHotKey2(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("2 pressed"));
-	SendHotKeyEvent(1);
+	ServerSendHotKeyEvent(1);
 }
 
 void ATSCharacter::OnHotKey3(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("3 pressed"));
-	SendHotKeyEvent(2);
+	ServerSendHotKeyEvent(2);
 }
 
 void ATSCharacter::OnHotKey4(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("4 pressed"));
-	SendHotKeyEvent(3);
+	ServerSendHotKeyEvent(3);
 }
 
 void ATSCharacter::OnHotKey5(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("5 pressed"));
-	SendHotKeyEvent(4);
+	ServerSendHotKeyEvent(4);
 }
 
 void ATSCharacter::OnHotKey6(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("6 pressed"));
-	SendHotKeyEvent(5);
+	ServerSendHotKeyEvent(5);
 }
 
 void ATSCharacter::OnHotKey7(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("7 pressed"));
-	SendHotKeyEvent(6);
+	ServerSendHotKeyEvent(6);
 }
 
 void ATSCharacter::OnHotKey8(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("8 pressed"));
-	SendHotKeyEvent(7);
+	ServerSendHotKeyEvent(7);
 }
 
 void ATSCharacter::OnHotKey9(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("9 pressed"));
-	SendHotKeyEvent(8);
+	ServerSendHotKeyEvent(8);
 }
 
 void ATSCharacter::OnHotKey0(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("0 pressed"));
-	SendHotKeyEvent(9); // 0번키 = 9번 슬롯 !!!!!!!!
+	ServerSendHotKeyEvent(9); // 0번키 = 9번 슬롯 !!!!!!!!
 }
 
 void ATSCharacter::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
@@ -456,7 +452,7 @@ void ATSCharacter::LineTrace()
 	
 }
 
-void ATSCharacter::SendHotKeyEvent(int HotKeyIndex)
+void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 {
 	if (!ASC) return;
 	const FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName("Input.HotKey"));
@@ -468,6 +464,20 @@ void ATSCharacter::SendHotKeyEvent(int HotKeyIndex)
 	EventData.Target = this;
 
 	//페이로드 데이터를 사용하여 해당 액터에 대한 능력을 트리거하는데 사용하는 함수. 저는 페이로드라고 안쓰고 EventData로 사용함
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this/*Actor*/, EventTag, EventData/*Payload*/);
+}
+
+void ATSCharacter::ServerSendUseItemEvent_Implementation()
+{
+	// BP_GA_Hotkey에서 WaitGameplayEvent로 받아서 UseItem 실행
+	if (!ASC) return;
+	const FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.RightClick"));
+	FGameplayEventData EventData;
+	EventData.EventTag = EventTag;
+
+	EventData.Instigator = this;
+	EventData.Target = this;
+
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this/*Actor*/, EventTag, EventData/*Payload*/);
 }
 
