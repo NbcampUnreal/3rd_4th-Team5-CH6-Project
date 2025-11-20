@@ -132,7 +132,10 @@ private:
 	TWeakObjectPtr<AActor> LastHitActor; //직전 프레임에서 맞고 있던 액터
 #pragma endregion
 private:
-	void SendHotKeyEvent(int HotKeyIndex);
+	UFUNCTION(Server, Reliable)
+	void ServerSendHotKeyEvent(int HotKeyIndex);
+	UFUNCTION(Server, Reliable)
+	void ServerSendUseItemEvent();
 	
 public:	
 	virtual void Tick(float DeltaTime) override;
