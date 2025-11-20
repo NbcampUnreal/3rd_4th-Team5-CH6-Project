@@ -607,3 +607,4 @@ public:
 	void PrintDebugInfo() const;
 #pragma endregion
 };
+#pragma endregion
