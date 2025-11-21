@@ -17,7 +17,9 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
+#include "Item/Interface/IInteraction.h"
 #include "GameplayTags/AbilityGameplayTags.h"
 
 ATSCharacter::ATSCharacter()
@@ -87,8 +89,8 @@ void ATSCharacter::InitAbilitySystem()
 		return;
 	}
 	ASC->InitAbilityActorInfo(PS, this);
-	
-	
+
+
 	if (IsValid(ASC) && IsValid(Attributes))
 	{
 		ASC->GetGameplayAttributeValueChangeDelegate(
@@ -142,8 +144,8 @@ void ATSCharacter::BeginPlay()
 	if (SpringArmComponent)
 	{
 		SpringArmBaseLocation = SpringArmComponent->GetRelativeLocation();
-		SpringArmRightLocation = SpringArmBaseLocation +FVector (0.f, RightShoulderOffset, 0.f); // +40
-		SpringArmLeftLocation  = SpringArmBaseLocation + FVector(0.f, LeftShoulderOffset, 0.f);  // -80
+		SpringArmRightLocation = SpringArmBaseLocation + FVector(0.f, RightShoulderOffset, 0.f); // +40
+		SpringArmLeftLocation = SpringArmBaseLocation + FVector(0.f, LeftShoulderOffset, 0.f); // -80
 
 		SpringArmComponent->SetRelativeLocation(SpringArmRightLocation);
 		bIsRightShoulder = true;
@@ -330,10 +332,25 @@ void ATSCharacter::OnBuild(const struct FInputActionValue& Value)
 void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("e pressed"));
-	const FGameplayTag InteractTag = AbilityTags::TAG_Ability_Interact_Interact.GetTag();
-	if (ASC && InteractTag.IsValid())
+
+	if (!IsValid(CurrentHitActor.Get()))
 	{
-		ASC->TryActivateAbilitiesByTag(InteractTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+		return;
+	}
+	if (CurrentHitActor->Implements<UIInteraction>())
+	{
+		IIInteraction* InteractionInterface = Cast<IIInteraction>(CurrentHitActor);
+		if (InteractionInterface && InteractionInterface->CanInteract(this))
+		{
+			if (InteractionInterface->RunOnServer())
+			{
+				ServerInteract(CurrentHitActor.Get());
+			}
+			else
+			{
+				InteractionInterface->Interact(this);
+			}
+		}
 	}
 }
 
@@ -475,14 +492,32 @@ void ATSCharacter::LineTrace()
 	}
 	// 같은 걸 바라보면 아무것도 하지 않음.
 	if (CurrentHitActor == LastHitActor) return;
-	
-	/*
-	 * 
-	 * 
-	 * 
-	 * 아이템, door, wall 이런거 판정 로직 여기에 구현하면 될 듯
-	 */
-	
+
+	// 이전 액터 처리
+	if (IsValid(LastHitActor.Get()))
+	{
+		if (LastHitActor->Implements<UIInteraction>())
+		{
+			IIInteraction* InteractionInterface = Cast<IIInteraction>(LastHitActor);
+			if (InteractionInterface)
+			{
+				InteractionInterface->HideInteractionWidget();
+			}
+		}
+	}
+
+	// 현재 액터 처리
+	if (IsValid(CurrentHitActor.Get()))
+	{
+		if (CurrentHitActor->Implements<UIInteraction>())
+		{
+			IIInteraction* InteractionInterface = Cast<IIInteraction>(CurrentHitActor);
+			if (InteractionInterface && InteractionInterface->CanInteract(this))
+			{
+				InteractionInterface->ShowInteractionWidget(this);
+			}
+		}
+	}
 }
 
 void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
@@ -512,6 +547,22 @@ void ATSCharacter::ServerSendUseItemEvent_Implementation()
 	EventData.Target = this;
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this/*Actor*/, EventTag, EventData/*Payload*/);
+}
+
+void ATSCharacter::ServerInteract_Implementation(AActor* TargetActor)
+{
+	if (!IsValid(TargetActor))
+	{
+		return;
+	}
+	if (TargetActor->Implements<UIInteraction>())
+	{
+		IIInteraction* InteractionInterface = Cast<IIInteraction>(TargetActor);
+		if (InteractionInterface && InteractionInterface->CanInteract(this))
+		{
+			InteractionInterface->Interact(this);
+		}
+	}
 }
 
 void ATSCharacter::Tick(float DeltaTime)
