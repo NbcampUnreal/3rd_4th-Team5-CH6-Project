@@ -152,7 +152,7 @@ public:
 	// ========================================
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(const FItemInstance& ItemData, int32 Quantity);
+	bool AddItem(const FItemInstance& ItemData, int32 Quantity, int32& OutRemainingQuantity);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
