@@ -136,6 +136,8 @@ private:
 	void ServerSendHotKeyEvent(int HotKeyIndex);
 	UFUNCTION(Server, Reliable)
 	void ServerSendUseItemEvent();
+	UFUNCTION(Server, Reliable)
+	void ServerInteract(AActor* TargetActor);
 	
 public:	
 	virtual void Tick(float DeltaTime) override;
