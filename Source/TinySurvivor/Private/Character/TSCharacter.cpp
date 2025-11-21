@@ -17,8 +17,8 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 
 ATSCharacter::ATSCharacter()
 {
@@ -110,38 +110,29 @@ void ATSCharacter::InitializeAbilities()
 		return;
 	}
 	// 람다함수:태그 이름 받아서 어빌리티 부여하도록
-	auto GiveByTag = [Manager, this](const TCHAR* TagName)
+	auto GiveByTag = [Manager, this](const FGameplayTag& Tag)
 	{
-		const FGameplayTag GameplayTag= FGameplayTag::RequestGameplayTag(FName(TagName));
-		if (GameplayTag.IsValid())
+		if (Tag.IsValid())
 		{
-			Manager->GiveAbilityByTag(ASC, GameplayTag);
-		} 
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("%s 태그 없음"),TagName);
+			Manager->GiveAbilityByTag(ASC, Tag);
 		}
 	};
 	
 	// MOVE
-	GiveByTag(TEXT("Ability.Move.JumpOrClimb"));
-	GiveByTag(TEXT("Ability.Move.Roll"));
-	GiveByTag(TEXT("Ability.Move.Sprint"));
-	GiveByTag(TEXT("Ability.Move.Crouch"));
-	
-	// Interact
-	GiveByTag(TEXT("Ability.Interact.Build"));
-	GiveByTag(TEXT("Ability.Interact.Interact"));
-	GiveByTag(TEXT("Ability.Interact.Ping"));
-	GiveByTag(TEXT("Ability.Interact.LeftClick"));
-	GiveByTag(TEXT("Ability.Interact.RightClick"));
+	GiveByTag(AbilityTags::TAG_Ability_Move_JumpOrClimb.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Move_Roll.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Move_Sprint.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Move_Crouch.GetTag());
 
-	const FGameplayTag HotKeyTag = FGameplayTag::RequestGameplayTag(FName("Ability.HotKey"));
-	if (HotKeyTag.IsValid())
-	{
-		Manager->GiveAbilityByTag(ASC, HotKeyTag);
-	}
-	
+	// Interact
+	GiveByTag(AbilityTags::TAG_Ability_Interact_Build.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Interact_Interact.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Interact_Ping.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Interact_LeftClick.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Interact_RightClick.GetTag());
+
+	// HotKey
+	GiveByTag(AbilityTags::TAG_Ability_HotKey.GetTag());
 	
 }
 
@@ -228,37 +219,73 @@ void ATSCharacter::ShoulderSwitch(const struct FInputActionValue& Value)
 void ATSCharacter::OnJumpOrClimb(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("SpaceBar pressed"));
-	const FGameplayTag JumpOrClimbTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.JumpOrClimb"));
+	const FGameplayTag JumpOrClimbTag = AbilityTags::TAG_Ability_Move_JumpOrClimb.GetTag();
+	const FGameplayTag CrouchStateTag = AbilityTags::TAG_State_Move_Crouch.GetTag();
+
+	// 앉아있으면 먼저 GA_Crouch 취소
+	if (ASC->HasMatchingGameplayTag(CrouchStateTag))
+	{
+		const FGameplayTag CrouchAbilityTag = AbilityTags::TAG_Ability_Move_Crouch.GetTag();
+		FGameplayTagContainer CancelTags;
+		CancelTags.AddTag(CrouchAbilityTag);
+		ASC->CancelAbilities(&CancelTags);
+	}
+
 	if (ASC && JumpOrClimbTag.IsValid())
 	{
-		ASC->TryActivateAbilitiesByTag(JumpOrClimbTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+		ASC->TryActivateAbilitiesByTag(JumpOrClimbTag.GetSingleTagContainer(), true);
 	}
 }
 
 void ATSCharacter::OnRoll(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("ctrl pressed"));
-	const FGameplayTag RollTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Roll"));
+	const FGameplayTag RollTag = AbilityTags::TAG_Ability_Move_Roll.GetTag();
 	if (ASC && RollTag.IsValid())
 	{
-		ASC->TryActivateAbilitiesByTag(RollTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+		ASC->TryActivateAbilitiesByTag(RollTag.GetSingleTagContainer(), true);
 	}
 }
 
 void ATSCharacter::OnCrouch(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("c pressed"));
-	const FGameplayTag CrouchTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Crouch"));
-	if (ASC && CrouchTag.IsValid())
+	const FGameplayTag CrouchTag = AbilityTags::TAG_Ability_Move_Crouch.GetTag();
+	const FGameplayTag CrouchStateTag = AbilityTags::TAG_State_Move_Crouch.GetTag();
+	
+	if ( ASC->HasMatchingGameplayTag(CrouchStateTag))
 	{
-		ASC->TryActivateAbilitiesByTag(CrouchTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+		FGameplayTagContainer WithTags;
+		WithTags.AddTag(CrouchTag);
+		ASC->CancelAbilities(&WithTags);
+	}
+	else
+	{
+		if (ASC && CrouchTag.IsValid())
+		{
+			ASC->TryActivateAbilitiesByTag(CrouchTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+		}
 	}
 }
 
 void ATSCharacter::OnSprintStarted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("shift pressed"));
-	const FGameplayTag SprintTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Sprint"));
+	if (!ASC) return;
+	const FGameplayTag CrouchStateTag = AbilityTags::TAG_State_Move_Crouch.GetTag();
+	const FGameplayTag CrouchAbilityTag = AbilityTags::TAG_Ability_Move_Crouch.GetTag(); 
+	const FGameplayTag SprintTag = AbilityTags::TAG_Ability_Move_Sprint.GetTag(); 
+
+	
+	if (ASC->HasMatchingGameplayTag(CrouchStateTag))
+	{
+		// 앉기 어빌리티 취소 -> GA_Crouch 종료 -> EndAbility 호출
+		FGameplayTagContainer CancelTags;
+		CancelTags.AddTag(CrouchAbilityTag);
+		ASC->CancelAbilities(&CancelTags);
+		
+		return;
+	}
 	if (ASC && SprintTag.IsValid())
 	{
 		ASC->TryActivateAbilitiesByTag(SprintTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
@@ -267,8 +294,9 @@ void ATSCharacter::OnSprintStarted(const struct FInputActionValue& Value)
 
 void ATSCharacter::OnSprintCompleted(const struct FInputActionValue& Value)
 {
+	// Crouch 상태에서 Sprint 누르면 TAG 삭제하도록
 	UE_LOG(LogTemp, Log, TEXT("shift end"));
-	const FGameplayTag SprintTag = FGameplayTag::RequestGameplayTag(FName("Ability.Move.Sprint"));
+	const FGameplayTag SprintTag = AbilityTags::TAG_Ability_Move_Sprint.GetTag();
 	if (ASC && SprintTag.IsValid())
 	{
 		FGameplayTagContainer WithTags;
@@ -292,7 +320,7 @@ void ATSCharacter::OnOpenBag(const struct FInputActionValue& Value)
 void ATSCharacter::OnBuild(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("b pressed"));
-	const FGameplayTag BuildTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Build"));
+	const FGameplayTag BuildTag = AbilityTags::TAG_Ability_Interact_Build.GetTag();
 	if (ASC && BuildTag.IsValid())
 	{
 		ASC->TryActivateAbilitiesByTag(BuildTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
@@ -302,7 +330,7 @@ void ATSCharacter::OnBuild(const struct FInputActionValue& Value)
 void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("e pressed"));
-	const FGameplayTag InteractTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Interact"));
+	const FGameplayTag InteractTag = AbilityTags::TAG_Ability_Interact_Interact.GetTag();
 	if (ASC && InteractTag.IsValid())
 	{
 		ASC->TryActivateAbilitiesByTag(InteractTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
@@ -312,7 +340,7 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("l-click pressed"));
-	const FGameplayTag LeftClickTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.LeftClick"));
+	const FGameplayTag LeftClickTag = AbilityTags::TAG_Ability_Interact_LeftClick.GetTag();
 	if (ASC && LeftClickTag.IsValid())
 	{
 		ASC->TryActivateAbilitiesByTag(LeftClickTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
@@ -323,12 +351,17 @@ void ATSCharacter::OnRightClick(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("r-click pressed"));
 	ServerSendUseItemEvent();
+	const FGameplayTag RightClickTag = AbilityTags::TAG_Ability_Interact_RightClick.GetTag();
+	if (ASC && RightClickTag.IsValid())
+	{
+		ASC->TryActivateAbilitiesByTag(RightClickTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	}
 }
 
 void ATSCharacter::OnPing(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel pressed"));
-	const FGameplayTag PingTag = FGameplayTag::RequestGameplayTag(FName("Ability.Interact.Ping"));
+	const FGameplayTag PingTag = AbilityTags::TAG_Ability_Interact_Ping.GetTag();
 	if (ASC && PingTag.IsValid())
 	{
 		ASC->TryActivateAbilitiesByTag(PingTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
@@ -455,7 +488,7 @@ void ATSCharacter::LineTrace()
 void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 {
 	if (!ASC) return;
-	const FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName("Input.HotKey"));
+	const FGameplayTag EventTag = AbilityTags::TAG_Input_HotKey.GetTag();
 	FGameplayEventData EventData;
 	EventData.EventTag = EventTag;
 	EventData.EventMagnitude = static_cast<float>(HotKeyIndex);

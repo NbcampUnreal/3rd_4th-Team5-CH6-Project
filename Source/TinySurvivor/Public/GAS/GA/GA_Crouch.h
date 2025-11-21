@@ -2,45 +2,36 @@
 
 #include "CoreMinimal.h"
 #include "BaseAbility/TSGameplayAbilityBase.h"
-#include "GA_Sprint.generated.h"
+#include "GA_Crouch.generated.h"
 
 class UGameplayEffect;
 
 UCLASS()
-class TINYSURVIVOR_API UGA_Sprint : public UTSGameplayAbilityBase
+class TINYSURVIVOR_API UGA_Crouch : public UTSGameplayAbilityBase
 {
 	GENERATED_BODY()
 	
 public:
-	UGA_Sprint();
+	UGA_Crouch();
 	
-	// Stamina > 0 && Thrist > 0 이어야 발동
+	// 조건 체크 (roll 중이면 crouch 불가)
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr, FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
 	
-	// 활성화 (GE 적용)
+	// c 키 눌렀을때 호출 ( IsFalling (공중)-> 착지 후 crouch, 서있는 상태 -> 바로 crouch )
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	
-	// 종료 (GE 제거 후 Delay GE 적용)
+	//종료 (일어나기 / 달리기 연계)
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
-
+	
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sprint")
-	TSubclassOf<UGameplayEffect> SprintCostEffectClass; //0.1초당 스태미나 -1
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
+	TSubclassOf<UGameplayEffect> CrouchSpeedEffectClass; // 스피드 * 0.75
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sprint")
-	TSubclassOf<UGameplayEffect> SprintSpeedEffectClass; //스피드 + 400 
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sprint")
-	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass; //EndAbility 후 1초 딜레이
-	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
+	TSubclassOf<UGameplayAbility> SprintAbilityClass; // 일어설때 shift 눌려있으면 달리기 실행 = BP_GA_Crouch
 private:
-	FActiveGameplayEffectHandle CostHandle;
 	FActiveGameplayEffectHandle SpeedHandle;
 	
-	//Delegate Handle
-	FDelegateHandle StaminaDelegateHandle;
-	FDelegateHandle ThirstDelegateHandle;
-	
-	void OnAttributeChanged(const FOnAttributeChangeData& Data);
-	
+	UFUNCTION()
+	void OnLanded(EMovementMode NewMovementMode); //공중에서 사용했을때, 발이 지면에 닿으면 호출
 };

@@ -4,6 +4,7 @@
 #include "BaseAbility/TSGameplayAbilityBase.h"
 #include "GA_Roll.generated.h"
 
+class UGameplayEffect;
 
 UCLASS()
 class TINYSURVIVOR_API UGA_Roll : public UTSGameplayAbilityBase
@@ -13,17 +14,19 @@ class TINYSURVIVOR_API UGA_Roll : public UTSGameplayAbilityBase
 public:
 	UGA_Roll();
 	
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
-	
+	// Stamina >= 20 && Thirst > 0 이어야 발동
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr, FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
 	
-protected:
-	//스태미나 즉시 -20 하는 GE 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Roll")
-	TSubclassOf<UGameplayEffect> RollEffectClass;
+	// 활성화 (GE 적용) + 몽타주 재생
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	
-	//1초 뒤부터 적용할 스태미나 회복 GE
+	// 종료 (GE 제거 후 Delay GE 적용)
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+
+protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Roll")
-	TSubclassOf<UGameplayEffect> RecoverStaminaEffectClass;
+	TSubclassOf<UGameplayEffect> RollCostEffectClass; // 바로 -20 스태미나
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Roll")
+	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass; //EndAbility 후 1초 딜레이
 };
