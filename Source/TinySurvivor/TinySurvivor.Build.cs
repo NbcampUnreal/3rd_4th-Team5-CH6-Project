@@ -19,6 +19,8 @@ public class TinySurvivor : ModuleRules
 			// AI
 			"AIModule",
 			"NavigationSystem",
+			"StateTreeModule",
+			"GameplayStateTreeModule",
 			//GAS
 			"GameplayAbilities",
 			"GameplayTags",
@@ -29,8 +31,6 @@ public class TinySurvivor : ModuleRules
 			// DeveloperSettings 모듈 링크 (UDeveloperSettings 관련)
 			"DeveloperSettings"
 		});
-
-		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
