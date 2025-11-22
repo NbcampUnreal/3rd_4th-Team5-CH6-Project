@@ -141,6 +141,19 @@ void ATSCharacter::InitializeAbilities()
 void ATSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (StaminaIncreaseEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(StaminaIncreaseEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
 	if (SpringArmComponent)
 	{
 		SpringArmBaseLocation = SpringArmComponent->GetRelativeLocation();
