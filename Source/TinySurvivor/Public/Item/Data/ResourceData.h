@@ -13,6 +13,7 @@
 UENUM(BlueprintType)
 enum class ENodeType : uint8
 {
+	NONE			UMETA(DisplayName = "없음", ToolTip = "아무것도 설정하지 않을 때 Junk 선택 방지"),
 	JUNK            UMETA(DisplayName = "Junk", ToolTip = "잡동사니 자원"),
 	PLANT           UMETA(DisplayName = "Plant", ToolTip = "식물 자원"),
 	INTERACT        UMETA(DisplayName = "Interact", ToolTip = "상호작용 가능한 오브젝트"),

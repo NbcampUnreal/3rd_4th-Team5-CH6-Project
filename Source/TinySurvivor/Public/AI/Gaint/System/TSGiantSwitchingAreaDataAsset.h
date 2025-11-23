@@ -18,6 +18,7 @@ class TINYSURVIVOR_API UTSGiantSwitchingAreaDataAsset : public UPrimaryDataAsset
 public:
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	
+	// 섹터 CDO
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Area")
 	TSubclassOf<AGiantSwitchingResourceArea> AreaClass;
 };

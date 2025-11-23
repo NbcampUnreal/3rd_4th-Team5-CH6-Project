@@ -3,6 +3,12 @@
 #include "Components/BoxComponent.h"
 #include "System/Time/TimeTickManager.h"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	//----------------------------------
+	// AGiantSwitchingResourceArea 라이프 사이클
+	//----------------------------------
+
 AGiantSwitchingResourceArea::AGiantSwitchingResourceArea()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -40,6 +46,12 @@ void AGiantSwitchingResourceArea::BeginPlay()
 	TimeTickManager->OnSecondTick.AddDynamic(this, &AGiantSwitchingResourceArea::ControlInterestMaxAge);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	//----------------------------------
+	// AGiantSwitchingResourceArea 관심 지역 시스템 관련
+	//----------------------------------
+	
 void AGiantSwitchingResourceArea::ControlInterestMaxAge()
 {
 	if (InterestMaxAge.Num() == 0) return;
