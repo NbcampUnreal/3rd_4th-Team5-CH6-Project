@@ -78,7 +78,10 @@ private:
 
 protected:
 	virtual void BeginPlay() override;
-
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stamina")
+	TSubclassOf<UGameplayEffect> StaminaIncreaseEffectClass;
+	
 #pragma region Function
 	// GAS 안쓰는 함수
 	void Move(const struct FInputActionValue& Value);
@@ -86,7 +89,8 @@ protected:
 	void ShoulderSwitch(const struct FInputActionValue& Value);
 
 	// GAS 어빌리티 매니저 호출 함수
-	void OnJumpOrClimb(const struct FInputActionValue& Value);
+	void OnJumpOrClimbStarted(const struct FInputActionValue& Value);
+	void OnJumpOrClimbCompleted(const struct FInputActionValue& Value);
 	void OnRoll(const struct FInputActionValue& Value);
 	void OnCrouch(const struct FInputActionValue& Value);
 	void OnSprintStarted(const struct FInputActionValue& Value);
@@ -131,11 +135,22 @@ private:
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastHitActor; //직전 프레임에서 맞고 있던 액터
 #pragma endregion
+
+#pragma region Climb
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Climb")
+	FVector CurrentWallNormal = FVector::ZeroVector;
+	
+	bool IsClimbing();
+#pragma endregion
+	
 private:
 	UFUNCTION(Server, Reliable)
 	void ServerSendHotKeyEvent(int HotKeyIndex);
 	UFUNCTION(Server, Reliable)
 	void ServerSendUseItemEvent();
+	UFUNCTION(Server, Reliable)
+	void ServerInteract(AActor* TargetActor);
 	
 public:	
 	virtual void Tick(float DeltaTime) override;

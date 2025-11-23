@@ -19,6 +19,8 @@ public class TinySurvivor : ModuleRules
 			// AI
 			"AIModule",
 			"NavigationSystem",
+			"StateTreeModule",
+			"GameplayStateTreeModule",
 			//GAS
 			"GameplayAbilities",
 			"GameplayTags",

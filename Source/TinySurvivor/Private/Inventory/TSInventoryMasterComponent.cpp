@@ -380,7 +380,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 #pragma endregion
 
 #pragma region Add/Remove Item
-bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Quantity)
+bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Quantity, int32& OutRemainingQuantity)
 {
 	if (!GetOwner()->HasAuthority() || ItemData.StaticDataID == 0 || Quantity <= 0)
 	{
@@ -394,7 +394,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		return false;
 	}
 
-	int32 RemainingQuantity = Quantity;
+	OutRemainingQuantity = Quantity;
 
 	// 빈 슬롯 캐싱용
 	TArray<int32> EmptyHotkeySlots;
@@ -414,7 +414,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 
 			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
 			{
-				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
+				int32 CanAdd = FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
 				// 부패 만료 시각 업데이트
 				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
 					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
@@ -425,10 +425,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 					                                                ItemInfo.ConsumableData.DecayRate)
 					                           : 0.f;
 				Slot.CurrentStackSize += CanAdd;
-				RemainingQuantity -= CanAdd;
+				OutRemainingQuantity -= CanAdd;
 				bInventoryChanged = true;
 
-				if (RemainingQuantity <= 0)
+				if (OutRemainingQuantity <= 0)
 				{
 					break;
 				}
@@ -455,7 +455,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	// ========================================
 	// 2단계: 가방 스택 가능한 슬롯
 	// ========================================
-	if (RemainingQuantity > 0 && ItemInfo.IsStackable() && BagInventory.InventorySlotContainer.Num() > 0)
+	if (OutRemainingQuantity > 0 && ItemInfo.IsStackable() && BagInventory.InventorySlotContainer.Num() > 0)
 	{
 		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
 		{
@@ -463,7 +463,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 
 			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
 			{
-				int32 CanAdd = FMath::Min(RemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
+				int32 CanAdd = FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
 				// 부패 만료 시각 업데이트
 				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
 					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
@@ -474,10 +474,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 					                                                ItemInfo.ConsumableData.DecayRate)
 					                           : 0.f;
 				Slot.CurrentStackSize += CanAdd;
-				RemainingQuantity -= CanAdd;
+				OutRemainingQuantity -= CanAdd;
 				bInventoryChanged = true;
 
-				if (RemainingQuantity <= 0)
+				if (OutRemainingQuantity <= 0)
 				{
 					break;
 				}
@@ -506,7 +506,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	// ========================================
 	for (int32 SlotIndex : EmptyHotkeySlots)
 	{
-		if (RemainingQuantity <= 0)
+		if (OutRemainingQuantity <= 0)
 		{
 			break;
 		}
@@ -518,7 +518,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		Slot.bCanStack = ItemInfo.IsStackable();
 		Slot.MaxStackSize = ItemInfo.MaxStack;
 
-		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(RemainingQuantity, ItemInfo.MaxStack) : 1;
+		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack) : 1;
 		// 부패 만료 시각 업데이트
 		Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
 			                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount,
@@ -529,7 +529,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 			                                                ItemInfo.ConsumableData.DecayRate)
 			                           : 0.f;
 		Slot.CurrentStackSize = AddAmount;
-		RemainingQuantity -= AddAmount;
+		OutRemainingQuantity -= AddAmount;
 	}
 
 	// ========================================
@@ -537,7 +537,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	// ========================================
 	for (int32 SlotIndex : EmptyBagSlots)
 	{
-		if (RemainingQuantity <= 0)
+		if (OutRemainingQuantity <= 0)
 		{
 			break;
 		}
@@ -549,7 +549,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		Slot.bCanStack = ItemInfo.IsStackable();
 		Slot.MaxStackSize = ItemInfo.MaxStack;
 
-		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(RemainingQuantity, ItemInfo.MaxStack) : 1;
+		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack) : 1;
 		// 부패 만료 시각 업데이트
 		Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
 			                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount,
@@ -560,13 +560,13 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 			                                                ItemInfo.ConsumableData.DecayRate)
 			                           : 0.f;
 		Slot.CurrentStackSize = AddAmount;
-		RemainingQuantity -= AddAmount;
+		OutRemainingQuantity -= AddAmount;
 	}
 
-	if (RemainingQuantity > 0)
+	if (OutRemainingQuantity > 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AddItem partial: All slots full! Added %d, Failed %d"),
-		       Quantity - RemainingQuantity, RemainingQuantity);
+		       Quantity - OutRemainingQuantity, OutRemainingQuantity);
 	}
 
 	if (bInventoryChanged)
@@ -574,7 +574,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		HandleInventoryChanged();
 	}
 
-	return RemainingQuantity == 0;
+	return OutRemainingQuantity == 0;
 }
 
 bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)

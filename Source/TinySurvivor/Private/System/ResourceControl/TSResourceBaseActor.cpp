@@ -1,0 +1,317 @@
+﻿#include "System/ResourceControl/TSResourceBaseActor.h"
+#include "Character/TSCharacter.h"
+#include "Item/WorldItem.h"
+#include "Item/System/ItemDataSubsystem.h"
+#include "Item/System/WorldItemPoolSubsystem.h"
+#include "System/ResourceControl/TSResourceControlSubSystem.h"
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
+	//========================
+	// ATSResourceBaseActor 라이프사이클
+	//========================
+
+ATSResourceBaseActor::ATSResourceBaseActor()
+{
+	// 네트워크
+	bReplicates = true;
+	SetReplicatingMovement(true);
+	SetMinNetUpdateFrequency(1.f);
+	SetNetUpdateFrequency(10.f);
+
+	// 틱
+	PrimaryActorTick.bCanEverTick = false;
+	
+	// 메쉬 설정
+	ResourceStaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
+	SetRootComponent(ResourceStaticMeshComp);
+	ResourceStaticMeshComp->SetNotifyRigidBodyCollision(true); // Hit 이벤트 켜기
+}
+
+void ATSResourceBaseActor::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (!HasAuthority()) return;
+	
+	UItemDataSubsystem* ItemDataSubsystem = UItemDataSubsystem::GetItemDataSubsystem(this);
+	if (!IsValid(ItemDataSubsystem))
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("ItemDataSubsystem 찾지 못함."));
+		return;
+	}
+	
+	bool bFoundData = ItemDataSubsystem->GetResourceDataSafe(ThisResourceID, ResourceRuntimeData);
+	if (!bFoundData)
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+		UE_LOG(ResourceControlSystem, Error, TEXT("%s 가 자원 원천 데이터를 찾는데 실패함."), *GetName());
+		UE_LOG(ResourceControlSystem, Error, TEXT("ThisResourceID %d 찾지 못함."), ThisResourceID);
+		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+		return;
+	}
+	else
+	{
+		UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
+		UE_LOG(ResourceControlSystem, Log, TEXT("%s 가 자원 원천 데이터를 찾는데 성공함."), *GetName());
+		UE_LOG(ResourceControlSystem, Log, TEXT("ThisResourceID %d 찾음."), ThisResourceID);
+	}
+	
+	CurrentItemCount = ResourceRuntimeData.TotalYield;
+	UE_LOG(ResourceControlSystem, Log, TEXT("아이템 수량 설정 완료 %d"), CurrentItemCount);
+	
+	ResourceStaticMeshComp->OnComponentHit.AddDynamic(this, &ATSResourceBaseActor::GetItemFromResourceForTest);
+	UE_LOG(ResourceControlSystem, Log, TEXT("아이템 뱉어내기 준비 완료"));
+	UE_LOG(ResourceControlSystem, Error, TEXT("테스트 용이므로 추후 반드시 언바인딩할 것."));
+	UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
+	
+}
+
+void ATSResourceBaseActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
+	//========================
+	// ATSResourceBaseActor 아이템 스폰  
+	//========================
+
+void ATSResourceBaseActor::GetItemFromResourceForTest(UPrimitiveComponent* HitComponent, AActor* OtherActor,UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!HasAuthority()) return;
+	
+	// OtherActor 유효성
+	if (!IsValid(OtherActor))
+	{
+		// UE_LOG(ResourceControlSystem, Warning, TEXT("[GetItemFromResource] OtherActor Invalid! (NULL or Destroyed)"));
+		return;
+	}
+
+	// ATSCharacter 캐스팅 여부
+	if (!Cast<ATSCharacter>(OtherActor)) 
+	{
+		// UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] OtherActor is not ATSCharacter"));
+		return;
+	}
+
+	// BlockingHit 여부
+	if (!Hit.bBlockingHit)
+	{
+		// UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] Hit is NOT blocking (bBlockingHit == false)"));
+		return;
+	}
+	
+	// 아이템 생성 요청
+	GetItemFromResource(0, Hit.ImpactPoint, Hit.ImpactNormal, OtherActor->GetActorLocation(), OtherActor->GetActorForwardVector());
+}
+
+void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector HitPoint, FVector HitNormal, FVector PlayerLocation, FVector ForwardVector)
+{
+	if (!HasAuthority()) return;
+	
+	if (0 != ResourceRuntimeData.RequiredToolID)
+	{
+		if (RequiredToolID != ResourceRuntimeData.RequiredToolID)
+		{
+			UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] RequiredToolID is NOT matching"));
+			return;
+		}
+	}
+
+	constexpr float BackOffset = 80.f;  // 표면 반대 방향
+	constexpr float UpOffset = 50.f;    // 기본 위로 띄우기
+	constexpr float MinPlayerDistance = 120.f; // 플레이어와 최소 거리
+	constexpr float ExtraUp = 120.f;    // 플레이어와 겹칠 때 추가 상승값
+
+	// HitPoint → 반대 방향 기본 위치
+	FVector FinalSpawnLocation = HitPoint + HitNormal * BackOffset + FVector(0, 0, UpOffset);
+
+	// 2) 플레이어와 거리 체크
+	float DistToPlayer = FVector::Dist(PlayerLocation, FinalSpawnLocation);
+
+	if (DistToPlayer < MinPlayerDistance)
+	{
+		// 너무 가까우면 플레이어보다 높은 위치로 올림
+		float PlayerZ = PlayerLocation.Z;
+		float SpawnZ = FinalSpawnLocation.Z;
+
+		// 플레이어보다 위에 있도록 상승
+		float DesiredZ = PlayerZ + ExtraUp;
+		float AddZ = (DesiredZ - SpawnZ);
+
+		FinalSpawnLocation.Z += AddZ;
+	}
+	
+	// 최종 위치 트랜스폼 생성
+	FTransform SpawnTransform = FTransform();
+	SpawnTransform.SetLocation(FinalSpawnLocation);
+	SpawnTransform.SetRotation(FRotator::ZeroRotator.Quaternion());
+	
+	// 아이템 생성용 구조체 생성
+	FItemData NewDataForNewItem = {};
+	
+	// 풀 시스템과 아이템에게 넘겨줄 래퍼 구조체 생성
+	FSlotStructMaster NewSlotStructMasterForNewItem = {};
+	NewSlotStructMasterForNewItem.ItemData.StaticDataID = NewDataForNewItem.ItemID;
+	NewSlotStructMasterForNewItem.ItemData.CreationServerTime = GetWorld()->GetTimeSeconds();
+	
+	
+	// *** 생성 시작 *** //
+	
+	UItemDataSubsystem* ItemDataSubsystem = UItemDataSubsystem::GetItemDataSubsystem(this);
+	if (!IsValid(ItemDataSubsystem))
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("ItemDataSubsystem 찾지 못함."));
+		return;
+	}
+	
+	bool bFoundData = ItemDataSubsystem->GetItemDataSafe(ResourceRuntimeData.DropTableID,NewDataForNewItem);
+	if (!bFoundData)
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+		UE_LOG(ResourceControlSystem, Error, TEXT("%s 가 자원 데이터를 찾는데 실패함."), *GetName());
+		UE_LOG(ResourceControlSystem, Error, TEXT("ThisResourceID %d 찾지 못함."), ResourceRuntimeData.DropTableID);
+		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+		return;
+	}
+	else
+	{
+		UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
+		UE_LOG(ResourceControlSystem, Log, TEXT("%s 가 자원 원천 데이터를 찾는데 성공함."), *GetName());
+		UE_LOG(ResourceControlSystem, Log, TEXT("ThisResourceID %d 찾음."), ResourceRuntimeData.DropTableID);
+	}
+	
+	// 스폰 로직 
+	/*
+	 * 이 부분에서 반드시 스폰 로직을 구체화해서 생성해야 한다.
+	 * 1. 스폰 확률에 따라서 어떤 아이템을 생성할지 결정함.
+	 * 2. 총 몇 개 타입의 아이템을, 각각 얼마나 생성할지 결정함.
+	 * 3. for 문 돌려서 결정된 아이템들을 수량에 맞게 생성. 
+	 * 4. 결정된 데이터를 캐싱 후 스폰이 완료되면 현재 수량에서 깎아야 함.
+	 */
+	
+	// 월드 아이템 풀에게 우선 요청
+	UWorldItemPoolSubsystem* Pool = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>();
+	if (!IsValid(Pool))
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("월드 아이템 풀이 유효하지 않음"));
+		return;
+	}
+	
+	// 스폰 요청
+	bool bSpawnSuccess = Pool->DropItem(NewSlotStructMasterForNewItem,SpawnTransform, PlayerLocation);
+	if (bSpawnSuccess)
+	{
+		// 성공 시 Count를 깎고 제거 (일단 그냥 깎는 걸로)
+		CurrentItemCount--;
+		
+		// 만약 현재 수량이 남은 게 없다? 그러면 일단 죽어.
+		if (CurrentItemCount <= 0)
+		{
+			UE_LOG(ResourceControlSystem, Error, TEXT("남은 수량이 없으므로 삭제"));
+			Destroy();
+		}
+		return;
+	}
+	
+	// 실패 시 자체적으로 생성
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		FTimerDelegate::CreateLambda([this,NewDataForNewItem, NewSlotStructMasterForNewItem,SpawnTransform]()
+		{
+			if (!IsValid(this)) return;
+			SpawnItem_Internal(NewDataForNewItem, NewSlotStructMasterForNewItem, SpawnTransform);
+		}),0.005f,false);
+}
+
+void ATSResourceBaseActor::SpawnItem_Internal(const FItemData& ItemDataForMesh, const FSlotStructMaster& ItemData, const FTransform& SpawnTransform)
+{
+	if (!IsValid(this)) return;
+	
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AWorldItem* SpawnedItem = GetWorld()->SpawnActor<AWorldItem>(AWorldItem::StaticClass(),SpawnTransform,Params);
+
+	if (!IsValid(SpawnedItem))
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("스폰 실패: AWorldItem 생성 불가"));
+		return;
+	}
+	
+	// 데이터 주입
+	SpawnedItem->SetItemData(ItemData);
+	
+	// 피직스 설정
+	UStaticMeshComponent* MeshComp = SpawnedItem->FindComponentByClass<UStaticMeshComponent>();
+	if (MeshComp != nullptr)
+	{
+		UStaticMesh* Mesh = ItemDataForMesh.WorldMesh.LoadSynchronous();
+		MeshComp->SetStaticMesh(Mesh);
+		MeshComp->SetVisibility(true);
+		MeshComp->SetSimulatePhysics(true);
+		MeshComp->SetEnableGravity(true);
+		MeshComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		MeshComp->SetCollisionResponseToAllChannels(ECR_Block);
+		UE_LOG(ResourceControlSystem, Error, TEXT("스폰된 아이템에서 StaticMeshComponent 찾는데 성공하고 스태틱 메쉬 설정 해줌."));
+	}
+	else
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("스폰된 아이템에서 StaticMeshComponent 찾지 못함."));
+	}
+	
+	// 성공 시 Count를 깎고 제거 (일단 그냥 깎는 걸로)
+	CurrentItemCount--;
+		
+	// 만약 현재 수량이 남은 게 없다? 그러면 일단 죽어.
+	if (CurrentItemCount <= 0)
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("남은 수량이 없으므로 삭제"));
+		Destroy();
+	}
+}
+
+void ATSResourceBaseActor::SetMeshComp(UStaticMesh* InResourceStaticMeshComp)
+{
+	ResourceStaticMeshComp->SetStaticMesh(InResourceStaticMeshComp);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
+	//========================
+	// ATSResourceBaseActor 인터렉션 
+	//========================
+	
+void ATSResourceBaseActor::ShowInteractionWidget(ATSCharacter* InstigatorCharacter)
+{
+}
+
+void ATSResourceBaseActor::HideInteractionWidget()
+{
+}
+
+void ATSResourceBaseActor::SetInteractionText(FText InteractionText)
+{
+}
+
+bool ATSResourceBaseActor::CanInteract(ATSCharacter* InstigatorCharacter)
+{
+	return true;
+}
+
+void ATSResourceBaseActor::Interact(ATSCharacter* InstigatorCharacter)
+{
+	
+}
+
+bool ATSResourceBaseActor::RunOnServer()
+{
+	return true;
+}

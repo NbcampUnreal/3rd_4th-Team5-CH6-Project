@@ -53,6 +53,10 @@
 		{
 			"Name": "rdInst",
 			"Enabled": true
+		},
+		{
+			"Name": "GameplayStateTree",
+			"Enabled": true
 		}
 	]
 }

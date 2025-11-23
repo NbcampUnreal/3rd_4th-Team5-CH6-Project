@@ -5,32 +5,49 @@
 
 UGA_Roll::UGA_Roll()
 {
-	AbilityTags.AddTag(FGameplayTag::RequestGameplayTag(FName("Ability.Move.Roll")));
-	ActivationOwnedTags.AddTag(FGameplayTag::RequestGameplayTag(FName("State.Move.Roll")));
+}
+bool UGA_Roll::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags))
+	{
+		return false;
+	}
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC)
+	{
+		return false;
+	}
+	const float CurrentStamina = ASC->GetNumericAttribute(UTSAttributeSet::GetStaminaAttribute());
+	const float CurrentThirst = ASC->GetNumericAttribute(UTSAttributeSet::GetThirstAttribute());
+	
+	return CurrentStamina >= 20.f && CurrentThirst > 0.f;
 }
 
 void UGA_Roll::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-	if (!IsActive() || !ASC)
+	if ( !ASC || !IsActive() )
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
-	
-	if (RecoverStaminaEffectClass)
+	/*
+	 * GE_RollCost 적용
+	 */
+	if (RollCostEffectClass)
 	{
-		ASC->RemoveActiveGameplayEffectBySourceEffect(RecoverStaminaEffectClass, ASC);
+		FGameplayEffectContextHandle ContextHandle = MakeEffectContext(Handle, ActorInfo);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(RollCostEffectClass, GetAbilityLevel(), ContextHandle);
+		
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
 	}
 	
-	if (RollEffectClass)
-	{
-		ApplyGameplayEffectToOwner(Handle, ActorInfo, ActivationInfo, RollEffectClass.GetDefaultObject(), 1.0f);
-	}
-	// if(FirstMontage) PlayMontage();
+	PlayMontage();
 	
-	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
 void UGA_Roll::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
@@ -38,45 +55,17 @@ void UGA_Roll::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGamepl
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	if (ASC)
 	{
-		// 스프린트 끝나고 1초 뒤 GE_RecoverStamina 적용
-		if (RecoverStaminaEffectClass)
+		if (StaminaDelayEffectClass)
 		{
-			if (UWorld* World = GetWorld())
+			FGameplayEffectContextHandle ContextHandle = MakeEffectContext(Handle, ActorInfo);
+			FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(StaminaDelayEffectClass, GetAbilityLevel(), ContextHandle);
+			
+			if (SpecHandle.IsValid())
 			{
-				FTimerHandle TempHandle;
-				TWeakObjectPtr<UAbilitySystemComponent> ASCWeak = ASC;
-				TSubclassOf<UGameplayEffect> RecoverClass = RecoverStaminaEffectClass;
-
-				World->GetTimerManager().SetTimer(
-					TempHandle,
-					[ASCWeak, RecoverClass]()
-					{
-						if (!ASCWeak.IsValid() || !RecoverClass)
-						{
-							return;
-						}
-						UAbilitySystemComponent* LocalASC = ASCWeak.Get();
-						FGameplayEffectContextHandle Ctx = LocalASC->MakeEffectContext();
-						Ctx.AddSourceObject(LocalASC->GetOwner());
-
-						const UGameplayEffect* EffectCDO = RecoverClass.GetDefaultObject();
-						LocalASC->ApplyGameplayEffectToSelf(EffectCDO, 1.0f, Ctx);
-					},
-					1.0f, // 1초 딜레이 
-					false); //반복인가 아닌가 Loop
+				ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 			}
 		}
 	}
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-}
-
-bool UGA_Roll::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
-{
-	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags)) return false;
-	const UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (!ASC) return false;
-	// 현재 스태미나 가져와서 0 이하면 sprint 못함
-	const float CurrentStamina = ASC->GetNumericAttribute(UTSAttributeSet::GetStaminaAttribute());
-	return CurrentStamina >= 20.f;
 }
 

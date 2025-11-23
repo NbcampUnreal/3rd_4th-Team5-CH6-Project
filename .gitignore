@@ -39,3 +39,4 @@ Plugins/rdInst95b84e21fd17V8/Resources
 # Claude 폴더 제외
 /.claude/
 CLAUDE.md
+*.DotSettings*
