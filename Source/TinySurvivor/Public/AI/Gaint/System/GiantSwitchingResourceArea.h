@@ -5,6 +5,8 @@
 #include "GameFramework/Actor.h"
 #include "GiantSwitchingResourceArea.generated.h"
 
+class ATSResourcePoint;
+class ATSResourceBaseActor;
 class UBoxComponent;
 
 // 자원 원천 관련 세부 데이터  : 각 자원 원천의 재생 시간 관리용 데이터. 
@@ -17,12 +19,12 @@ struct FTheResourceData
 	int32 ReplayTime = 0;
 	
 	// 재생 시간 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReplayTime")
-	int32 ReplayTimeMax = 100;
+	UPROPERTY()
+	int32 ReplayTimeMax = 600;
 	
 	// 자원 원천 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ResourcePoint")
-	TObjectPtr<AActor> Resource;
+	UPROPERTY()
+	TObjectPtr<ATSResourceBaseActor> Resource;
 };
 
 // 자원 원천 관련 데이터  : 각 섹터마다 내부에 독립적으로 존재하는 동적 데이터. 
@@ -35,18 +37,15 @@ struct FResourcePointData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ResourceTypeTag")
 	FGameplayTag ResourceTypeTag;
 	
-	// 최대로 들어갈 수 있는 자원 원천 숫자
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxResourceCount")
-	int32 MaxResourceCount = 1;
-	
 	// 들어갈 수 있는 자원 원천 생성 포인트
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ResourcePoints")
+	UPROPERTY()
 	TArray<TObjectPtr<AActor>> ResourcePoints = {};
 	
-	// 자원 관리 데이터 풀 
-	// key : 자원 생성 포인트 / value : 활성화 중인 자원 데이터 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ResourcePool")
-	TMap<TObjectPtr<AActor>, FTheResourceData> ResourcePool;
+	// 최대로 들어갈 수 있는 자원 원천 숫자
+	int32 MaxResourceCount = 1;
+	
+	// 자원 관리 데이터 풀 key : 자원 생성 포인트 / value : 활성화 중인 자원 데이터 
+	TMap<TObjectPtr<ATSResourcePoint>, FTheResourceData> ResourcePool;
 };
 
 UCLASS()
@@ -137,7 +136,6 @@ protected:
 
 public:
 	// 자원 생성기 관리 풀 : Key 자원 원천 타입, Value 자원 원천 데이터 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GiantSwitchingResourceArea")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GiantSwitchingResourceArea")
 	TMap<FGameplayTag, FResourcePointData> ResourcePointPool;
-	
 };
