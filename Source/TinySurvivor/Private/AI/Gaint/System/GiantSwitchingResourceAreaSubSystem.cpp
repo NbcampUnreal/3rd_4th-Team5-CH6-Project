@@ -6,6 +6,12 @@
 
 DEFINE_LOG_CATEGORY(GiantSwitchingResourceAreaSubSystem);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
+	//------------------------------
+	// UGiantSwitchingResourceAreaSubSystem 라이프 사이클 
+	//------------------------------
+
 bool UGiantSwitchingResourceAreaSubSystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	// 부모 클래스 체크
@@ -91,6 +97,13 @@ void UGiantSwitchingResourceAreaSubSystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
+	//------------------------------
+	// UGiantSwitchingResourceAreaSubSystem 외부 유틸 
+	//------------------------------
+
 UGiantSwitchingResourceAreaSubSystem* UGiantSwitchingResourceAreaSubSystem::GetGiantSwitchingResourceAreaSubSystem(const UObject* WorldContextObject)
 {
 	if (IsValid(WorldContextObject))
@@ -102,6 +115,12 @@ UGiantSwitchingResourceAreaSubSystem* UGiantSwitchingResourceAreaSubSystem::GetG
 	}
 	return nullptr;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
+	//------------------------------
+	// UGiantSwitchingResourceAreaSubSystem 섹터 관리 시스템
+	//------------------------------
 
 void UGiantSwitchingResourceAreaSubSystem::AddResourceArea(const FGameplayTag& ResourceAreaIDTag, const TWeakObjectPtr<AGiantSwitchingResourceArea> ResourceArea)
 {
@@ -149,6 +168,12 @@ AGiantSwitchingResourceArea* UGiantSwitchingResourceAreaSubSystem::GetNearestRes
 	UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾은 지역 액터 : %s"), *ResourceArea->GetName());
 	return ResourceArea;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+
+	//------------------------------
+	// UGiantSwitchingResourceAreaSubSystem 관심 지역 시스템
+	//------------------------------
 
 void UGiantSwitchingResourceAreaSubSystem::AddIntersectArea(const FVector& Location)
 {
