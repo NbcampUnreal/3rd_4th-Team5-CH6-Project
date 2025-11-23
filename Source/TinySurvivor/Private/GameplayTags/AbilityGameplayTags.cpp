@@ -25,6 +25,8 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Move_Sprint, "State.Move.Sprint");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Move_Crouch, "State.Move.Crouch");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Move_Roll, "State.Move.Roll");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Move_Jump, "State.Move.Jump");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Move_Climb, "State.Move.Climb");
 	
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Input_HotKey, "Input.HotKey");
 

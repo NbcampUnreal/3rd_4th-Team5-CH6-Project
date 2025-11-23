@@ -191,6 +191,27 @@ void ATSCharacter::BeginPlay()
 void ATSCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D Input = Value.Get<FVector2D>();
+	// 클라이밍 이동 로직 Cross Product 언리얼에선 왼손 규칙 씀
+	if (IsClimbing())
+	{
+		//오른쪽 이동 방향 구하기 (cross product 외적 -> 벽의 법선과 월드 위쪽을 섞으면 오른쪽방향 나온다고 함........)
+		const FVector RightDirection = FVector::CrossProduct(CurrentWallNormal, FVector::UpVector).GetSafeNormal();
+		// 위쪽 이동 방향 구하기 (cross product 외적 -> 구한 오른쪽과 법선을 다시 섞으면 위쪽 방향이 나온다고 함..)
+		const FVector ForwardDirection = FVector::CrossProduct(RightDirection,CurrentWallNormal).GetSafeNormal();
+		
+		if (!FMath::IsNearlyZero(Input.Y)) // w s 키 
+		{
+			AddMovementInput(ForwardDirection, Input.Y);
+		}
+		if (!FMath::IsNearlyZero(Input.X)) // a d 키
+		{
+			AddMovementInput(RightDirection, Input.X);
+		}
+		return;
+	}
+	
+	
+	//기본 이동 로직 (걷기) wasd
 	const FRotator ControlRot = Controller->GetControlRotation();
 	const FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
 	const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
@@ -231,7 +252,7 @@ void ATSCharacter::ShoulderSwitch(const struct FInputActionValue& Value)
 //---- Non GAS
 
 //GAS
-void ATSCharacter::OnJumpOrClimb(const struct FInputActionValue& Value)
+void ATSCharacter::OnJumpOrClimbStarted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("SpaceBar pressed"));
 	const FGameplayTag JumpOrClimbTag = AbilityTags::TAG_Ability_Move_JumpOrClimb.GetTag();
@@ -249,6 +270,18 @@ void ATSCharacter::OnJumpOrClimb(const struct FInputActionValue& Value)
 	if (ASC && JumpOrClimbTag.IsValid())
 	{
 		ASC->TryActivateAbilitiesByTag(JumpOrClimbTag.GetSingleTagContainer(), true);
+	}
+}
+
+void ATSCharacter::OnJumpOrClimbCompleted(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("SpaceBar end"));
+	const FGameplayTag JumpOrClimbTag = AbilityTags::TAG_Ability_Move_JumpOrClimb.GetTag();
+	if (ASC && JumpOrClimbTag.IsValid())
+	{
+		FGameplayTagContainer WithTags;
+		WithTags.AddTag(JumpOrClimbTag);
+		ASC->CancelAbilities(&WithTags);
 	}
 }
 
@@ -533,6 +566,12 @@ void ATSCharacter::LineTrace()
 	}
 }
 
+bool ATSCharacter::IsClimbing()
+{
+	//State.Move.Climb 태그가 있으면 -> 클라이밍 중
+	return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Move_Climb.GetTag());
+}
+
 void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 {
 	if (!ASC) return;
@@ -617,7 +656,9 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::ShoulderSwitch);
 
 		EnhancedInputComponent->BindAction(InputDataAsset->JumpOrClimbAction, ETriggerEvent::Started, this,
-		                                   &ATSCharacter::OnJumpOrClimb);
+		                                   &ATSCharacter::OnJumpOrClimbStarted);
+		EnhancedInputComponent->BindAction(InputDataAsset->JumpOrClimbAction, ETriggerEvent::Completed, this,
+										   &ATSCharacter::OnJumpOrClimbCompleted);
 		EnhancedInputComponent->BindAction(InputDataAsset->RollAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnRoll);
 		EnhancedInputComponent->BindAction(InputDataAsset->CrouchAction, ETriggerEvent::Started, this,
