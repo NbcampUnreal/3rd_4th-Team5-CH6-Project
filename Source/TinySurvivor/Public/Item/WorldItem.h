@@ -24,6 +24,8 @@
 #include "PoolableActorBase.h"
 #include "Inventory/Struct/TSInventorySlot.h"
 #include "Engine/StreamableManager.h"
+#include "Runtime/DecayManager.h"
+#include "Components/TextRenderComponent.h"
 #include "WorldItem.generated.h"
 
 class UStaticMeshComponent;
@@ -42,6 +44,12 @@ class TINYSURVIVOR_API AWorldItem : public APoolableActorBase
 public:
 	AWorldItem();
 
+	// 디버그. 머리 위에 정보를 띄울 텍스트 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
+	UTextRenderComponent* DebugTextComp;
+	
+	void UpdateDebugText();
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
@@ -82,8 +90,14 @@ protected:
 	*/
 	void ConvertToDecayedItem();
 	//[E]=====================================================================================
+	// 부패 시스템 초기화 헬퍼 함수
+	void InitializeDecaySystem();
 
 public:
+	// 이 액터가 유래된 HISM 인스턴스 인덱스 (-1이면 순수 액터)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pooling")
+	int32 SourceInstanceIndex = -1;
+	
 	// 풀에서 액터 꺼낼 때
 	virtual void OnAcquire_Implementation(const int32& IntParam, const FString& StringParam, const UObject* ObjectParam) override;
 	// 풀로 액터를 반납할 때

@@ -18,6 +18,7 @@
 
 enum class EInventoryType : uint8;
 class ATSCharacter;
+struct FSlotStructMaster;
 
 UCLASS()
 class TINYSURVIVOR_API ATSPlayerController : public APlayerController
@@ -80,6 +81,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void CloseCurrentContainer();
 
+	/**서버로부터 아이템 데이터 묶음을 수신하는 RPC*/
+	UFUNCTION(Client, Reliable)
+	void Client_ReceiveItemChunk(const TArray<FSlotStructMaster>& ChunkData, const TArray<FTransform>& ChunkTransforms);
 protected:
 	//~=============================================================================
 	// Lifecycle Overrides

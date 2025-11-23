@@ -11,4 +11,6 @@ class TINYSURVIVOR_API ATSGameMode : public AGameMode
 	GENERATED_BODY()
 public:
 	ATSGameMode();
+	
+	void PostLogin(APlayerController* NewPlayer) override;
 };

@@ -19,6 +19,14 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
+// 테스트 코드
+
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Item/System/WorldItemInstanceSubsystem.h"
+#include "Item/System/WorldItemPoolSubsystem.h"
+#include "Item/WorldItem.h"
+#include "Item/System/TSItemPoolActor.h"
+// 테스트 코드
 
 ATSCharacter::ATSCharacter()
 {
@@ -565,5 +573,151 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnHotKey9);
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey0Action, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnHotKey0);
+		
+		// 테스트 코드
+		// [TEST] 디버그 키 바인딩 추가
+		UE_LOG(LogTemp, Warning, TEXT("[Input Info] Trying to bind Debug Actions..."));
+		if (InputDataAsset->DebugDropAction)
+		{
+			EnhancedInputComponent->BindAction(InputDataAsset->DebugDropAction, ETriggerEvent::Started, this, &ATSCharacter::OnDebugDrop);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Input Error] DebugDropAction is NULL in DataAsset!"));
+		}
+       
+		if (InputDataAsset->DebugRemoveAction)
+		{
+			EnhancedInputComponent->BindAction(InputDataAsset->DebugRemoveAction, ETriggerEvent::Started, this, &ATSCharacter::OnDebugRemove);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Input Error] DebugRemoveAction is NULL in DataAsset!"));
+		}
+		// 테스트 코드
 	}
 }
+
+
+// 테스트 코드
+
+// === [TEST] 입력 핸들러 ===
+void ATSCharacter::OnDebugDrop(const FInputActionValue& Value)
+{
+    Server_DebugDropItem();
+}
+
+void ATSCharacter::OnDebugRemove(const FInputActionValue& Value)
+{
+    Server_DebugRemoveItem();
+}
+
+// === [TEST] 서버: 아이템 드랍 ===
+void ATSCharacter::Server_DebugDropItem_Implementation()
+{
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    auto* PoolSys = World->GetSubsystem<UWorldItemPoolSubsystem>();
+    if (!PoolSys)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("WorldItemPoolSubsystem Not Found"));
+        return;
+    }
+
+    // 테스트 아이템 데이터 (ID: 1번 아이템)
+    FSlotStructMaster TestItem;
+    TestItem.ItemData.StaticDataID = 2; 
+    // 생성 시간 초기화
+    TestItem.ItemData.CreationServerTime = World->GetTimeSeconds();
+
+    // 캐릭터 앞 1.5m, 바닥 쪽으로 위치 설정
+    FVector Forward = GetActorForwardVector();
+    FVector SpawnLoc = GetActorLocation() + (Forward * 150.0f) + FVector(0, 0, 50.0f);
+    FTransform SpawnTrans(SpawnLoc);
+
+    // 드랍 요청
+    PoolSys->DropItem(TestItem, SpawnTrans, GetActorLocation());
+
+    UE_LOG(LogTemp, Log, TEXT("[Debug] Character Dropped Item ID: 1"));
+}
+
+// === [TEST] 서버: 아이템 삭제 ===
+void ATSCharacter::Server_DebugRemoveItem_Implementation()
+{
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    // 카메라 시선 방향으로 레이캐스트 준비
+    FVector StartLoc;
+    FRotator CamRot;
+    
+    if (Controller)
+    {
+        Controller->GetPlayerViewPoint(StartLoc, CamRot);
+    }
+    else
+    {
+        StartLoc = GetActorLocation();
+        CamRot = GetActorRotation();
+    }
+
+    FVector EndLoc = StartLoc + (CamRot.Vector() * 2000.0f); // 20m 거리
+
+    FHitResult Hit;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
+
+    // 판정 범위 1m 스피어 스윕
+    FCollisionShape SphereShape = FCollisionShape::MakeSphere(100.0f); 
+
+    bool bHit = World->SweepSingleByChannel(Hit, StartLoc, EndLoc, FQuat::Identity, ECC_Visibility, SphereShape, Params);
+    
+    if (bHit)
+    {
+        // 가까이 있는 액터 -> 풀 반납
+        if (AWorldItem* HitItem = Cast<AWorldItem>(Hit.GetActor()))
+        {
+            if (auto* PoolSys = World->GetSubsystem<UWorldItemPoolSubsystem>())
+            {
+                PoolSys->ReleaseItemActor(HitItem);
+                UE_LOG(LogTemp, Log, TEXT("[Debug] Removed Actor Item: %s"), *HitItem->GetName());
+            }
+        }
+        // 멀리 있는 인스턴스 -> 숨김 처리 및 데이터 삭제
+        else if (UInstancedStaticMeshComponent* ISM = Cast<UInstancedStaticMeshComponent>(Hit.GetComponent()))
+        {
+            int32 InstanceIndex = Hit.Item;
+
+            if (InstanceIndex != -1)
+            {
+                auto* InstanceSys = World->GetSubsystem<UWorldItemInstanceSubsystem>();
+                if (!InstanceSys) return;
+
+                // 어떤 아이템인지 데이터 확인
+                FSlotStructMaster FoundData;
+                if (InstanceSys->GetItemDataByInstanceIndex(InstanceIndex, FoundData))
+                {
+                    int32 TargetItemID = FoundData.ItemData.StaticDataID;
+
+                    // 서버 데이터 영구 삭제 (데이터 맵에서 제거)
+                    InstanceSys->RemoveInstancePermanent(InstanceIndex);
+
+                    // 클라이언트들에게 시각적 동기화 (숨김) 요청
+                    AActor* PoolActor = UGameplayStatics::GetActorOfClass(this, ATSItemPoolActor::StaticClass());
+                    if (ATSItemPoolActor* TSPool = Cast<ATSItemPoolActor>(PoolActor))
+                    {
+                        TSPool->Multicast_SetInstanceVisible(InstanceIndex, TargetItemID, false, FTransform::Identity);
+                        
+                        UE_LOG(LogTemp, Log, TEXT("[Debug] Permanent Remove Instance Index: %d / ID: %d"), InstanceIndex, TargetItemID);
+                    }
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("[Debug] Failed to find data for Instance Index: %d (Already removed?)"), InstanceIndex);
+                }
+            }
+        }
+    }
+}
+// 테스트 코드

@@ -12,7 +12,8 @@
 				"GameplayAbilities",
 				"GameplayTags",
 				"GameplayTasks",
-				"ActorPoolManager"
+				"ActorPoolManager",
+				"Engine"
 			]
 		}
 	],
