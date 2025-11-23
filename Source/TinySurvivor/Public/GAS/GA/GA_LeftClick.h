@@ -16,7 +16,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
 	float AttackRange = 100.0;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
-	FVector BoxHalfSize = FVector(30.f, 30.f, 30.f);
+	FVector BoxHalfSize = FVector(30.f, 30.f, 60.f);
 	
 private:
 	void BoxTrace();
