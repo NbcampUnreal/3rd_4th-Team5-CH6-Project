@@ -33,6 +33,7 @@ void ATSResourceBaseActor::BeginPlay()
 	Super::BeginPlay();
 	
 	if (!HasAuthority()) return;
+	
 	UItemDataSubsystem* ItemDataSubsystem = UItemDataSubsystem::GetItemDataSubsystem(this);
 	if (!IsValid(ItemDataSubsystem))
 	{
@@ -83,6 +84,8 @@ void ATSResourceBaseActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ATSResourceBaseActor::GetItemFromResourceForTest(UPrimitiveComponent* HitComponent, AActor* OtherActor,UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (!HasAuthority()) return;
+	
 	// OtherActor 유효성
 	if (!IsValid(OtherActor))
 	{
@@ -110,6 +113,8 @@ void ATSResourceBaseActor::GetItemFromResourceForTest(UPrimitiveComponent* HitCo
 
 void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector HitPoint, FVector HitNormal, FVector PlayerLocation, FVector ForwardVector)
 {
+	if (!HasAuthority()) return;
+	
 	if (0 != ResourceRuntimeData.RequiredToolID)
 	{
 		if (RequiredToolID != ResourceRuntimeData.RequiredToolID)
