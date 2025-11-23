@@ -4,6 +4,7 @@
 #include "Character/TSCharacter.h"
 #include "Components/WidgetSwitcher.h"
 #include "Inventory/TSInventoryMasterComponent.h"
+#include "Item/System/WorldItemInstanceSubsystem.h"
 #include "UI/Interface/IWidgetActivation.h"
 
 void ATSPlayerController::AcknowledgePossession(class APawn* P)
@@ -493,4 +494,15 @@ bool ATSPlayerController::IsAnyUIOpen() const
 	}
 
 	return false;
+}
+
+void ATSPlayerController::Client_ReceiveItemChunk_Implementation(const TArray<FSlotStructMaster>& ChunkData, const TArray<FTransform>& ChunkTransforms)
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (auto* InstanceSys = World->GetSubsystem<UWorldItemInstanceSubsystem>())
+		{
+			InstanceSys->HandleInitialChunkData(ChunkData, ChunkTransforms);
+		}
+	}
 }

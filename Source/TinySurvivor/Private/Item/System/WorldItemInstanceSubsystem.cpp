@@ -1,191 +1,245 @@
 // WorldItemInstanceSubsystem.cpp
 
-
 #include "Item/System/WorldItemInstanceSubsystem.h"
+#include "Engine/OverlapResult.h"
 #include "Kismet/GameplayStatics.h"
-#include "rdInst/Public/rdActor.h"
+#include "Item/System/TSItemPoolActor.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
 
-// 서버에서만 서브 시스템 실행
 bool UWorldItemInstanceSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-	if (!Super::ShouldCreateSubsystem(Outer))
-		return false;
-
-	UWorld* World = Outer->GetWorld();
-	if (!World || !World->IsGameWorld())
-		return false;
-
-	// 서버에서만 생성
-	return World->GetNetMode() != NM_Client;
+    if (!Super::ShouldCreateSubsystem(Outer)) return false;
+    UWorld* World = Outer->GetWorld();
+    return World && World->IsGameWorld();
 }
 
 void UWorldItemInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	Super::Initialize(Collection);
+    Super::Initialize(Collection);
 }
 
-void UWorldItemInstanceSubsystem::RegisterInstanceActor(ArdActor* InstanceActor)
+void UWorldItemInstanceSubsystem::RegisterPoolActor(ATSItemPoolActor* PoolActor)
 {
-	if (ItemInstanceManager != nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("UWorldItemInstanceSubsystem : InstanceActor is already registered"));
-		return;
-	}
-
-	if (!InstanceActor)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UWorldItemInstanceSubsystem : RegisterInstanceActor was called with a Null InstanceActor"));
-		return;
-	}
-
-	// ArdActor를 찾았으므로, 여기서 변수에 캐시
-	ItemInstanceManager = InstanceActor;
+    if (MyPoolActor) return;
+    MyPoolActor = PoolActor;
 }
 
-// ID로 메시를 동기식 로드
 UStaticMesh* UWorldItemInstanceSubsystem::GetMeshFromID(UWorld* World, int32 ItemID)
 {
-	if (!World || ItemID <= 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetMeshFromID : World or ItemID is invalid"));
-		return nullptr;	
-	}
+    if (!World || ItemID <= 0) return nullptr;
+    UGameInstance* GI = World->GetGameInstance();
+    if (!GI) return nullptr;
+    UItemDataSubsystem* DataSys = GI->GetSubsystem<UItemDataSubsystem>();
+    if (!DataSys || !DataSys->IsInitialized()) return nullptr;
 
-	UGameInstance* GameInstance = World->GetGameInstance();
-	if (!GameInstance)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetMeshFromID : GameInstance is not valid"));
-		return nullptr;	
-	}
-
-	UItemDataSubsystem* ItemDataSubsystem = GameInstance->GetSubsystem<UItemDataSubsystem>();
-	if (!ItemDataSubsystem || !ItemDataSubsystem->IsInitialized())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("GetMeshFromID : ItemDataSubsystem is not valid or not initialized"));
-		return nullptr;	
-	}
-
-	FItemData StaticItemData;
-	if (ItemDataSubsystem->GetItemDataSafe(ItemID, StaticItemData) && StaticItemData.IsWorldMeshValid())
-	{
-		return StaticItemData.WorldMesh.LoadSynchronous();	
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("GetMeshFromID : Can't find mesh for ID '%d'"), ItemID);
-	return nullptr;
+    FItemData Data;
+    if (DataSys->GetItemDataSafe(ItemID, Data) && Data.IsWorldMeshValid())
+    {
+        return Data.WorldMesh.LoadSynchronous(); 
+    }
+    return nullptr;
 }
 
-// rdAddInstance를 호출
 int32 UWorldItemInstanceSubsystem::AddInstance(const FSlotStructMaster& ItemData, const FTransform& Transform)
 {
-	if (!ItemInstanceManager || ItemData.ItemData.StaticDataID <= 0)
-		return -1;
+    if (!MyPoolActor)
+    {
+        AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ATSItemPoolActor::StaticClass());
+        if (FoundActor)
+        {
+            MyPoolActor = Cast<ATSItemPoolActor>(FoundActor);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("[Fail] CRITICAL ERROR: BP_ItemPoolManager is NOT in the level!"));
+            return -1;
+        }
+    }
 
-	// ID로 UStaticMesh를 가져옵니다
-	UStaticMesh* Mesh = GetMeshFromID(GetWorld(), ItemData.ItemData.StaticDataID);
-	if (!Mesh)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AddInstance : Failed to load mesh for ID '%d'"), ItemData.ItemData.StaticDataID);
-		return -1;
-	}
+    if (ItemData.ItemData.StaticDataID <= 0) 
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Fail] Invalid Item ID: %d"), ItemData.ItemData.StaticDataID);
+        return -1;
+    }
 
-	// rdAddInstance를 호출
-	int32 NewIndex = ItemInstanceManager->rdAddInstance(Mesh, Transform);
+    UStaticMesh* Mesh = GetMeshFromID(GetWorld(), ItemData.ItemData.StaticDataID);
+    if (!Mesh) 
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Fail] Mesh Not Found for ID: %d. Check ItemDataTable!"), ItemData.ItemData.StaticDataID);
+        return -1;
+    }
+    
+    int32 NewIndex = MyPoolActor->AddInstanceNative(Mesh, Transform);
 
-	if (NewIndex != -1)
-		// 성공 시 인스턴스 맵에 등록
-		InstanceDataMap.Add(NewIndex, ItemData);
-
-	return NewIndex;
+    if (NewIndex != -1)
+    {
+        InstanceDataMap.Add(NewIndex, ItemData);
+        CachedTransforms.Add(NewIndex, Transform); // 캐싱
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("[Fail] AddInstanceNative returned -1"));
+    }
+    
+    return NewIndex;
 }
 
-// rdRemoveInstance를 호출
-bool UWorldItemInstanceSubsystem::RemoveInstance(int32 InstanceIndex, FSlotStructMaster& OutItemData, FTransform& OutTransform)
+// Actor로 변환하기 위해 인스턴스를 숨김
+bool UWorldItemInstanceSubsystem::HideInstanceForSwap(int32 InstanceIndex, FSlotStructMaster& OutItemData, FTransform& OutTransform)
 {
-	if (!ItemInstanceManager)
-		return false;
+    if (!MyPoolActor) return false;
 
-	FSlotStructMaster* FoundData = InstanceDataMap.Find(InstanceIndex);
-	if (!FoundData)
-		return false;
+    FSlotStructMaster* FoundData = InstanceDataMap.Find(InstanceIndex);
+    if (!FoundData) return false;
 
-	UStaticMesh* Mesh = GetMeshFromID(GetWorld(), FoundData->ItemData.StaticDataID);
-	if (!Mesh)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("RemoveInstance : Mesh not found for ID '%d'(index '%d'. Removing from map"), FoundData->ItemData.StaticDataID, InstanceIndex);
-		InstanceDataMap.Remove(InstanceIndex);
-		// ItemInstanceManager->rdRemoveInstanceX(const FName sid, int32 index);
-		return false;
-	}
+    OutItemData = *FoundData;
 
-	// ArdActor의 rdGetInstanceTransform을 호출하여 Transform을 가져옵니다
-	bool bSuccess = ItemInstanceManager->rdGetInstanceTransform(Mesh, InstanceIndex, OutTransform);
+    // 캐시된 위치가 있으면 그걸 사용, 없으면 Native 호출
+    // 근데 숨겨져 있으면 엉뚱한 값일 수 있음
+    if (FTransform* Cached = CachedTransforms.Find(InstanceIndex))
+    {
+        OutTransform = *Cached;
+    }
+    else
+    {
+        // 예외 처리
+        UStaticMesh* Mesh = GetMeshFromID(GetWorld(), OutItemData.ItemData.StaticDataID);
+        MyPoolActor->GetInstanceTransformNative(Mesh, InstanceIndex, OutTransform);
+    }
 
-	if (!bSuccess)
-		UE_LOG(LogTemp, Warning, TEXT("RemoveInstance : rdGetInstanceTransform failed for index '%d'"), InstanceIndex);
+    UStaticMesh* Mesh = GetMeshFromID(GetWorld(), OutItemData.ItemData.StaticDataID);
 
-	// 맵에서 데이터를 제거
-	OutItemData = *FoundData;
-	InstanceDataMap.Remove(InstanceIndex);
-	
-	// rdInst에서 데이터 제거(실패했을 경우에도 제거)
-	ItemInstanceManager->rdRemoveInstance(Mesh, InstanceIndex);
+    // 가시성 false (지하로 보냄)
+    MyPoolActor->SetInstanceVisibleNative(Mesh, InstanceIndex, false, OutTransform);
 
-	return bSuccess;
+    // Map에서 제거하여 FindInstanceNear 검색에 걸리지 않게 함.
+    // 하지만 HISM 인덱스는 유지됨.
+    InstanceDataMap.Remove(InstanceIndex);
+
+    return true;
 }
 
-// Actor 근처의 인스턴스를 찾는 기능(엔진의 공간 쿼리(Sphere Sweep) 사용)
+// Actor가 사라지고 다시 인스턴스로 복귀
+void UWorldItemInstanceSubsystem::ShowInstanceFromSwap(int32 InstanceIndex, const FSlotStructMaster& ItemData, const FTransform& Transform)
+{
+    if (!MyPoolActor) return;
+
+    UStaticMesh* Mesh = GetMeshFromID(GetWorld(), ItemData.ItemData.StaticDataID);
+    
+    // 가시성 true (원래 위치로 복구)
+    if (MyPoolActor->SetInstanceVisibleNative(Mesh, InstanceIndex, true, Transform))
+    {
+        InstanceDataMap.Add(InstanceIndex, ItemData);
+        CachedTransforms.Add(InstanceIndex, Transform);
+    }
+}
+
+// 아이템 획득 시 (영구 삭제)
+void UWorldItemInstanceSubsystem::RemoveInstancePermanent(int32 InstanceIndex)
+{
+    // 데이터 맵에서 삭제하여 로직상 없는 존재로 만듦
+    if (InstanceDataMap.Contains(InstanceIndex))
+    {
+        FSlotStructMaster Data = InstanceDataMap[InstanceIndex];
+        InstanceDataMap.Remove(InstanceIndex);
+        CachedTransforms.Remove(InstanceIndex);
+        
+        // 시각적으로 숨김 (영구)
+        UStaticMesh* Mesh = GetMeshFromID(GetWorld(), Data.ItemData.StaticDataID);
+        if(MyPoolActor)
+        {
+            MyPoolActor->SetInstanceVisibleNative(Mesh, InstanceIndex, false, FTransform::Identity);
+        }
+    }
+}
+
+// Client RPC Receiver
+void UWorldItemInstanceSubsystem::SetInstanceVisible_Direct(int32 InstanceIndex, int32 ItemID, bool bVisible, const FTransform& Transform)
+{
+    if (!MyPoolActor) return;
+    UStaticMesh* Mesh = GetMeshFromID(GetWorld(), ItemID);
+
+    MyPoolActor->SetInstanceVisibleNative(Mesh, InstanceIndex, bVisible, Transform);
+
+    // 클라이언트도 데이터 맵 싱크를 맞춤
+    if (!bVisible)
+    {
+        InstanceDataMap.Remove(InstanceIndex);
+    }
+}
+
 void UWorldItemInstanceSubsystem::FindInstanceNear(const TArray<FVector>& Locations, float Radius, TArray<int32>& OutInstanceIndices)
 {
-	// OutInstanceIndices.Empty();
-	
-	UWorld* World = GetWorld();
-	if(!World || Locations.Num() == 0)
-		return;
+    UWorld* World = GetWorld();
+    if(!World || Locations.Num() == 0) return;
+    
+    TArray<FOverlapResult> Overlaps;
+    FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(FindRdInstItems), false, nullptr);
+    const ECollisionChannel CollisionChannel = ECC_Visibility;
+    FCollisionShape SphereShape = FCollisionShape::MakeSphere(Radius);
+    
+    for (const FVector& Loc : Locations)
+    {
+       // DrawDebugSphere(World, Loc, Radius, 16, FColor::Green, false, 0.1f);
+       World->OverlapMultiByChannel(Overlaps, Loc, FQuat::Identity, CollisionChannel, SphereShape, QueryParams);
+    }
+    
+    if (Overlaps.Num() > 0)
+    {
+       TSet<int32> FoundIndices;
+       for (const FOverlapResult& Result : Overlaps)
+       {
+          if (UInstancedStaticMeshComponent* HitISM = Cast<UInstancedStaticMeshComponent>(Result.GetComponent()))
+          {
+             int32 InstanceIndex = Result.ItemIndex;
+             // 숨겨진 아이템(Actor상태)은 InstanceDataMap에 없으므로 여기서 걸러짐
+             if (InstanceDataMap.Contains(InstanceIndex))
+             {
+                FoundIndices.Add(InstanceIndex);
+             }
+          }
+       }
+       OutInstanceIndices = FoundIndices.Array();
+    }
+}
 
-	TArray<FHitResult> Hits;
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(FindRdInstItemss), false, nullptr);
+void UWorldItemInstanceSubsystem::GetAllInstsnceData(TArray<FSlotStructMaster>& OutItemData, TArray<FTransform>& OutTransforms)
+{
+    OutItemData.Empty();
+    OutTransforms.Empty();
+    
+    if (!MyPoolActor) return;
+    
+    for (const auto& Pair : InstanceDataMap)
+    {
+       int32 InstanceIndex = Pair.Key;
+       const FSlotStructMaster& Data = Pair.Value;
+       
+       // CachedTransforms에서 가져오는 것이 안전함
+       if (CachedTransforms.Contains(InstanceIndex))
+       {
+           OutItemData.Add(Data);
+           OutTransforms.Add(CachedTransforms[InstanceIndex]);
+       }
+    }
+}
 
-	const ECollisionChannel CollisionChannel = ECC_Visibility;
+void UWorldItemInstanceSubsystem::HandleInitialChunkData(const TArray<FSlotStructMaster>& ChunkData, const TArray<FTransform>& ChunkTransforms)
+{
+    if (ChunkData.Num() != ChunkTransforms.Num()) return;
+    for (int32 i = 0; i < ChunkData.Num(); i++)
+    {
+       AddInstance(ChunkData[i], ChunkTransforms[i]);
+    }
+}
 
-	// 모든 플레이어 위치에 대해 스피어 스윕(Sphere Sweep)을 실행
-	for (const FVector& Loc : Locations)
-	{
-		World->SweepMultiByChannel(
-			Hits,
-			Loc,	// 시작 위치
-			Loc,	// 끝 위치
-			FQuat::Identity,
-			CollisionChannel,
-			FCollisionShape::MakeSphere(Radius),	// 검색 반경
-			QueryParams
-		);
-	}
-
-	if (Hits.Num() > 0)
-	{
-		// 중복된 인덱스 제거를 위해 TSet을 사용
-		TSet<int32> FoundIndices;
-
-		for (const FHitResult& Hit : Hits)
-		{
-			// 찾은 것이 Instanced Static Mesh(ISM)가 맞는지 확인
-			UInstancedStaticMeshComponent* HitISM = Cast<UInstancedStaticMeshComponent>(Hit.GetComponent());
-
-			// ISM이 'rdInst' 플러그인이 관리하는 ISM인지 확인 
-			if (HitISM)
-			{
-				// 부딪힌 인스턴스의 인덱스를 가져옴
-				int32 InstanceIndex = Hit.Item;
-
-				// 이 인덱스가 맵에 있는지 확인
-				if (InstanceDataMap.Contains(InstanceIndex))
-					FoundIndices.Add(InstanceIndex);
-			}
-		}
-		// TSet의 결과를 OutInstanceIndices에 복사
-		OutInstanceIndices = FoundIndices.Array();
-	}
+bool UWorldItemInstanceSubsystem::GetItemDataByInstanceIndex(int32 InstanceIndex, FSlotStructMaster& OutData) const
+{
+    if (const FSlotStructMaster* Found = InstanceDataMap.Find(InstanceIndex))
+    {
+       OutData = *Found;
+       return true;
+    }
+    return false;
 }

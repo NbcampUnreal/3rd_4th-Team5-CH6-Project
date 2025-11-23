@@ -87,8 +87,6 @@ void UWorldItemPoolSubsystem::RegisterPoolActor(ATSItemPoolActor* PoolActor)
 			TSPoolActor->BatchSize,
 			TSPoolActor->BatchInterval
 		);
-
-		UE_LOG(LogTemp, Warning, TEXT("UWroldItemPoolSubsystem : ATSItemPoolActor is successfully registered and begins initialization."));
 	}
 }
 
@@ -126,15 +124,26 @@ bool UWorldItemPoolSubsystem::DropItem(const FSlotStructMaster& ItemData, const 
 	if (!IsPoolReady() || !InstanceSubsystem || ItemData.ItemData.StaticDataID <= 0)
 		return false;
 
+	FSlotStructMaster NewItemData = ItemData;
+	
+	if (NewItemData.ItemData.CreationServerTime <= 0.1f)
+	{
+		NewItemData.ItemData.CreationServerTime = GetWorld()->GetTimeSeconds();	
+	}
+	
 	float DistanceSq = FVector::DistSquared(PlayerLocation, Transform.GetLocation());
 
 	if (DistanceSq < FMath::Square(SwapToActorDistance))
+	{
 		// 거리가 가까우면 액터 스폰
-		SpawnItemActor(ItemData, Transform);
+		SpawnItemActor(NewItemData, Transform);
+	}
 	else
+	{
 		// 거리가 멀면 인스턴스 스폰
-		SpawnItemInstance(ItemData, Transform);
-
+		SpawnItemInstance(NewItemData, Transform);
+	}
+	
 	return true;
 }
 
@@ -143,8 +152,23 @@ void UWorldItemPoolSubsystem::ReleaseItemActor(AWorldItem* ActorToRelease)
 {
 	if (WorldItemPool && ActorToRelease)
 	{
+		// 풀이 꽉 차서 OnRelease를 호출 안 해줄 수도 있으므로,
+		// 여기서 강제로 먼저 안 보이게 만들고 충돌을 끔
+		ActorToRelease->SetActorHiddenInGame(true);
+		ActorToRelease->SetActorEnableCollision(false);
+		ActorToRelease->SourceInstanceIndex = -1;
+       
+		// 물리 시뮬레이션 등이 켜져 있었다면 끄기
+		if (UPrimitiveComponent* Root = Cast<UPrimitiveComponent>(ActorToRelease->GetRootComponent()))
+		{
+			Root->SetSimulatePhysics(false);
+		}
+
+		// 그 다음 풀에 반납 시도 (풀이 받아주면 OnRelease가 또 호출되겠지만, 중복 호출되어도 상관없음)
 		WorldItemPool->ReleaseActor(ActorToRelease);
-		ActiveWorldItems.Remove(ActorToRelease);		// 활성 목록에서 제거
+       
+		// 관리 목록에서 제거
+		ActiveWorldItems.Remove(ActorToRelease); 
 	}
 }
 
@@ -184,8 +208,13 @@ AWorldItem* UWorldItemPoolSubsystem::SpawnItemActor(const FSlotStructMaster& Ite
 // 내부 rdInst
 void UWorldItemPoolSubsystem::SpawnItemInstance(const FSlotStructMaster& ItemData, const FTransform& Transform)
 {
-	if (InstanceSubsystem)
-		InstanceSubsystem->AddInstance(ItemData, Transform);
+	if (WorldItemPool)
+	{
+		if (ATSItemPoolActor* TSPool = Cast<ATSItemPoolActor>(WorldItemPool))
+		{
+			TSPool->Multicast_AddInstance(ItemData, Transform);
+		}
+	}
 }
 
 void UWorldItemPoolSubsystem::UpdateItemSwapping()
@@ -250,30 +279,65 @@ void UWorldItemPoolSubsystem::UpdateItemSwapping()
 
 void UWorldItemPoolSubsystem::SwapInstanceToActor(int32 InstanceIndex)
 {
-	if (!InstanceSubsystem)
-		return;
+	if (!InstanceSubsystem) return;
 
 	FSlotStructMaster ItemData;
 	FTransform InstanceTransform;
 
-	if (InstanceSubsystem->RemoveInstance(InstanceIndex, ItemData, InstanceTransform))
-		SpawnItemActor(ItemData, InstanceTransform);	// 액터 스폰
+	// 인스턴스 숨기기 & 데이터 가져오기
+	if (InstanceSubsystem->HideInstanceForSwap(InstanceIndex, ItemData, InstanceTransform))
+	{
+		// 액터 스폰
+		AWorldItem* SpawnedActor = SpawnItemActor(ItemData, InstanceTransform);
+		
+		if (SpawnedActor)
+		{
+			SpawnedActor->SourceInstanceIndex = InstanceIndex; 
+		}
+       
+		// RPC로 클라에게도 숨기라고 명령
+		if (WorldItemPool)
+		{
+			if (ATSItemPoolActor* TSPool = Cast<ATSItemPoolActor>(WorldItemPool))
+			{
+				TSPool->Multicast_SetInstanceVisible(InstanceIndex, ItemData.ItemData.StaticDataID, false, InstanceTransform);
+			}
+		}
+	}
 }
 
 void UWorldItemPoolSubsystem::SwapActorToInstance(AWorldItem* ItemaActor)
 {
-	if (!ItemaActor || !InstanceSubsystem)
-		return;
+	if (!ItemaActor) return;
 
 	FSlotStructMaster ItemData = ItemaActor->GetItemData();
+	FTransform Transform = ItemaActor->GetActorTransform();
+	int32 SrcIndex = ItemaActor->SourceInstanceIndex; // 출처 인덱스 가져오기
+	
 	if (ItemData.ItemData.StaticDataID <= 0)
 	{
-		ReleaseItemActor(ItemaActor);	// 데이터가 없는 액터는 그냥 풀에 반납
+		ReleaseItemActor(ItemaActor);
 		return;
 	}
+    
+	// 원래 인스턴스에서 온 놈이면 복구
+	if (SrcIndex != -1 && InstanceSubsystem)
+	{
+		// Add가 아니라 Show (복구)
+		InstanceSubsystem->ShowInstanceFromSwap(SrcIndex, ItemData, Transform);
+        
+		// RPC로 클라이언트들에게도 가시성 복구 명령
+		if (ATSItemPoolActor* TSPool = Cast<ATSItemPoolActor>(WorldItemPool))
+		{
+			TSPool->Multicast_SetInstanceVisible(SrcIndex, ItemData.ItemData.StaticDataID, true, Transform);
+		}
+	}
+	else
+	{
+		// 인스턴스 출신이 아니면(그냥 드랍된거면) 새로 생성
+		SpawnItemInstance(ItemData, Transform);
+	}
 
-	FTransform Transform = ItemaActor->GetActorTransform();
-	SpawnItemInstance(ItemData, Transform);		// 인스턴스 스폰
-	ReleaseItemActor(ItemaActor);				// 액터 반납
+	ReleaseItemActor(ItemaActor);
 }
 
