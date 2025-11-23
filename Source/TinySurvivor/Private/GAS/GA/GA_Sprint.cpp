@@ -2,6 +2,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
+#include "GameFramework/Character.h" 
 
 UGA_Sprint::UGA_Sprint()
 {
@@ -36,6 +37,7 @@ void UGA_Sprint::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const 
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
+	
 	/*
 	 * 1. GE_SprintCost 
 	 * 2. GE_SprintSpeed 
@@ -43,14 +45,14 @@ void UGA_Sprint::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const 
 	 */
 	FGameplayEffectContextHandle ContextHandle = MakeEffectContext(Handle, ActorInfo);
 	
-	if (SprintCostEffectClass)
+	/*if (SprintCostEffectClass)
 	{
 		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(SprintCostEffectClass, GetAbilityLevel(), ContextHandle);
 		if (SpecHandle.IsValid())
 		{
 			CostHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
-	}
+	}*/
 	if (SprintSpeedEffectClass)
 	{
 		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(SprintSpeedEffectClass, GetAbilityLevel(), ContextHandle);
@@ -59,6 +61,9 @@ void UGA_Sprint::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const 
 			SpeedHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
+	
+	GetWorld()->GetTimerManager().SetTimer(MovementCheckTimerHandle, this, &UGA_Sprint::SprintCheck, 0.1f, true); // 함수 최초 1회 즉시 호출 
+	SprintCheck();
 	
 	// Stamina
 	StaminaDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(UTSAttributeSet::GetStaminaAttribute()).AddUObject(this, &UGA_Sprint::OnAttributeChanged);
@@ -71,7 +76,8 @@ void UGA_Sprint::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGame
 {
 	// GE 자동 제지
 	// GE StaminaDelay 적용
-	
+	// 속도 체크 타이머 정리
+	GetWorld()->GetTimerManager().ClearTimer(MovementCheckTimerHandle);
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	if (ASC)
 	{
@@ -129,4 +135,38 @@ void UGA_Sprint::OnAttributeChanged(const FOnAttributeChangeData& Data)
 	{
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 	}
+}
+void UGA_Sprint::SprintCheck()
+{
+	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	
+	const float CurrentSpeed = Character->GetVelocity().Size2D();
+	const bool bIsSprint = CurrentSpeed > 600.0f; 
+	
+	if (bIsSprint)
+	{
+		// 아직 코스트 GE가 없다면 적용
+		if (!CostHandle.IsValid() && SprintCostEffectClass)
+		{
+			FGameplayEffectContextHandle ContextHandle = MakeEffectContext(CurrentSpecHandle, CurrentActorInfo);
+			FGameplayEffectSpecHandle SpecHandle =
+				ASC->MakeOutgoingSpec(SprintCostEffectClass, GetAbilityLevel(), ContextHandle);
+
+			if (SpecHandle.IsValid())
+			{
+				CostHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			}
+		}
+	}
+	else
+	{
+		// 속도가 떨어졌으면 코스트 GE 제거
+		if (CostHandle.IsValid())
+		{
+			ASC->RemoveActiveGameplayEffect(CostHandle);
+			CostHandle.Invalidate();
+		}
+	}
+	
 }

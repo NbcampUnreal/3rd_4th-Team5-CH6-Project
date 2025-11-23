@@ -31,5 +31,6 @@ namespace AbilityTags
 	
 	
 	
-	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_StaminaPaused, "State.Status.StaminaPaused");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Increase_Stamina, "State.Increase.Stamina");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Stamina_Block, "State.Stamina.Block");
 }

@@ -78,7 +78,10 @@ private:
 
 protected:
 	virtual void BeginPlay() override;
-
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stamina")
+	TSubclassOf<UGameplayEffect> StaminaIncreaseEffectClass;
+	
 #pragma region Function
 	// GAS 안쓰는 함수
 	void Move(const struct FInputActionValue& Value);

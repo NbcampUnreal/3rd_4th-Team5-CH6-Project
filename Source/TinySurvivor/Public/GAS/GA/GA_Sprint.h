@@ -36,11 +36,12 @@ protected:
 private:
 	FActiveGameplayEffectHandle CostHandle;
 	FActiveGameplayEffectHandle SpeedHandle;
+	FTimerHandle MovementCheckTimerHandle; // 스프린트 중 속도 체크용
 	
 	//Delegate Handle
 	FDelegateHandle StaminaDelegateHandle;
 	FDelegateHandle ThirstDelegateHandle;
 	
 	void OnAttributeChanged(const FOnAttributeChangeData& Data);
-	
+	void SprintCheck();
 };

@@ -38,7 +38,8 @@ namespace AbilityTags
 	
 	
 	
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_StaminaPaused);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Increase_Stamina);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Stamina_Block);
 	
 }
 
