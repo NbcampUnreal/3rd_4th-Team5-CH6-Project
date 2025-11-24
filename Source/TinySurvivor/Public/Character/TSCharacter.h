@@ -85,9 +85,9 @@ public:
 		return AnimType;
 	}
 
-	void SetAnimType(EItemAnimType AnimType)
+	void SetAnimType(EItemAnimType ItemAnimType)
 	{
-		this->AnimType = AnimType;
+		this->AnimType = ItemAnimType;
 	}
 #pragma endregion
 	
