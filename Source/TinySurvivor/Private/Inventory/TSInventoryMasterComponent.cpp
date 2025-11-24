@@ -4,6 +4,7 @@
 #include "Net/UnrealNetwork.h"
 #include "AbilitySystemComponent.h"
 #include "Character/TSCharacter.h"
+#include "Item/TSEquippedItem.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
 #include "Item/Runtime/DecayManager.h"
@@ -23,6 +24,8 @@ void UTSInventoryMasterComponent::GetLifetimeReplicatedProps(TArray<FLifetimePro
 	DOREPLIFETIME(UTSInventoryMasterComponent, EquipmentInventory);
 	DOREPLIFETIME(UTSInventoryMasterComponent, BagInventory);
 	DOREPLIFETIME(UTSInventoryMasterComponent, ActiveHotkeyIndex);
+	DOREPLIFETIME(UTSInventoryMasterComponent, CurrentEquippedItem);
+	DOREPLIFETIME(UTSInventoryMasterComponent, EquippedArmors);
 }
 
 void UTSInventoryMasterComponent::BeginPlay()
@@ -57,10 +60,12 @@ void UTSInventoryMasterComponent::BeginPlay()
 		// 장비 인벤토리 초기화
 		EquipmentInventory.InventoryType = EInventoryType::Equipment;
 		EquipmentInventory.InventorySlotContainer.SetNum(EquipmentSlotTypes.Num());
+		EquippedArmors.SetNum(EquipmentSlotTypes.Num());
 		int32 idx = 0;
 		for (const auto& Pair : EquipmentSlotTypes)
 		{
 			EquipmentInventory.InventorySlotContainer[idx].SlotType = Pair.Key;
+			EquippedArmors[idx].SlotType = Pair.Value;
 			++idx;
 		}
 
@@ -246,6 +251,8 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		}
 	}
 
+	// 활성화 슬롯 아이템 변경 플래그
+	bool bAddedToActiveSlot = false;
 	// 스택 처리 시도
 	if (TryStackSlots(FromSlot, ToSlot, bIsFullStack))
 	{
@@ -256,6 +263,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		// 일반 교환
 		if (bIsFullStack)
 		{
+			bAddedToActiveSlot = true;
 			// SlotType 백업
 			ESlotType FromSlotType = FromSlot.SlotType;
 			ESlotType ToSlotType = ToSlot.SlotType;
@@ -284,6 +292,16 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		}
 	}
 
+	// 활성화 슬롯 변경 시 브로드캐스트
+	if (bAddedToActiveSlot)
+	{
+		HandleActiveHotkeyIndexChanged();
+	}
+	// 방어구이면 장착 해제
+	if (FromInventoryType == EInventoryType::Equipment)
+	{
+		UnequipArmor(FromSlotIndex);
+	}
 	// 소스 인벤토리의 델리게이트 브로드캐스트
 	if (SourceInventory)
 	{
@@ -367,14 +385,30 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		ASC->GiveAbilityAndActivateOnce(Spec);
 	}
 	// 아이템 소비
-	Slot.CurrentStackSize -= 1;
-	if (Slot.CurrentStackSize <= 0)
+	if (ItemInfo.Category != EItemCategory::ARMOR)
 	{
-		ClearSlot(Slot);
+		// 방어구가 아닌 경우: 소비
+		Slot.CurrentStackSize -= 1;
+		if (Slot.CurrentStackSize <= 0)
+		{
+			ClearSlot(Slot);
+		}
+		UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
-
+	else
+	{
+		// 방어구인 경우: 장착
+		UnequipCurrentItem();
+		int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
+		if (TargetSlotIndex == -1)
+		{
+			return;
+		}
+		Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
+		                      EInventoryType::Equipment, TargetSlotIndex, true);
+		EquipArmor(ItemInfo, TargetSlotIndex);
+		UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
+	}
 	HandleInventoryChanged();
 }
 #pragma endregion
@@ -402,7 +436,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 
 	// 인벤토리 변경 플래그
 	bool bInventoryChanged = false;
-
+	// 활성화 슬롯 아이템 변경 플래그
+	bool bAddedToActiveSlot = false;
 	// ========================================
 	// 1단계: 핫키 스택 가능한 슬롯
 	// ========================================
@@ -427,7 +462,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 				Slot.CurrentStackSize += CanAdd;
 				OutRemainingQuantity -= CanAdd;
 				bInventoryChanged = true;
-
+				if (i == ActiveHotkeyIndex)
+				{
+					bAddedToActiveSlot = true;
+				}
 				if (OutRemainingQuantity <= 0)
 				{
 					break;
@@ -512,7 +550,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		}
 
 		bInventoryChanged = true;
-
+		if (SlotIndex == ActiveHotkeyIndex)
+		{
+			bAddedToActiveSlot = true;
+		}
 		FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
 		Slot.ItemData = ItemData;
 		Slot.bCanStack = ItemInfo.IsStackable();
@@ -572,6 +613,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	if (bInventoryChanged)
 	{
 		HandleInventoryChanged();
+	}
+	if (bAddedToActiveSlot)
+	{
+		HandleActiveHotkeyIndexChanged();
 	}
 
 	return OutRemainingQuantity == 0;
@@ -773,9 +818,38 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 		return;
 	}
 
-	UnequipCurrentItem();
+	// 서버에서 아이템 장착
+	if (GetOwner()->HasAuthority())
+	{
+		UnequipCurrentItem();
 
-	// TODO: GameplayAbility 연동 시 ASC 코드 추가
+		FItemData ItemInfo;
+		if (!GetItemData(ActiveSlot.ItemData.StaticDataID, ItemInfo))
+		{
+			return;
+		}
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = GetOwner();
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		CurrentEquippedItem = GetWorld()->SpawnActor<ATSEquippedItem>(
+			ATSEquippedItem::StaticClass(), FVector::ZeroVector,
+			FRotator::ZeroRotator, SpawnParams);
+
+		if (UStaticMesh* LoadedMesh = ItemInfo.WorldMesh.LoadSynchronous())
+		{
+			CurrentEquippedItem->SetMesh(LoadedMesh);
+		}
+		ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
+		if (TSCharacter)
+		{
+			CurrentEquippedItem->AttachToComponent(TSCharacter->GetMesh(),
+			                                       FAttachmentTransformRules::SnapToTargetIncludingScale,
+			                                       TEXT("Ws_r"));
+			TSCharacter->SetAnimType(ItemInfo.AnimType);
+		}
+	}
 
 	UE_LOG(LogTemp, Log, TEXT("Equipped: ID=%d (Slot %d)"),
 	       ActiveSlot.ItemData.StaticDataID, ActiveHotkeyIndex);
@@ -783,12 +857,20 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 
 void UTSInventoryMasterComponent::UnequipCurrentItem()
 {
-	if (!HasItemEquipped())
+	// 서버에서 아이템 장착 해제
+	if (GetOwner()->HasAuthority())
 	{
-		return;
+		if (CurrentEquippedItem)
+		{
+			CurrentEquippedItem->Destroy();
+			CurrentEquippedItem = nullptr;
+		}
+		ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
+		if (TSCharacter)
+		{
+			TSCharacter->SetAnimType(EItemAnimType::NONE);
+		}
 	}
-
-	// TODO: GameplayAbility 연동 시 ASC 코드 추가
 
 	FSlotStructMaster ActiveSlot = GetActiveHotkeySlot();
 	UE_LOG(LogTemp, Log, TEXT("Unequipped: ID=%d"), ActiveSlot.ItemData.StaticDataID);
@@ -1030,6 +1112,116 @@ float UTSInventoryMasterComponent::UpdateDecayPercent(double CurrentExpirationTi
 {
 	double CurrentTime = GetWorld()->GetTimeSeconds();
 	return DecayRate > 0 ? (float)((CurrentExpirationTime - CurrentTime) / DecayRate) : 0.f;
+}
+#pragma endregion
+
+#pragma region Helper - EquipArmor
+int32 UTSInventoryMasterComponent::FindEquipmentSlot(EEquipSlot ArmorSlot) const
+{
+	for (int32 i = 0; i < EquipmentInventory.InventorySlotContainer.Num(); ++i)
+	{
+		if (*EquipmentSlotTypes.Find(EquipmentInventory.InventorySlotContainer[i].SlotType) == ArmorSlot)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
+void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 ArmorSlotIndex)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	EEquipSlot ArmorSlot = ItemInfo.ArmorData.EquipSlot;
+
+	UnequipArmor(ArmorSlotIndex);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = GetOwner();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ATSEquippedItem* EquippedArmor = GetWorld()->SpawnActor<ATSEquippedItem>(
+		ATSEquippedItem::StaticClass(), FVector::ZeroVector,
+		FRotator::ZeroRotator, SpawnParams);
+
+	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
+	if (!TSCharacter)
+	{
+		return;
+	}
+	if (UStaticMesh* LoadedMesh = ItemInfo.WorldMesh.LoadSynchronous())
+	{
+		if (ArmorSlot == EEquipSlot::LEG)
+		{
+			EquippedArmor->SetLegMesh(LoadedMesh);
+			if (EquippedArmor->LeftLegMeshComp)
+			{
+				EquippedArmor->LeftLegMeshComp->AttachToComponent(TSCharacter->GetMesh(),
+				                                                  FAttachmentTransformRules::SnapToTargetIncludingScale,
+				                                                  TEXT("LeftLegSocket"));
+			}
+			if (EquippedArmor->RightLegMeshComp)
+			{
+				EquippedArmor->RightLegMeshComp->AttachToComponent(TSCharacter->GetMesh(),
+				                                                   FAttachmentTransformRules::SnapToTargetIncludingScale,
+				                                                   TEXT("RightLegSocket"));
+			}
+		}
+		else
+		{
+			FName SocketName;
+			if (ArmorSlot == EEquipSlot::HEAD)
+			{
+				SocketName = TEXT("HeadSocket");
+			}
+			else
+			{
+				SocketName = TEXT("TorsoSocket");
+			}
+			EquippedArmor->SetMesh(LoadedMesh);
+			EquippedArmor->AttachToComponent(TSCharacter->GetMesh(),
+			                                 FAttachmentTransformRules::SnapToTargetIncludingScale,
+			                                 SocketName);
+		}
+	}
+	EquippedArmors[ArmorSlotIndex].EquippedArmor = EquippedArmor;
+}
+
+void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	if (EquippedArmors[ArmorSlotIndex].EquippedArmor)
+	{
+		EquippedArmors[ArmorSlotIndex].EquippedArmor->Destroy();
+		EquippedArmors[ArmorSlotIndex].EquippedArmor = nullptr;
+	}
+}
+
+void UTSInventoryMasterComponent::RemoveArmorStats(int32 ArmorSlotIndex)
+{
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC)
+	{
+		return;
+	}
+	FSlotStructMaster& Slot = EquipmentInventory.InventorySlotContainer[ArmorSlotIndex];
+	FItemData ItemInfo;
+	if (!GetItemData(Slot.ItemData.StaticDataID, ItemInfo))
+	{
+		return;
+	}
+	if (ItemInfo.EffectTag.IsValid())
+	{
+		FGameplayTagContainer TagContainer;
+		TagContainer.AddTag(ItemInfo.EffectTag);
+
+		ASC->RemoveActiveEffectsWithTags(TagContainer);
+	}
 }
 #pragma endregion
 
