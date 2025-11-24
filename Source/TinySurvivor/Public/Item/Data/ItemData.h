@@ -268,6 +268,7 @@ public:
 		, Name_KR(FText::FromString(TEXT("")))             // 한국어 이름 초기화 (빈 문자열)
 		, Name_EN(FText::FromString(TEXT("")))             // 영어 이름 초기화 (빈 문자열)
 		, Category(EItemCategory::MATERIAL)                // 세부 카테고리 초기화 (기본: MATERIAL)
+		, AnimType(EItemAnimType::NONE)                    // 아이템 애니메이션 타입 초기화 (기본값: NONE)
 		, WeaponData()                                     // 무기 데이터 구조체 기본 생성자 호출
 		, ToolData()                                       // 도구 데이터 구조체 기본 생성자 호출
 		, ConsumableData()                                 // 소모품 데이터 구조체 기본 생성자 호출
@@ -317,6 +318,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-System",
 		meta = (DisplayName="Category (카테고리)", ToolTip="아이템이 속한 카테고리"))
 	EItemCategory Category;
+	
+	// 애니메이션 타입
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-System",
+		meta = (DisplayName="AnimType (애니메이션 타입)", ToolTip="캐릭터 애니메이션에서 사용할 타입"))
+	EItemAnimType AnimType;
 	
 	// 무기 전용 데이터
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Base-System-Weapon",
