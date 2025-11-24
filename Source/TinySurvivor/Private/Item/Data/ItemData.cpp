@@ -18,6 +18,7 @@ void FItemData::PrintDebugInfo() const
 	// Base System
 	UE_LOG(LogFItemData, Display, TEXT("\n---[System]"));
 	UE_LOG(LogFItemData, Display, TEXT("Category: %s"), *UEnum::GetValueAsString(Category));
+	UE_LOG(LogFItemData, Display, TEXT("AnimType: %s"), *UEnum::GetValueAsString(AnimType))
 	UE_LOG(LogFItemData, Display, TEXT("Rarity: %s"), *UEnum::GetValueAsString(Rarity));
 	UE_LOG(LogFItemData, Display, TEXT("MaxStack: %d"), MaxStack);
 	

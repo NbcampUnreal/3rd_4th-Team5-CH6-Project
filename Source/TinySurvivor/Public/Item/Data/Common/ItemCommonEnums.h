@@ -28,3 +28,15 @@ enum class EItemRarity : uint8
 	UNIQUE  UMETA(DisplayName = "Unique", ToolTip="유일/특별")
 };
 
+/*
+	아이템 애니메이션 타입을 나타내는 Enum
+	캐릭터 애니메이션 시스템에서 아이템별 애니메이션 선택에 사용
+*/
+UENUM(BlueprintType)
+enum class EItemAnimType : uint8
+{
+	NONE          UMETA(DisplayName = "None", ToolTip="애니메이션 없음"),
+	PICK          UMETA(DisplayName = "Pick", ToolTip="곡괭이 타입 도구"),
+	WEAPON_SPEAR  UMETA(DisplayName = "Weapon Spear", ToolTip="창 타입 무기")
+};
+
