@@ -1,6 +1,7 @@
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 
 
 //***********************************************
@@ -75,6 +76,26 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 {
 	Super::PostGameplayEffectExecute(Data);
 	ClampAfterEffect(Data);
+	
+	if (Data.EvaluatedData.Attribute == GetThirstAttribute())
+	{
+		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+		FGameplayTag ThirstTag = AbilityTags::TAG_State_Status_Thirst;
+		if (GetThirst() <= 0.0f)
+		{
+			if (!ASC->HasMatchingGameplayTag(ThirstTag))
+			{
+				ASC->AddLooseGameplayTag(ThirstTag);
+			}
+		}else
+		{
+			if (ASC->HasMatchingGameplayTag(ThirstTag))
+			{
+				ASC->RemoveLooseGameplayTag(ThirstTag);
+			}
+		}
+	}
+	
 }
 //***********************************************
 //헬퍼 함수 구현
