@@ -35,6 +35,8 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Jump);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Climb);
 	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Thirst);
+	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Input_HotKey);
 	
 	
