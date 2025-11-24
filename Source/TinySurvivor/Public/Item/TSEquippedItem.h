@@ -17,6 +17,11 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
 	UStaticMeshComponent* MeshComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UStaticMeshComponent* LeftLegMeshComp;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated)
+	UStaticMeshComponent* RightLegMeshComp;
 	
 	void SetMesh(UStaticMesh* Mesh);
+	void SetLegMesh(UStaticMesh* Mesh);
 };
