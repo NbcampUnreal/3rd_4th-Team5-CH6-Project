@@ -646,7 +646,7 @@ void ATSCharacter::Tick(float DeltaTime)
 			bIsSwitchingShoulder = false;
 		}
 	}
-	LineTrace();
+	//LineTrace();
 }
 
 void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
