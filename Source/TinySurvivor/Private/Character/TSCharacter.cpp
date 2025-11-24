@@ -66,6 +66,41 @@ void ATSCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 	InitAbilitySystem();
 	InitializeAbilities(); //어빌리티 부여
+	if (StaminaIncreaseEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(StaminaIncreaseEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	if (ThirstDecayEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(ThirstDecayEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	if (HungerDecayEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(HungerDecayEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
 }
 
 void ATSCharacter::OnRep_PlayerState()
@@ -149,19 +184,6 @@ void ATSCharacter::InitializeAbilities()
 void ATSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (StaminaIncreaseEffectClass)
-	{
-		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-		ContextHandle.AddSourceObject(this);
-		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(StaminaIncreaseEffectClass, 1, ContextHandle);
-            
-		if (SpecHandle.IsValid())
-		{
-			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-		}
-	}
-	
 	if (SpringArmComponent)
 	{
 		SpringArmBaseLocation = SpringArmComponent->GetRelativeLocation();
@@ -646,7 +668,7 @@ void ATSCharacter::Tick(float DeltaTime)
 			bIsSwitchingShoulder = false;
 		}
 	}
-	//LineTrace();
+	LineTrace();
 }
 
 void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
