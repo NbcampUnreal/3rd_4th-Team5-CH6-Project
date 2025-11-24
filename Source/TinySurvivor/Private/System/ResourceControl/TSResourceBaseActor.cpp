@@ -185,6 +185,8 @@ void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector Hit
 		UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
 		UE_LOG(ResourceControlSystem, Log, TEXT("%s 가 자원 원천 데이터를 찾는데 성공함."), *GetName());
 		UE_LOG(ResourceControlSystem, Log, TEXT("ThisResourceID %d 찾음."), ResourceRuntimeData.DropTableID);
+		NewSlotStructMasterForNewItem.ItemData.StaticDataID = NewDataForNewItem.ItemID;
+		UE_LOG(ResourceControlSystem, Log, TEXT("NewSlotStructMasterForNewItem.ItemData.StaticDataID %d"), NewSlotStructMasterForNewItem.ItemData.StaticDataID);
 	}
 	
 	// 스폰 로직 
@@ -208,6 +210,8 @@ void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector Hit
 	bool bSpawnSuccess = Pool->DropItem(NewSlotStructMasterForNewItem,SpawnTransform, PlayerLocation);
 	if (bSpawnSuccess)
 	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("월드 아이템 풀에서 생성이 성공함."));
+		
 		// 성공 시 Count를 깎고 제거 (일단 그냥 깎는 걸로)
 		CurrentItemCount--;
 		
@@ -308,7 +312,6 @@ bool ATSResourceBaseActor::CanInteract(ATSCharacter* InstigatorCharacter)
 
 void ATSResourceBaseActor::Interact(ATSCharacter* InstigatorCharacter)
 {
-	
 }
 
 bool ATSResourceBaseActor::RunOnServer()
