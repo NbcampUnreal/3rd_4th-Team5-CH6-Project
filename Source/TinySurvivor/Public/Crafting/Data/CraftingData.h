@@ -17,7 +17,7 @@ enum class ECraftingCategory : uint8
 	WEAPON      UMETA(DisplayName = "Weapon", ToolTip="무기"),
 	ARMOR       UMETA(DisplayName = "Armor", ToolTip="방어구"),
 	CONSUMABLE  UMETA(DisplayName = "Consumable", ToolTip="소모품"),
-	BUILDING    UMETA(DisplayName = "Building", ToolTip="건축")
+	//BUILDING    UMETA(DisplayName = "Building", ToolTip="건축")
 };
 #pragma endregion
 
