@@ -78,10 +78,17 @@ private:
 
 protected:
 	virtual void BeginPlay() override;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stamina")
+
+#pragma region SurvivalDecay
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SurvivalDecay")
 	TSubclassOf<UGameplayEffect> StaminaIncreaseEffectClass;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SurvivalDecay")
+	TSubclassOf<UGameplayEffect> ThirstDecayEffectClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SurvivalDecay")
+	TSubclassOf<UGameplayEffect> HungerDecayEffectClass;
+#pragma endregion
 #pragma region Function
 	// GAS 안쓰는 함수
 	void Move(const struct FInputActionValue& Value);
@@ -143,7 +150,7 @@ public:
 	
 	bool IsClimbing();
 #pragma endregion
-	
+
 private:
 	UFUNCTION(Server, Reliable)
 	void ServerSendHotKeyEvent(int HotKeyIndex);
