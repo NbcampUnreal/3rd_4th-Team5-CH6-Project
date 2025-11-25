@@ -46,5 +46,5 @@ public:
 
 	// 실제 드랍 실행 함수 (죽을 때 호출)
 	UFUNCTION(BlueprintCallable)
-	void SpawnLoot();
+	bool SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation);
 };

@@ -118,11 +118,25 @@ void UWorldItemPoolSubsystem::Tick(float DeltaTime)
 }
 
 // 인벤토리에서 호출
-bool UWorldItemPoolSubsystem::DropItem(const FSlotStructMaster& ItemData, const FTransform& Transform,
-	FVector PlayerLocation)
+bool UWorldItemPoolSubsystem::DropItem(const FSlotStructMaster& ItemData, const FTransform& Transform, FVector PlayerLocation)
 {
-	if (!IsPoolReady() || !InstanceSubsystem || ItemData.ItemData.StaticDataID <= 0)
+	if (!IsPoolReady())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem called when pool is not ready"));
 		return false;
+	}
+
+	if (!InstanceSubsystem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem called when InstanceSubsystem is null"));
+		return false;
+	}
+	
+	if (ItemData.ItemData.StaticDataID <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DropItem called with invalid ItemData"));
+		return false;
+	}
 
 	FSlotStructMaster NewItemData = ItemData;
 	

@@ -9,6 +9,8 @@
 #include "Item/Interface/IInteraction.h"
 #include "TSResourceBaseActor.generated.h"
 
+class ULootComponent;
+
 UCLASS()
 class TINYSURVIVOR_API ATSResourceBaseActor : public AActor, public IIInteraction, public ITSResourceItemInterface
 {
@@ -31,6 +33,7 @@ public:
 	// ATSResourceBaseActor 아이템 스폰  
 	//========================
 	
+	void InitFromResourceData(const FResourceData& Data);
 	void SetMeshComp(UStaticMesh* MeshComp);
 
 	// 어빌리티로 트레이스 날려서 맞춘 놈이 이 액터인지 확인하고 이 API로 요청하면 됨.
@@ -38,10 +41,6 @@ public:
 	virtual void GetItemFromResource(int32 RequiredToolID, FVector HitPoint, FVector HitNormal, FVector PlayerLocation, FVector ForwardVector) override;
 
 protected:
-	// 주먹으로 때려야 하는데 그런 게 없어서 일단 여기로 테스트.
-	UFUNCTION(BlueprintCallable)
-	void GetItemFromResourceForTest(UPrimitiveComponent* HitComponent,AActor* OtherActor,UPrimitiveComponent* OtherComp,FVector NormalImpulse,const FHitResult& Hit);
-
 	void SpawnItem_Internal(const FItemData& ItemDataForMesh, const FSlotStructMaster& ItemData, const FTransform& SpawnTransform);
 	
 	// 껍데기
@@ -58,6 +57,10 @@ protected:
 
 	// 현재 가진 아이템 수량
 	int32 CurrentItemCount = 0;
+	
+	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<ULootComponent> LootComponent;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
