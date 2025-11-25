@@ -1,7 +1,10 @@
 ﻿#include "System/ResourceControl/TSResourceControlSubSystem.h"
 #include "AI/Gaint/System/GiantSwitchingResourceAreaSubSystem.h"
+#include "Character/TSCharacter.h"
 #include "Engine/AssetManager.h"
 #include "Item/System/ItemDataSubsystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "System/Erosion/TSErosionSubSystem.h"
 #include "System/ResourceControl/TSReousrceControlSystemDataTable.h"
 #include "System/ResourceControl/TSResourceBaseActor.h"
 #include "System/ResourceControl/TSResourceControlDataAsset.h"
@@ -357,7 +360,7 @@ void UTSResourceControlSubSystem::AssignResourcesToPoints()
 	
     // === Respawn 타이머 연결 ===
     UTimeTickManager* TimeTickManager = GetWorld()->GetSubsystem<UTimeTickManager>();
-    if (!TimeTickManager)
+    if (!IsValid(TimeTickManager))
     {
         UE_LOG(ResourceControlSystem, Error, TEXT("ResourceControlSystem: TimeTickManager 없음"));
         return;
@@ -365,6 +368,17 @@ void UTSResourceControlSubSystem::AssignResourcesToPoints()
 
     TimeTickManager->OnSecondTick.AddDynamic(this, &UTSResourceControlSubSystem::UpdateRespawnControl);
     UE_LOG(ResourceControlSystem, Log, TEXT("DecayManager 초기화 완료 (TimeTickManager에 구독됨)"));
+	
+	// === 침식도 매니저 연결 ===
+	UTSErosionSubSystem* ErosionSystem = GetWorld()->GetSubsystem<UTSErosionSubSystem>();
+	if (!IsValid(ErosionSystem))
+	{
+		UE_LOG(ResourceControlSystem, Error, TEXT("ResourceControlSystem: ErosionSystem 없음"));
+		return;
+	}
+	
+	ErosionSystem->OnErosionChangedDelegate.AddDynamic(this, &UTSResourceControlSubSystem::OnErosionChanged);
+	
 }
 
 ENodeType UTSResourceControlSubSystem::GetNodeTypeFromResourceID(int32 ResourceID)
@@ -418,6 +432,9 @@ void UTSResourceControlSubSystem::UpdateRespawnControl()
 {
 	if (PendingRespawns.Num() == 0) return;
 
+	// T침식도 2 이 이상이면 STOP
+	if (bIsErosionUpper60) return;
+	
 	for (int32 i = PendingRespawns.Num() - 1; i >= 0; i--)
 	{
 		FRespawnRequest& Req = PendingRespawns[i];
@@ -425,19 +442,34 @@ void UTSResourceControlSubSystem::UpdateRespawnControl()
 
 		if (Req.TimeRemaining <= 0.f)
 		{
-			RespawnResource(Req);;
-			PendingRespawns.RemoveAt(i);
+			bool bSuccess = RespawnResource(Req);
+			if (bSuccess)
+			{
+				PendingRespawns.RemoveAt(i);
+			}
 		}
 	}
 }
 
-void UTSResourceControlSubSystem::RespawnResource(const FRespawnRequest& Req)
+void UTSResourceControlSubSystem::OnErosionChanged(float ErosionValue)
+{
+	if (ErosionValue >= 60.f)
+	{
+		bIsErosionUpper60 = true;
+	}
+	else
+	{
+		bIsErosionUpper60 = false;
+	}
+}
+
+bool UTSResourceControlSubSystem::RespawnResource(const FRespawnRequest& Req)
 {
 	FResourcePointBucket* BucketPtr = ResourcePointMap.Find(Req.SectionTag);
 	if (!BucketPtr)
 	{
 		UE_LOG(ResourceControlSystem, Error,TEXT("Respawn 실패: Sector %s 에 Bucket 없음"), *Req.SectionTag.ToString());
-		return;
+		return false;
 	}
 
 	TArray<ATSResourcePoint*> Candidates;
@@ -466,14 +498,39 @@ void UTSResourceControlSubSystem::RespawnResource(const FRespawnRequest& Req)
 	if (Candidates.IsEmpty())
 	{
 		UE_LOG(ResourceControlSystem, Warning, TEXT("Respawn 실패: Sector %s 내에 유효한 포인트 없음"), *Req.SectionTag.ToString());
-		return;
+		return false;
 	}
 
 	ATSResourcePoint* TargetRP = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
 
 	UE_LOG(ResourceControlSystem, Warning,TEXT("Respawn 성공: Sector %s 의 %s 포인트에 ResourceID %d 스폰"),*Req.SectionTag.ToString(), *TargetRP->GetName(), Req.ResourceID);
 
+	// 모든 플레이어, 모든 몬스터, 거인과 체크해서 일정 거리 떨어져야 스폰 가능 (끼임 사고 방지)
+	if (IsValid(GetWorld()))
+	{
+		const FVector RP_Location = TargetRP->GetActorLocation();
+		const float MinDistance = 1000.f;   // 10m = 1000cm
+
+		// 모든 플레이어, 모든 몬스터, 거인 가져오기
+		TArray<AActor*> Players;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacter::StaticClass(), Players);
+
+		for (AActor* PlayerActor : Players)
+		{
+			if (!IsValid(PlayerActor)) continue;
+
+			const float Dist = FVector::Dist(PlayerActor->GetActorLocation(), RP_Location);
+
+			if (Dist <= MinDistance)
+			{
+				UE_LOG(ResourceControlSystem, Warning, TEXT("[Respawn 실패] 플레이어, 모든 몬스터, 거인과 너무 가까움. 거리: %.1f cm"), Dist);
+				return false;   // 스폰 금지
+			}
+		}
+	}
+	
 	SpawnResourceAtPoint(TargetRP, Req.ResourceID);
+	return true;
 }
 
 void UTSResourceControlSubSystem::DebugPrintAllBuckets()
