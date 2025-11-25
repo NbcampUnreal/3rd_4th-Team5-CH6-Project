@@ -26,6 +26,7 @@
 #include "ActorPool.h"
 #include "PoolableActorBase.h"
 #include "Item/System/TSItemPoolActor.h"
+#include "Item/System/ItemDataSubsystem.h"
 
 bool UWorldItemPoolSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -140,22 +141,79 @@ bool UWorldItemPoolSubsystem::DropItem(const FSlotStructMaster& ItemData, const 
 
 	FSlotStructMaster NewItemData = ItemData;
 	
+	// [부패 데이터 정리] 쓰레기 값 방지 및 초기화 로직
 	if (NewItemData.ItemData.CreationServerTime <= 0.1f)
 	{
-		NewItemData.ItemData.CreationServerTime = GetWorld()->GetTimeSeconds();	
+		bool bShouldDecay = false;
+		
+		// 데이터 서브시스템 가져오기
+		UGameInstance* GI = GetWorld()->GetGameInstance();
+		if (GI)
+		{
+			auto* DataSys = GI->GetSubsystem<UItemDataSubsystem>();
+			if (DataSys)
+			{
+				FItemData StaticData;
+				// 아이템 원본 데이터 조회
+				if (DataSys->GetItemDataSafe(NewItemData.ItemData.StaticDataID, StaticData))
+				{
+					bShouldDecay = StaticData.IsDecayEnabled();
+				}
+			}
+		}
+		
+		if (bShouldDecay)
+		{
+			// 부패하는 아이템이면 현재 시간 설정
+			NewItemData.ItemData.CreationServerTime = GetWorld()->GetTimeSeconds();
+		}
+		else
+		{
+			// 부패 안하는 아이템은 시간 관련 변수 전부 0으로 초기화 (쓰레기 값 방지)
+			NewItemData.ItemData.CreationServerTime = 0.0f;
+			NewItemData.ExpirationTime = 0.0f;
+		}
 	}
 	
+	// 위치 설정
 	float DistanceSq = FVector::DistSquared(PlayerLocation, Transform.GetLocation());
 
 	if (DistanceSq < FMath::Square(SwapToActorDistance))
 	{
 		// 거리가 가까우면 액터 스폰
-		SpawnItemActor(NewItemData, Transform);
+		AWorldItem* SpawnedActor = SpawnItemActor(NewItemData, Transform);
+		if (SpawnedActor)
+		{
+			SpawnedActor->ActivatePhysicsDrop();	
+		}
 	}
 	else
 	{
 		// 거리가 멀면 인스턴스 스폰
-		SpawnItemInstance(NewItemData, Transform);
+		FTransform GroundTransform = Transform;
+		
+		// 레이캐스트로 바닥 찾기
+		FHitResult Hit;
+		FVector Start = Transform.GetLocation();
+		FVector End = Start - FVector(0, 0, 1000.0f);	// 아래로 10m 탐색
+		
+		FCollisionQueryParams Params;
+		// 플레이어 무시 (혹시 겹쳐 있을 경우 대비)
+		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+		{
+			Params.AddIgnoredActor(PC->GetPawn());
+		}
+		
+		// WorldStatic(땅) 채널로 검사
+		bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_WorldStatic, Params);
+		
+		if (bHit)
+		{
+			FVector GroundLoc = Hit.Location + FVector(0, 0, 5.0f);
+			GroundTransform.SetLocation(GroundLoc);
+		}
+		
+		SpawnItemInstance(NewItemData, GroundTransform);
 	}
 	
 	return true;
