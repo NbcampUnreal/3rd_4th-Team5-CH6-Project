@@ -5,8 +5,10 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
 #include "InputActionValue.h"
+#include "Item/Data/Common/ItemCommonEnums.h"
 #include "TSCharacter.generated.h"
 
+enum class EItemAnimType : uint8;
 class UAbilitySystemComponent;
 class UTSAttributeSet;
 class UGameplayAbility;
@@ -76,6 +78,19 @@ private:
 	void InitializeAbilities();
 #pragma endregion
 
+#pragma region Animation
+public:
+	EItemAnimType GetAnimType() const
+	{
+		return AnimType;
+	}
+
+	void SetAnimType(EItemAnimType ItemAnimType)
+	{
+		this->AnimType = ItemAnimType;
+	}
+#pragma endregion
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -150,6 +165,8 @@ public:
 	
 	bool IsClimbing();
 #pragma endregion
+	
+	EItemAnimType AnimType = EItemAnimType::NONE;
 
 private:
 	UFUNCTION(Server, Reliable)

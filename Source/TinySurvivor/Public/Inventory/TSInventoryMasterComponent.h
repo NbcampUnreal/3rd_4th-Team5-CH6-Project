@@ -7,15 +7,30 @@
 #include "Item/Data/ItemData.h"
 #include "TSInventoryMasterComponent.generated.h"
 
-// ========================================
-// 델리게이트 선언
-// ========================================
 
+class ATSEquippedItem;
 struct FItemData;
 struct FItemInstance;
 class UItemDataSubsystem;
 class UAbilitySystemComponent;
+// ========================================
+// 장착한 방어구 구조체
+// ========================================
+USTRUCT()
+struct FEquippedArmor
+{
+	GENERATED_BODY()
 
+	UPROPERTY()
+	EEquipSlot SlotType;
+
+	UPROPERTY()
+	TObjectPtr<ATSEquippedItem> EquippedArmor = nullptr;
+};
+
+// ========================================
+// 델리게이트 선언
+// ========================================
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventorySlotUpdated, const FInventoryStructMaster&, HotkeyInventory,
                                                const FInventoryStructMaster&, EquipmentInventory,
                                                const FInventoryStructMaster&, BagInventory);
@@ -194,6 +209,9 @@ public:
 	// 핫키 아이템 장착 시스템
 	// ========================================
 
+	UPROPERTY(Replicated)
+	ATSEquippedItem* CurrentEquippedItem = nullptr;
+
 	UFUNCTION(BlueprintPure, Category = "Inventory|Hotkey")
 	int32 GetActiveHotkeyIndex() const { return ActiveHotkeyIndex; }
 
@@ -220,10 +238,10 @@ private:
 	int32 CachedDecayedItemID;
 	FItemData CachedDecayedItemInfo;
 	void ConvertToDecayedItem(EInventoryType InventoryType);
+
 	// ========================================
 	// 헬퍼 함수 - 슬롯 조작
 	// ========================================
-
 	static void ClearSlot(FSlotStructMaster& Slot);
 	static void CopySlotData(const FSlotStructMaster& Source, FSlotStructMaster& Target, int32 Quantity = -1);
 	bool TryStackSlots(FSlotStructMaster& FromSlot, FSlotStructMaster& ToSlot, bool bIsFullStack);
@@ -231,7 +249,6 @@ private:
 	// ========================================
 	// 헬퍼 함수 - 인벤토리
 	// ========================================
-
 	FInventoryStructMaster* GetInventoryByType(EInventoryType InventoryType);
 	const FInventoryStructMaster* GetInventoryByType(EInventoryType InventoryType) const;
 	bool IsValidSlotIndex(EInventoryType InventoryType, int32 SlotIndex) const;
@@ -239,13 +256,23 @@ private:
 	// ========================================
 	// 헬퍼 함수 - 아이템 정보
 	// ========================================
-
 	mutable class UItemDataSubsystem* CachedIDS = nullptr;
 	UItemDataSubsystem* GetItemDataSubsystem() const;
 	bool GetItemData(int32 StaticDataID, FItemData& OutData) const;
 	bool IsItemBagType(int32 StaticDataID) const;
-	double UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack, int NewItemStack, float DecayRate) const;
+	double UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack, int NewItemStack,
+	                            float DecayRate) const;
 	float UpdateDecayPercent(double CurrentExpirationTime, float DecayRate) const;
+
+	// ========================================
+	// 헬퍼 함수 - 방어구 착용
+	// ========================================
+	UPROPERTY(Replicated)
+	TArray<FEquippedArmor> EquippedArmors;
+	int32 FindEquipmentSlot(EEquipSlot ArmorSlot) const;
+	void EquipArmor(const FItemData& ItemInfo, int32 ArmorSlotIndex);
+	void UnequipArmor(int32 ArmorSlotIndex);
+	void RemoveArmorStats(int32 ArmorSlotIndex);
 
 	// ========================================
 	// 헬퍼 함수 - ASC
