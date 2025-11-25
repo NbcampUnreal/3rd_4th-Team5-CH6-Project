@@ -80,11 +80,13 @@ private:
 
 #pragma region Animation
 public:
-	EItemAnimType GetAnimType() const
-	{
+	EItemAnimType AnimType = EItemAnimType::NONE;
+	
+	UFUNCTION(BlueprintPure, Category = "Animation")
+	EItemAnimType GetAnimType() const	{
 		return AnimType;
 	}
-
+	
 	void SetAnimType(EItemAnimType ItemAnimType)
 	{
 		this->AnimType = ItemAnimType;
@@ -165,8 +167,6 @@ public:
 	
 	bool IsClimbing();
 #pragma endregion
-	
-	EItemAnimType AnimType = EItemAnimType::NONE;
 
 private:
 	UFUNCTION(Server, Reliable)
