@@ -13,16 +13,18 @@
 UENUM(BlueprintType)
 enum class ENodeType : uint8
 {
-	NONE			UMETA(DisplayName = "없음", ToolTip = "아무것도 설정하지 않을 때 Junk 선택 방지"),
-	JUNK            UMETA(DisplayName = "Junk", ToolTip = "잡동사니 자원"),
-	PLANT           UMETA(DisplayName = "Plant", ToolTip = "식물 자원"),
-	INTERACT        UMETA(DisplayName = "Interact", ToolTip = "상호작용 가능한 오브젝트"),
-	WOOD            UMETA(DisplayName = "Wood", ToolTip = "나무 자원"),
-	PLASTIC         UMETA(DisplayName = "Plastic", ToolTip = "플라스틱 자원"),
-	DRINK           UMETA(DisplayName = "Drink", ToolTip = "음료 자원"),
-	FOOD            UMETA(DisplayName = "Food", ToolTip = "식량 자원"),
-	MINERAL         UMETA(DisplayName = "Mineral", ToolTip = "광물 자원"),
-	MONSTER_CORPSE  UMETA(DisplayName = "Monster Corpse", ToolTip = "몬스터 시체 자원")
+	NONE			 UMETA(DisplayName = "없음", ToolTip = "아무것도 설정하지 않을 때 Junk 선택 방지"),
+	JUNK           	 UMETA(DisplayName = "Junk", ToolTip = "잡동사니 자원"),
+	GLASS            UMETA(DisplayName = "Glass", ToolTip = "유리 자원"),
+	PLANT            UMETA(DisplayName = "Plant", ToolTip = "식물 자원"),
+	INTERACT         UMETA(DisplayName = "Interact", ToolTip = "상호작용 가능한 오브젝트"),
+	WOOD             UMETA(DisplayName = "Wood", ToolTip = "나무 자원"),
+	PLASTIC          UMETA(DisplayName = "Plastic", ToolTip = "플라스틱 자원"),
+	DRINK            UMETA(DisplayName = "Drink", ToolTip = "음료 자원"),
+	FOOD             UMETA(DisplayName = "Food", ToolTip = "식량 자원"),
+	CLOTH            UMETA(DisplayName = "Cloth", ToolTip = "천 자원"),
+	MINERAL          UMETA(DisplayName = "Mineral", ToolTip = "광물 자원"),
+	MONSTER_CORPSE   UMETA(DisplayName = "Monster Corpse", ToolTip = "몬스터 시체 자원")
 };
 
 /*

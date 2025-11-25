@@ -72,10 +72,10 @@ protected:
 	TSet<TObjectPtr<AWorldItem>> ActiveWorldItems;
 	// 이 값보다 가까우면 Actor Pooling 액터로 스폰/스왑
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item Pool Config")
-	float SwapToActorDistance = 500.0f; // 5m
+	float SwapToActorDistance = 5000.0f; // 50m
 	// 이 값보다 멀면 rdInst 인스턴스로 스폰/스왑
 	UPROPERTY(Config, EditDefaultsOnly, Category = "Item Pool Config")
-	float SwapToInstanceDistance = 600.0f; // 6m
+	float SwapToInstanceDistance = 6000.0f; // 60m
 	
 	// 스왑 로직 성능 최적화를 위한 틱 조절
 	float LastSwapCheckTime = 0.0f;
