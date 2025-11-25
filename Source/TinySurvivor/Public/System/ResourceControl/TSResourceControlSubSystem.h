@@ -116,7 +116,7 @@ protected:
 
 	// 어떤 섹터가 어떤 자원을 몇 개 필요로 하는지 저장하기 위한 함수
 	void BuildSectorSpawnRequests();
-
+	
 	// 생성 포인트 분배 함수 (모든 자원 포인트들이 등록된 이후, 자원 포인트들을 스폰해주기 위해 저원 컨트롤 시스템이 호출함)
 	void AssignResourcesToPoints();
 	
@@ -127,11 +127,18 @@ protected:
 	void SpawnResourceAtPoint(ATSResourcePoint* RP, int32 ResourceID);
 
 	// 랜덤 스폰 실시 함수 (같은 섹터 내에서)
-	void RespawnResource(const FRespawnRequest& Req);
+	bool RespawnResource(const FRespawnRequest& Req);
 	
 	// 자원 리스폰 요청 관리 함수 
 	UFUNCTION()
 	void UpdateRespawnControl();
+	
+	// 침식도 관련 함수 
+	UFUNCTION()
+	void OnErosionChanged(float ErosionValue);
+	
+	// 침식도 변수 
+	bool bIsErosionUpper60 = false;
 	
 	// 버킷 확인용 디버깅 함수
 	void DebugPrintAllBuckets();
