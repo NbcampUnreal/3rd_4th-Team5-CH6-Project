@@ -13,8 +13,28 @@ UGA_LeftClick::UGA_LeftClick()
 void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
+	EItemAnimType Type = EItemAnimType::NONE;
+	if (Character)
+	{
+		Type = Character->GetAnimType(); 
+	}
+	switch (Type)
+	{
+	case EItemAnimType::NONE:
+		FirstMontage = NoneMontage;
+		break;
+	case EItemAnimType::PICK:
+		FirstMontage = PickMontage;
+		break;
+	case EItemAnimType::WEAPON_SPEAR:
+		FirstMontage = WeaponSpearMontage;
+		break;
+	}
+	
+	PlayMontage();
 	BoxTrace();
-	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+	//EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
 void UGA_LeftClick::BoxTrace()

@@ -18,6 +18,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
 	FVector BoxHalfSize = FVector(30.f, 30.f, 60.f);
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
+	TObjectPtr<UAnimMontage> NoneMontage; // 주먹
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
+	TObjectPtr<UAnimMontage> PickMontage; // 곡괭이?
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
+	TObjectPtr<UAnimMontage> WeaponSpearMontage; //창?
 private:
 	void BoxTrace();
 };
