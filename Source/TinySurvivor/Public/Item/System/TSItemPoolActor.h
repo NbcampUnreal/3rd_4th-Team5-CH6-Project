@@ -18,13 +18,17 @@ class TINYSURVIVOR_API ATSItemPoolActor : public AActorPool
 public:
     ATSItemPoolActor();
     
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting", meta = (ClampMin = "1"))
+    // 초기 풀 생성 시 만들 액터의 총 개수
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting", meta = (ClampMin = "1", DisplayName = "초기 풀 크기"))
     int32 InitialPoolsize = 50;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting")
+    // 풀(Pool)의 아이템이 부족할 때 어떻게 처리할지 결정하는 전략 (CreateNew: 새로 생성, RecycleOldest: 오래된 것 재사용)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting", meta = (DisplayName = "풀 전략"))
     EPoolStrategy PoolStrategy = EPoolStrategy::CreateNew;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting", meta = (ClampMin = "1"))
+    // 비동기 초기화 시, 한 번에(한 프레임에) 생성할 액터의 개수 (렉 방지용)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting", meta = (ClampMin = "1", DisplayName = "배치 크기 (Batch Size)"))
     int32 BatchSize = 5;
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting", meta = (ClampMin = "0.01"))
+    // 비동기 초기화 시, 몇 초마다 생성 작업을 수행할지 설정
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pool Setting", meta = (ClampMin = "0.01", DisplayName = "배치 간격 (Batch Interval)"))
     float BatchInterval = 0.1f;
     
     UPROPERTY()

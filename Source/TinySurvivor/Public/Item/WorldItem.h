@@ -105,6 +105,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	void SetItemData(const FSlotStructMaster& NewItemData);
+	// 물리 시뮬레이션을 켜고, 랜덤한 힘을 가해 자연스럽게 떨어뜨리는 함수
+	void ActivatePhysicsDrop();
 	const FSlotStructMaster& GetItemData() const { return ItemData; }
 	
 	// ■ Decay

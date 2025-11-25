@@ -39,12 +39,17 @@ public:
 	// 에디터에서 설정할 드랍 목록 (몬스터마다 다르게 설정 가능)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
 	TArray<FLootRule> LootTable;
-
 	// 아이템이 흩뿌려질 반경
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
 	float ScatterRadius = 100.0f;
 
-	// 실제 드랍 실행 함수 (죽을 때 호출)
+	// 드랍 테이블을 보고 확률적으로 떨구기 (죽을 때 사용)
 	UFUNCTION(BlueprintCallable)
 	bool SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation);
+	// 특정 아이템을 지정된 개수만큼 즉시 떨구기 (채집 시 사용)
+	UFUNCTION(BlueprintCallable)
+	bool SpawnSpecificLoot(int32 ItemID, int32 Count);
+	
+private:
+	FVector GetClosestPlayerLocation(const FVector& OriginOriginLocation) const;
 };

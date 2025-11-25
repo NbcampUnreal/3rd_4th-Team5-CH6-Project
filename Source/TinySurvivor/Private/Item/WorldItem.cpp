@@ -32,6 +32,7 @@
 //[S]=====================================================================================
 #include "Item/Runtime/DecayManager.h"
 //[E]=====================================================================================
+#include "IDetailTreeNode.h"
 #include "Kismet/GameplayStatics.h"
 
 AWorldItem::AWorldItem()
@@ -39,9 +40,6 @@ AWorldItem::AWorldItem()
 	bReplicates = true;
 	// 클라이언트가 이 액터를 스폰할 수 있도록 설정
 	SetReplicatingMovement(true);
-	
-	if (!RootComponent)
-		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(RootComponent);
@@ -149,6 +147,16 @@ void AWorldItem::OnRelease_Implementation()
 	}
 	//[E]=====================================================================================
 
+	if (MeshComponent)
+	{
+		// 물리 끄기
+		MeshComponent->SetSimulatePhysics(false);
+		// 충돌 끄기
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// 프로필 초기화
+		MeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
+	}
+	
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false); // 액터 자체 충돌 끄기
     
@@ -271,6 +279,30 @@ void AWorldItem::UpdateAppearance()
 			MeshComponent->SetStaticMesh(nullptr);
 		}
 	}
+}
+
+// 물리 시뮬레이션을 켜고, 랜덤한 힘을 가해 자연스럽게 떨어뜨리는 함수
+void AWorldItem::ActivatePhysicsDrop()
+{
+	if (!MeshComponent)
+		return;
+	
+	// 콜리전 및 물리 설정 켜기
+	// QueryAndPhysics: 충돌 감지와 물리 시뮬레이션 둘 다 활성화
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	// 물리가 적용되려면 Block 속성도 있어야 함
+	MeshComponent->SetSimulatePhysics(true);
+	
+	// 랜덤한 힘 가하기 (살짝 튀어오르며 퍼지게)
+	FVector RandomDir = FMath::VRand();
+	RandomDir.Z = 0.5f;		// 위쪽으로 튀도록 Z축 보정
+	RandomDir.Normalize();
+	
+	// 힘의 크기
+	float ImpulseStrength = 300.0f;
+	
+	// 질량 무시하고 즉각적인 힘 적용
+	MeshComponent->AddImpulse(RandomDir * ImpulseStrength, NAME_None, true);
 }
 
 // 플레이어가 줍기 콜리전에 들어왓을 때 서버에서만 호출
@@ -473,15 +505,34 @@ void AWorldItem::UpdateDebugText()
 
 	FString DebugString = FString::Printf(TEXT("ID: %d"), ItemData.ItemData.StaticDataID);
     
+	bool bIsRealDecayItem = false;
+	
+	UGameInstance* GI = GetWorld()->GetGameInstance();
+	
+	if (GI)
+	{
+		auto* DataSys = GI->GetSubsystem<UItemDataSubsystem>();
+		if (DataSys)
+		{
+			FItemData StaticData;
+			if (DataSys->GetItemDataSafe(ItemData.ItemData.StaticDataID, StaticData))
+			{
+				bIsRealDecayItem = StaticData.IsDecayEnabled();
+			}
+		}
+	}
+	
 	// 부패 정보 추가
-	if (ItemData.ExpirationTime > 0)
+	if (bIsRealDecayItem && ItemData.ExpirationTime > 0.1f)
 	{
 		float RemainTime = ItemData.ExpirationTime - GetWorld()->GetTimeSeconds();
+		DebugString.Append(FString::Printf(TEXT("\nExpirationTime : %.1f"), ItemData.ExpirationTime));
 		DebugString.Append(FString::Printf(TEXT("\nDecay: %.1f sec (%.0f%%)"), RemainTime, ItemData.CurrentDecayPercent * 100.0f));
 	}
 	else
 	{
-		DebugString.Append(TEXT("\nNo Decay"));
+		DebugString.Append(FString::Printf(TEXT("\nExpirationTime : %.1f"), ItemData.ExpirationTime));
+		DebugString.Append(FString::Printf(TEXT("\nNo Decay")));
 	}
 
 	// 소스 인덱스 표시 (풀링 디버깅용)
