@@ -9,6 +9,7 @@
 #include "Item/Interface/IInteraction.h"
 #include "TSResourceBaseActor.generated.h"
 
+class ATSResourcePoint;
 class ULootComponent;
 
 UCLASS()
@@ -33,6 +34,7 @@ public:
 	// ATSResourceBaseActor 아이템 스폰  
 	//========================
 	
+	void SetSpawnPoint(ATSResourcePoint* Point);
 	void InitFromResourceData(const FResourceData& Data);
 	void SetMeshComp(UStaticMesh* MeshComp);
 
@@ -58,9 +60,13 @@ protected:
 	// 현재 가진 아이템 수량
 	int32 CurrentItemCount = 0;
 	
-	//
+	// 아이템 스폰용 root comp
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<ULootComponent> LootComponent;
+	
+	// 스폰 포인트 (자신이 어디에 있는지 알기 위함)
+	UPROPERTY()
+	TWeakObjectPtr<ATSResourcePoint> OwningPoint;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 

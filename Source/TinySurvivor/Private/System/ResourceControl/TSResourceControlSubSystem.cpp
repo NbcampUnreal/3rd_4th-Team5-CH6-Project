@@ -6,6 +6,7 @@
 #include "System/ResourceControl/TSResourceBaseActor.h"
 #include "System/ResourceControl/TSResourceControlDataAsset.h"
 #include "System/ResourceControl/TSResourcePoint.h"
+#include "System/Time/TimeTickManager.h"
 
 DEFINE_LOG_CATEGORY(ResourceControlSystem)
 
@@ -188,7 +189,21 @@ void UTSResourceControlSubSystem::AssignReSourcePointToSector(const TObjectPtr<A
 		UE_LOG(ResourceControlSystem, Warning, TEXT("기존 노드 타입 그룹에 포인트 추가됨. Section: %s, NodeType: %d"),*SectionTag.ToString(), (int32)NodeType);
 		DebugPrintAllBuckets();
 	}
-	
+}
+
+void UTSResourceControlSubSystem::RequestRespawn(const FGameplayTag& SectionTag, int32 ResourceID, float RespawnTime,ENodeType NodeType, const FGameplayTag& UniqueTag, bool bIsCommon)
+{
+	FRespawnRequest Req;
+	Req.SectionTag = SectionTag;
+	Req.ResourceID = ResourceID;
+	Req.TimeRemaining = RespawnTime;
+	Req.bIsCommon = bIsCommon;
+	Req.NodeType = NodeType;
+	Req.UniqueTag = UniqueTag;
+
+	PendingRespawns.Add(Req);
+
+	UE_LOG(ResourceControlSystem, Warning, TEXT("Respawn 요청: Sector=%s ResourceID=%d Common=%d NodeType=%d UniqueTag=%s RespawnTime=%.1f"), *SectionTag.ToString(), ResourceID, bIsCommon, (int32)NodeType, *UniqueTag.ToString(), RespawnTime);
 }
 
 void UTSResourceControlSubSystem::BuildSectorSpawnRequests()
@@ -214,15 +229,7 @@ void UTSResourceControlSubSystem::BuildSectorSpawnRequests()
 			continue;
 		}
 
-		UE_LOG(ResourceControlSystem, Warning,
-			TEXT("[%d] Row → Sector:%s | ResourceID:%d | Num:%d | Common:%d | UniqueTag:%s"),
-			i,
-			*Row->ResourceSectorTag.ToString(),
-			Row->ResourceID,
-			Row->ResourceSpawnNum,
-			Row->bIsCommonNode,
-			*Row->ResourceUniqueTag.ToString()
-		);
+		UE_LOG(ResourceControlSystem, Warning,TEXT("[%d] Row → Sector:%s | ResourceID:%d | Num:%d | Common:%d | UniqueTag:%s"),i,*Row->ResourceSectorTag.ToString(),Row->ResourceID,Row->ResourceSpawnNum,Row->bIsCommonNode,*Row->ResourceUniqueTag.ToString());
 
 		FResourceSpawnRequest Req;
 		Req.ResourceID = Row->ResourceID;
@@ -238,164 +245,126 @@ void UTSResourceControlSubSystem::BuildSectorSpawnRequests()
 
 void UTSResourceControlSubSystem::AssignResourcesToPoints()
 {
-	UE_LOG(ResourceControlSystem, Warning, TEXT("===== AssignResourcesToPoints: 시작 ====="));
+    UE_LOG(ResourceControlSystem, Warning, TEXT("===== AssignResourcesToPoints: 시작 ====="));
 
-	for (auto& SectorElem : SectorSpawnRequests)
-	{
-		const FGameplayTag SectorTag = SectorElem.Key;
-		const TArray<FResourceSpawnRequest>& Requests = SectorElem.Value;
+    for (auto& SectorElem : SectorSpawnRequests)
+    {
+        const FGameplayTag SectorTag = SectorElem.Key;
+        const TArray<FResourceSpawnRequest>& Requests = SectorElem.Value;
 
-		UE_LOG(ResourceControlSystem, Warning,
-			TEXT("섹터 [%s] 처리 시작 (요구된 자원 종류 %d개)"),
-			*SectorTag.ToString(), Requests.Num());
+        UE_LOG(ResourceControlSystem, Warning, TEXT("섹터 [%s] 처리 시작 (요구된 자원 종류 %d개)"), *SectorTag.ToString(), Requests.Num());
 
-		FResourcePointBucket* BucketPtr = ResourcePointMap.Find(SectorTag);
-		if (!BucketPtr)
-		{
-			UE_LOG(ResourceControlSystem, Error,
-				TEXT("섹터 [%s] → ResourcePoint 없음! 스폰 불가"),
-				*SectorTag.ToString());
-			continue;
-		}
+        FResourcePointBucket* BucketPtr = ResourcePointMap.Find(SectorTag);
+        if (!BucketPtr)
+        {
+            UE_LOG(ResourceControlSystem, Error, TEXT("섹터 [%s] → ResourcePoint 없음! 스폰 불가"), *SectorTag.ToString());
+            continue;
+        }
 
-		FResourcePointBucket& Bucket = *BucketPtr;
+        FResourcePointBucket& Bucket = *BucketPtr;
+        UE_LOG(ResourceControlSystem, Warning, TEXT("섹터 [%s] → 총 NodeType 그룹 %d개 발견"), *SectorTag.ToString(), Bucket.ResourcePointBucket.Num());
 
-		UE_LOG(ResourceControlSystem, Warning,
-			TEXT("섹터 [%s] → 총 NodeType 그룹 %d개 발견"),
-			*SectorTag.ToString(), Bucket.ResourcePointBucket.Num());
 
-		// --------------------------------------------------------------------
-		// 1) 유니크 자원
-		// --------------------------------------------------------------------
-		UE_LOG(ResourceControlSystem, Warning,
-			TEXT("섹터 [%s] - 유니크 자원 매칭 시작"),
-			*SectorTag.ToString());
+        // ============================================================
+        // 1) 유니크 자원 → 랜덤 포인트 배정
+        // ============================================================
+        UE_LOG(ResourceControlSystem, Warning, TEXT("섹터 [%s] - 유니크 자원 랜덤 매칭 시작"), *SectorTag.ToString());
+        for (const FResourceSpawnRequest& Req : Requests)
+        {
+            if (Req.bIsCommon) continue; // 유니크만 처리
 
-		for (const FResourceSpawnRequest& Req : Requests)
-		{
-			if (Req.bIsCommon)
-				continue;
+            TArray<ATSResourcePoint*> Candidates;
 
-			UE_LOG(ResourceControlSystem, Warning,
-				TEXT("  요구 유니크 ResourceID:%d, UniqueTag:%s"),
-				Req.ResourceID, *Req.UniqueTag.ToString());
+            for (FResourcePoints& Group : Bucket.ResourcePointBucket)
+            {
+                for (ATSResourcePoint* RP : Group.CachedResourcePoints)
+                {
+                    if (!RP || RP->IsAllocated()) continue;
 
-			bool bMatched = false;
+                    if (RP->GetSectionResourceUniqueTag() == Req.UniqueTag)
+                    {
+                        Candidates.Add(RP);
+                    }
+                }
+            }
 
-			for (FResourcePoints& Group : Bucket.ResourcePointBucket)
-			{
-				for (ATSResourcePoint* RP : Group.CachedResourcePoints)
-				{
-					if (!RP)
-					{
-						UE_LOG(ResourceControlSystem, Error, TEXT("    ResourcePoint null!"));
-						continue;
-					}
+            if (Candidates.IsEmpty())
+            {
+                UE_LOG(ResourceControlSystem, Error, TEXT("!!! 유니크 %s 매칭 실패: 후보 포인트 없음"), *Req.UniqueTag.ToString());
+                continue;
+            }
 
-					UE_LOG(ResourceControlSystem, Warning,
-						TEXT("    검사 → RP:%s | UniqueTag:%s | Allocated:%d"),
-						*RP->GetName(),
-						*RP->GetSectionResourceUniqueTag().ToString(),
-						RP->IsAllocated()
-					);
+            // 위치 랜덤 선택
+            ATSResourcePoint* TargetRP = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+            UE_LOG(ResourceControlSystem, Warning, TEXT("유니크 스폰! Sector %s → %s 포인트를 랜덤 선택하여 ResourceID %d 스폰"), *SectorTag.ToString(), *TargetRP->GetName(), Req.ResourceID);
+            SpawnResourceAtPoint(TargetRP, Req.ResourceID);
+        }
 
-					if (RP->IsAllocated())
-						continue;
 
-					if (RP->GetSectionResourceUniqueTag() == Req.UniqueTag)
-					{
-						UE_LOG(ResourceControlSystem, Warning,
-							TEXT("    → 유니크 매칭 성공! %s에 ResourceID %d 스폰"),
-							*RP->GetName(), Req.ResourceID);
+        // ============================================================
+        // 2) 범용(Common) 자원 → 랜덤 포인트 배정
+        // ============================================================
+        UE_LOG(ResourceControlSystem, Warning, TEXT("섹터 [%s] - 범용 자원 랜덤 매칭 시작"), *SectorTag.ToString());
 
-						SpawnResourceAtPoint(RP, Req.ResourceID);
-						bMatched = true;
-					}
-				}
-			}
+        for (const FResourceSpawnRequest& Req : Requests)
+        {
+            if (!Req.bIsCommon) continue;
 
-			if (!bMatched)
-			{
-				UE_LOG(ResourceControlSystem, Error,
-					TEXT("  !!! 유니크 매칭 실패 → ResourceID %d (%s) 을 배정할 포인트 없음"),
-					Req.ResourceID, *Req.UniqueTag.ToString());
-			}
-		}
+            int32 Remaining = Req.SpawnNum;
+            ENodeType NodeType = GetNodeTypeFromResourceID(Req.ResourceID);
 
-		// --------------------------------------------------------------------
-		// 2) 범용(Common) 자원
-		// --------------------------------------------------------------------
-		UE_LOG(ResourceControlSystem, Warning,
-			TEXT("섹터 [%s] - 범용 자원 매칭 시작"),
-			*SectorTag.ToString());
+            // 먼저 후보 리스트 수집
+            TArray<ATSResourcePoint*> Candidates;
 
-		for (const FResourceSpawnRequest& Req : Requests)
-		{
-			if (!Req.bIsCommon)
-				continue;
+            for (FResourcePoints& Group : Bucket.ResourcePointBucket)
+            {
+                if (Group.NodeType != NodeType) continue;
 
-			int32 Remaining = Req.SpawnNum;
+                for (ATSResourcePoint* RP : Group.CachedResourcePoints)
+                {
+                    if (!RP || RP->IsAllocated()) continue;
+                    Candidates.Add(RP);
+                }
+            }
 
-			ENodeType NodeType = GetNodeTypeFromResourceID(Req.ResourceID);
+            if (Candidates.IsEmpty())
+            {
+                UE_LOG(ResourceControlSystem, Error, TEXT("섹터 [%s] → 범용 ResourceID %d 노드타입(%d) 후보 없음"), *SectorTag.ToString(), Req.ResourceID, (int32)NodeType);
+                continue;
+            }
 
-			UE_LOG(ResourceControlSystem, Warning,
-				TEXT("  범용 ResourceID:%d → NodeType:%d → 요구 갯수:%d"),
-				Req.ResourceID, (int32)NodeType, Req.SpawnNum);
+            // 랜덤 선택 루프
+            while (Remaining > 0 && Candidates.Num() > 0)
+            {
+                int32 Index = FMath::RandRange(0, Candidates.Num() - 1);
+                ATSResourcePoint* RP = Candidates[Index];
+                SpawnResourceAtPoint(RP, Req.ResourceID);
 
-			for (FResourcePoints& Group : Bucket.ResourcePointBucket)
-			{
-				if (Group.NodeType != NodeType)
-				{
-					UE_LOG(ResourceControlSystem, Warning,
-						TEXT("    그룹 NodeType 불일치: %d != %d"),
-						(int32)Group.NodeType, (int32)NodeType);
-					continue;
-				}
+                // 사용한 포인트 제거
+                Candidates.RemoveAt(Index);
+                Remaining--;
+            }
 
-				UE_LOG(ResourceControlSystem, Warning,
-					TEXT("    그룹 NodeType 매칭됨: %d (RP %d개)"),
-					(int32)NodeType, Group.CachedResourcePoints.Num());
+            if (Remaining > 0)
+            {
+                UE_LOG(ResourceControlSystem, Error, TEXT("범용 ResourceID %d 랜덤 스폰 실패 (남은 %d개)"), Req.ResourceID, Remaining);
+            }
+        }
+        UE_LOG(ResourceControlSystem, Warning, TEXT("섹터 [%s] 처리 완료"), *SectorTag.ToString());
+    }
+    UE_LOG(ResourceControlSystem, Warning, TEXT("===== AssignResourcesToPoints: 완료 ====="));
 
-				for (ATSResourcePoint* RP : Group.CachedResourcePoints)
-				{
-					if (Remaining <= 0)
-						break;
+	
+    // === Respawn 타이머 연결 ===
+    UTimeTickManager* TimeTickManager = GetWorld()->GetSubsystem<UTimeTickManager>();
+    if (!TimeTickManager)
+    {
+        UE_LOG(ResourceControlSystem, Error, TEXT("ResourceControlSystem: TimeTickManager 없음"));
+        return;
+    }
 
-					if (!RP)
-					{
-						UE_LOG(ResourceControlSystem, Error, TEXT("      RP null!"));
-						continue;
-					}
-
-					UE_LOG(ResourceControlSystem, Warning,
-						TEXT("      검사 RP:%s | Allocated:%d"),
-						*RP->GetName(), RP->IsAllocated());
-
-					if (RP->IsAllocated())
-						continue;
-
-					UE_LOG(ResourceControlSystem, Warning,
-						TEXT("      → 범용 자원 스폰: ResourceID %d at %s"),
-						Req.ResourceID, *RP->GetName());
-
-					SpawnResourceAtPoint(RP, Req.ResourceID);
-					Remaining--;
-				}
-			}
-
-			if (Remaining > 0)
-			{
-				UE_LOG(ResourceControlSystem, Error,
-					TEXT("  !!! 범용 자원 일부 스폰 실패 → ResourceID %d (남은 %d개)"),
-					Req.ResourceID, Remaining);
-			}
-		}
-
-		UE_LOG(ResourceControlSystem, Warning,
-			TEXT("섹터 [%s] 처리 완료"), *SectorTag.ToString());
-	}
-
-	UE_LOG(ResourceControlSystem, Warning, TEXT("===== AssignResourcesToPoints: 완료 ====="));
+    TimeTickManager->OnSecondTick.AddDynamic(this, &UTSResourceControlSubSystem::UpdateRespawnControl);
+    UE_LOG(ResourceControlSystem, Log, TEXT("DecayManager 초기화 완료 (TimeTickManager에 구독됨)"));
 }
 
 ENodeType UTSResourceControlSubSystem::GetNodeTypeFromResourceID(int32 ResourceID)
@@ -439,9 +408,72 @@ void UTSResourceControlSubSystem::SpawnResourceAtPoint(ATSResourcePoint* RP, int
 
 	if (IsValid(Spawned))
 	{
+		Spawned->SetSpawnPoint(RP);
 		Spawned->InitFromResourceData(Data);
 		RP->SetAllocatedResource(Spawned);
 	}
+}
+
+void UTSResourceControlSubSystem::UpdateRespawnControl()
+{
+	if (PendingRespawns.Num() == 0) return;
+
+	for (int32 i = PendingRespawns.Num() - 1; i >= 0; i--)
+	{
+		FRespawnRequest& Req = PendingRespawns[i];
+		Req.TimeRemaining -= 1;
+
+		if (Req.TimeRemaining <= 0.f)
+		{
+			RespawnResource(Req);;
+			PendingRespawns.RemoveAt(i);
+		}
+	}
+}
+
+void UTSResourceControlSubSystem::RespawnResource(const FRespawnRequest& Req)
+{
+	FResourcePointBucket* BucketPtr = ResourcePointMap.Find(Req.SectionTag);
+	if (!BucketPtr)
+	{
+		UE_LOG(ResourceControlSystem, Error,TEXT("Respawn 실패: Sector %s 에 Bucket 없음"), *Req.SectionTag.ToString());
+		return;
+	}
+
+	TArray<ATSResourcePoint*> Candidates;
+
+	for (FResourcePoints& Group : BucketPtr->ResourcePointBucket)
+	{
+		for (ATSResourcePoint* RP : Group.CachedResourcePoints)
+		{
+			if (!RP || RP->IsAllocated()) continue;
+
+			// Unique 자원 처리
+			if (!Req.bIsCommon)
+			{
+				if (RP->GetSectionResourceUniqueTag() == Req.UniqueTag)
+					Candidates.Add(RP);
+			}
+			else
+			{
+				// Common 자원 처리
+				if (RP->GetResourceItemType() == Req.NodeType)
+					Candidates.Add(RP);
+			}
+		}
+	}
+
+	if (Candidates.IsEmpty())
+	{
+		UE_LOG(ResourceControlSystem, Warning, TEXT("Respawn 실패: Sector %s 내에 유효한 포인트 없음"), *Req.SectionTag.ToString());
+		return;
+	}
+
+	ATSResourcePoint* TargetRP = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+
+	UE_LOG(ResourceControlSystem, Warning,TEXT("Respawn 성공: Sector %s 의 %s 포인트에 ResourceID %d 스폰"),*Req.SectionTag.ToString(), *TargetRP->GetName(), Req.ResourceID);
+
+	SpawnResourceAtPoint(TargetRP, Req.ResourceID);
 }
 
 void UTSResourceControlSubSystem::DebugPrintAllBuckets()
@@ -458,29 +490,21 @@ void UTSResourceControlSubSystem::DebugPrintAllBuckets()
 		for (const FResourcePoints& Group : Bucket.ResourcePointBucket)
 		{
 			const UEnum* EnumPtr = StaticEnum<ENodeType>();
-			FString NodeTypeName = EnumPtr
-				? EnumPtr->GetDisplayNameTextByValue(static_cast<int64>(Group.NodeType)).ToString()
-				: TEXT("Unknown");
+			FString NodeTypeName = EnumPtr ? EnumPtr->GetDisplayNameTextByValue(static_cast<int64>(Group.NodeType)).ToString() : TEXT("Unknown");
 
-			UE_LOG(ResourceControlSystem, Warning,
-				TEXT("  NodeType: %s"),
-				*NodeTypeName);
+			UE_LOG(ResourceControlSystem, Warning, TEXT("  NodeType: %s"), *NodeTypeName);
 
 			for (const TObjectPtr<ATSResourcePoint>& RP : Group.CachedResourcePoints)
 			{
 				if (IsValid(RP))
 				{
 					const FVector Loc = RP->GetActorLocation();
-					UE_LOG(ResourceControlSystem, Warning,
-						TEXT("      • %s at (%.1f, %.1f, %.1f)"),
-						*RP->GetName(),
-						Loc.X, Loc.Y, Loc.Z
+					UE_LOG(ResourceControlSystem, Warning, TEXT("      • %s at (%.1f, %.1f, %.1f)"), *RP->GetName(), Loc.X, Loc.Y, Loc.Z
 					);
 				}
 				else
 				{
-					UE_LOG(ResourceControlSystem, Warning,
-						TEXT("      • Invalid ResourcePoint (null)"));
+					UE_LOG(ResourceControlSystem, Warning, TEXT("      • Invalid ResourcePoint (null)"));
 				}
 			}
 		}

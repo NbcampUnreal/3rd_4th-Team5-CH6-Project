@@ -30,13 +30,14 @@ public:
 	//------------------------------
 	
 public:
-	FORCEINLINE FGameplayTag GetSectionTag() const { return SectionTag; };
-	FORCEINLINE ENodeType GetResourceItemType() const { return ResourceItemType; };
+	FORCEINLINE FGameplayTag GetSectionTag() const { return SectionTag; }
+	FORCEINLINE ENodeType GetResourceItemType() const { return ResourceItemType; }
+	FORCEINLINE bool IsCommonPoint() const { return bIsCommonPoint;}
 	FORCEINLINE FGameplayTag GetSectionResourceUniqueTag() const { return SectionResourceUniqueTag; };
 	FORCEINLINE bool IsAllocated() const { return bIsAllocated; }
 	FORCEINLINE ATSResourceBaseActor* GetAllocatedResource() const { return AllocatedResource.Get(); }
 	void SetAllocatedResource(const TWeakObjectPtr<ATSResourceBaseActor> NewResource);
-	FORCEINLINE void DeleteAllocatedResource() { AllocatedResource.Reset(); bIsAllocated = false; }
+	FORCEINLINE void ClearAllocatedResource() { AllocatedResource = nullptr; bIsAllocated = false; }
 	
 protected:
 	// 이 포인트가 할당되어야 하는 섹터 태그 
