@@ -1,16 +1,12 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "AI/Gaint/GA/TSGiantErosionChange.h"
+﻿#include "AI/Gaint/GA/TSGiantJustScream.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "AI/Gaint/GA/TSGiantStateTreeSendTag.h"
-#include "System/Erosion/TSErosionSubsystem.h"
 
-UTSGiantErosionChange::UTSGiantErosionChange()
+UTSGiantJustScream::UTSGiantJustScream()
 {
 }
 
-void UTSGiantErosionChange::ActivateAbility(
+void UTSGiantJustScream::ActivateAbility(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, 
 	const FGameplayAbilityActivationInfo ActivationInfo,
@@ -46,19 +42,10 @@ void UTSGiantErosionChange::ActivateAbility(
 	Task->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageInterrupted);
 	Task->OnBlendOut.AddDynamic(this, &ThisClass::OnMontageBlendOut);
 
-	if (HasAuthority(&ActivationInfo))
-	{
-		UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
-		if (IsValid(ErosionSubSystem))
-		{
-			ErosionSubSystem->AddOrSubtractErosion(ErosionChangeValue);
-		}
-	}
-	
 	Task->ReadyForActivation();
 }
 
-void UTSGiantErosionChange::EndAbility(
+void UTSGiantJustScream::EndAbility(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, 
 	const FGameplayAbilityActivationInfo ActivationInfo,
@@ -68,26 +55,26 @@ void UTSGiantErosionChange::EndAbility(
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-void UTSGiantErosionChange::OnMontageCompleted()
+void UTSGiantJustScream::OnMontageCompleted()
 {
-	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_EROSIONCHANGE_ENDTAG);
+	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_JUSTSCREAM_ENDTAG);
 	K2_EndAbility();
 }
 
-void UTSGiantErosionChange::OnMontageCancelled()
+void UTSGiantJustScream::OnMontageCancelled()
 {
-	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_EROSIONCHANGE_ENDTAG);
+	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_JUSTSCREAM_ENDTAG);
 	K2_EndAbility();
 }
 
-void UTSGiantErosionChange::OnMontageInterrupted()
+void UTSGiantJustScream::OnMontageInterrupted()
 {
-	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_EROSIONCHANGE_ENDTAG);
+	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_JUSTSCREAM_ENDTAG);
 	K2_EndAbility();
 }
 
-void UTSGiantErosionChange::OnMontageBlendOut()
+void UTSGiantJustScream::OnMontageBlendOut()
 {
-	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_EROSIONCHANGE_ENDTAG);
+	SendFinishMontageEventToStateTree(GiantStateTreeSendTag::GIANTSTATETREESENDTAG_GA_JUSTSCREAM_ENDTAG);
 	K2_EndAbility();
 }
