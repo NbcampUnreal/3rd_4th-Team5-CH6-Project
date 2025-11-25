@@ -3,6 +3,7 @@
 #include "Item/System/ItemDataSubsystem.h"
 #include "System/ResourceControl/TSResourceControlSubSystem.h"
 #include "Item/LootComponent.h"
+#include "System/ResourceControl/TSResourcePoint.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
@@ -75,6 +76,13 @@ void ATSResourceBaseActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 	}
 	Super::EndPlay(EndPlayReason);
+}
+
+void ATSResourceBaseActor::SetSpawnPoint(ATSResourcePoint* Point)
+{
+	if (!IsValid(Point)) return;
+	OwningPoint = Point;	
+	UE_LOG(ResourceControlSystem, Log, TEXT("OwningPoint 이식 성공 "));
 }
 
 
@@ -223,6 +231,34 @@ void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector Hit
 	if (CurrentItemCount <= 0)
 	{
 		UE_LOG(ResourceControlSystem, Error, TEXT("남은 수량이 없으므로 삭제"));
+		
+		UTSResourceControlSubSystem* ResourceControlSubSystem = GetWorld()->GetSubsystem<UTSResourceControlSubSystem>();
+		if (IsValid(ResourceControlSubSystem))
+		{
+			if (OwningPoint.IsValid())
+			{
+				ResourceControlSubSystem->RequestRespawn(
+				OwningPoint->GetSectionTag(),
+				ResourceRuntimeData.ResourceID,
+				ResourceRuntimeData.RespawnTime,
+				OwningPoint->GetResourceItemType(),
+				OwningPoint->GetSectionResourceUniqueTag(), 
+				OwningPoint->IsCommonPoint()
+				);
+				
+				OwningPoint->ClearAllocatedResource(); 
+				
+				UE_LOG(ResourceControlSystem, Log, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 완료"));
+			}
+			else
+			{
+				UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 스폰 포인트 찾지 못함."));
+			}
+		}
+		else
+		{
+			UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 컨트롤 시스템 찾지 못함."));
+		}
 		Destroy();
 	}
 	
