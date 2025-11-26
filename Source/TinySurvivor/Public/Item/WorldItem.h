@@ -114,4 +114,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//[E]=====================================================================================
+	
+	// 디버그용
+	// 인덱스를 설정하면서 디버그 텍스트도 갱신하는 함수
+	void SetSourceInstanceIndex(int32 NewIndex);
 };

@@ -540,3 +540,14 @@ void AWorldItem::UpdateDebugText()
 
 	DebugTextComp->SetText(FText::FromString(DebugString));
 }
+
+// 디버그용
+void AWorldItem::SetSourceInstanceIndex(int32 NewIndex)
+{
+	SourceInstanceIndex = NewIndex;
+	
+	if (HasAuthority())
+	{
+		UpdateDebugText();
+	}
+}

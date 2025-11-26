@@ -43,12 +43,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
 	float ScatterRadius = 100.0f;
 
-	// 드랍 테이블을 보고 확률적으로 떨구기 (죽을 때 사용)
-	UFUNCTION(BlueprintCallable)
-	bool SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation, int32& LootNumForResource);
-	// 특정 아이템을 지정된 개수만큼 즉시 떨구기 (채집 시 사용)
-	UFUNCTION(BlueprintCallable)
-	bool SpawnSpecificLoot(int32 ItemID, int32 Count);
+	// [몬스터용] 드랍 테이블을 보고 확률적으로 떨구기 (죽을 때 사용)
+	UFUNCTION(BlueprintCallable, Category = "Loot")
+	bool SpawnLoot(FVector TargetLocation = FVector::ZeroVector);
+	// [자원 채집용] 확정 아이템 + 확률 아이템을 동시에 처리하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Loot")
+	bool SpawnHarvestLoot(FVector TargetLocation = FVector::ZeroVector, FVector SpawnOriginLocation = FVector::ZeroVector);
 	
 private:
 	FVector GetClosestPlayerLocation(const FVector& OriginOriginLocation) const;
