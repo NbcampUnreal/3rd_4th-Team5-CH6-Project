@@ -1,0 +1,1 @@
+steam_appid 저 파일을 반드시 Binaries 폴더에 집어넣으세요.
