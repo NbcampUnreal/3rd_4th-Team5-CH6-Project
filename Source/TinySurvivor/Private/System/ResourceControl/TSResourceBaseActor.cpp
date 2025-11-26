@@ -37,6 +37,7 @@ void ATSResourceBaseActor::BeginPlay()
 	
 	if (!HasAuthority()) return;
 	
+	// 자원 원천 테스트 용도로 추가. 
 	UItemDataSubsystem* ItemDataSubsystem = UItemDataSubsystem::GetItemDataSubsystem(this);
 	if (!IsValid(ItemDataSubsystem))
 	{
@@ -67,6 +68,47 @@ void ATSResourceBaseActor::BeginPlay()
 	UE_LOG(ResourceControlSystem, Error, TEXT("테스트 용이므로 추후 반드시 언바인딩할 것."));
 	UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
 	
+	if (IsLevelPlaced)
+	{
+		// 3. 메인 스폰 저장 
+		FLootRule MainLoot = {};
+		MainLoot.ItemID = ResourceRuntimeData.MainDropTableID;
+		MainLoot.DropChance = ResourceRuntimeData.MainDropTablePrecent;
+		MainLoot.MaxCount = ResourceRuntimeData.MainDropMaxNum;
+		MainLoot.MinCount = ResourceRuntimeData.MainDropMinNum;
+		LootComponent->LootTable.Add(MainLoot);
+	
+		// 4. 서브 스폰 저장
+		FLootRule SubLoot = {};
+		SubLoot.ItemID = ResourceRuntimeData.SubDropTableID;
+		SubLoot.DropChance = ResourceRuntimeData.SubDropTablePrecent;
+		SubLoot.MaxCount = ResourceRuntimeData.SubDropMaxNum;
+		SubLoot.MinCount = ResourceRuntimeData.SubDropMinNum;
+		LootComponent->LootTable.Add(SubLoot);
+	
+		if (!IsValid(LootComponent))
+		{
+			UE_LOG(LogTemp, Error, TEXT("[TSLoot] LootComponent INVALID!"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[TSLoot] LootTable Count = %d"), LootComponent->LootTable.Num());
+
+			for (int32 i = 0; i < LootComponent->LootTable.Num(); i++)
+			{
+				const FLootRule& Rule = LootComponent->LootTable[i];
+
+				UE_LOG(LogTemp, Warning,
+					TEXT("[TSLoot] [%d] ItemID=%d | Chance=%f | Min=%d | Max=%d"),
+					i,
+					Rule.ItemID,
+					Rule.DropChance,
+					Rule.MinCount,
+					Rule.MaxCount
+				);
+			}
+		}
+	}
 }
 
 void ATSResourceBaseActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -85,22 +127,19 @@ void ATSResourceBaseActor::SetSpawnPoint(ATSResourcePoint* Point)
 	UE_LOG(ResourceControlSystem, Log, TEXT("OwningPoint 이식 성공 "));
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
 	//========================
 	// ATSResourceBaseActor 아이템 스폰  
 	//========================
 
-
 void ATSResourceBaseActor::InitFromResourceData(const FResourceData& Data)
 {
-	// 1. ID나 타입 저장
-	ResourceRuntimeData.ResourceID = Data.ResourceID;
-	ResourceRuntimeData.NodeType = Data.NodeType;
-	ResourceRuntimeData.TotalYield = Data.TotalYield;
-	ResourceRuntimeData.RespawnTime = Data.RespawnTime;
-
+	// 1. 리소스 데이터 복사
+	ResourceRuntimeData = Data;
+	CurrentItemCount = ResourceRuntimeData.TotalYield;
+	UE_LOG(ResourceControlSystem, Log, TEXT("아이템 수량 설정 완료 %d"), CurrentItemCount);
+	
 	// 2. 메시 설정
 	if (IsValid(ResourceStaticMeshComp))
 	{
@@ -114,22 +153,44 @@ void ATSResourceBaseActor::InitFromResourceData(const FResourceData& Data)
 		}
 	}
 
-	// 3. 드롭 테이블 설정
-	ResourceRuntimeData.DropTableID = Data.DropTableID;
+	// 3. 메인 스폰 저장 
+	FLootRule MainLoot = {};
+	MainLoot.ItemID = ResourceRuntimeData.MainDropTableID;
+	MainLoot.DropChance = ResourceRuntimeData.MainDropTablePrecent;
+	MainLoot.MaxCount = ResourceRuntimeData.MainDropMaxNum;
+	MainLoot.MinCount = ResourceRuntimeData.MainDropMinNum;
+	LootComponent->LootTable.Add(MainLoot);
+	
+	// 4. 서브 스폰 저장
+	FLootRule SubLoot = {};
+	SubLoot.ItemID = ResourceRuntimeData.SubDropTableID;
+	SubLoot.DropChance = ResourceRuntimeData.SubDropTablePrecent;
+	SubLoot.MaxCount = ResourceRuntimeData.SubDropMaxNum;
+	SubLoot.MinCount = ResourceRuntimeData.SubDropMinNum;
+	LootComponent->LootTable.Add(SubLoot);
+	
+	if (!IsValid(LootComponent))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[TSLoot] LootComponent INVALID!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[TSLoot] LootTable Count = %d"), LootComponent->LootTable.Num());
 
-	// 4. 필요 도구 설정
-	ResourceRuntimeData.RequiredToolID = Data.RequiredToolID;
+		for (int32 i = 0; i < LootComponent->LootTable.Num(); i++)
+		{
+			const FLootRule& Rule = LootComponent->LootTable[i];
 
-	// 5. 노드 티어 저장
-	ResourceRuntimeData.NodeTier = Data.NodeTier;
-
-	// 6. 스폰 루트 저장 
-	FLootRule NewLoot = {};
-	NewLoot.DropChance = 1.0f;
-	NewLoot.ItemID = ResourceRuntimeData.DropTableID;
-	NewLoot.MaxCount = 1;
-	NewLoot.MinCount = 1;
-	LootComponent->LootTable.Add(NewLoot);
+			UE_LOG(LogTemp, Warning,
+				TEXT("[TSLoot] [%d] ItemID=%d | Chance=%f | Min=%d | Max=%d"),
+				i,
+				Rule.ItemID,
+				Rule.DropChance,
+				Rule.MinCount,
+				Rule.MaxCount
+			);
+		}
+	}
 	
 	UE_LOG(LogTemp, Warning, TEXT("Init Resource %d at Actor %s"), Data.ResourceID, *GetName());
 }
@@ -177,54 +238,12 @@ void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector Hit
 	SpawnTransform.SetLocation(FinalSpawnLocation);
 	SpawnTransform.SetRotation(FRotator::ZeroRotator.Quaternion());
 	
-	// 아이템 생성용 구조체 생성
-	FItemData NewDataForNewItem = {};
-	
-	// 풀 시스템과 아이템에게 넘겨줄 래퍼 구조체 생성
-	FSlotStructMaster NewSlotStructMasterForNewItem = {};
-	
-	// *** 생성 시작 *** //
-	
-	UItemDataSubsystem* ItemDataSubsystem = UItemDataSubsystem::GetItemDataSubsystem(this);
-	if (!IsValid(ItemDataSubsystem))
-	{
-		UE_LOG(ResourceControlSystem, Error, TEXT("ItemDataSubsystem 찾지 못함."));
-		return;
-	}
-	
-	bool bFoundData = ItemDataSubsystem->GetItemDataSafe(ResourceRuntimeData.DropTableID,NewDataForNewItem);
-	if (!bFoundData)
-	{
-		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
-		UE_LOG(ResourceControlSystem, Error, TEXT("%s 가 자원 데이터를 찾는데 실패함."), *GetName());
-		UE_LOG(ResourceControlSystem, Error, TEXT("ThisResourceID %d 찾지 못함."), ResourceRuntimeData.DropTableID);
-		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
-		return;
-	}
-	else
-	{
-		UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
-		UE_LOG(ResourceControlSystem, Log, TEXT("%s 가 자원 원천 데이터를 찾는데 성공함."), *GetName());
-		UE_LOG(ResourceControlSystem, Log, TEXT("ThisResourceID %d 찾음."), ResourceRuntimeData.DropTableID);
-		NewSlotStructMasterForNewItem.ItemData.StaticDataID = NewDataForNewItem.ItemID;
-		UE_LOG(ResourceControlSystem, Log, TEXT("NewSlotStructMasterForNewItem.ItemData.StaticDataID %d"), NewSlotStructMasterForNewItem.ItemData.StaticDataID);
-	}
-	
-	// 스폰 로직 >> 이 부분을 루트 컴포넌트에서 해야함!!!!
-	/*
-	 * 1. 스폰 확률에 따라서 어떤 아이템을 생성할지 결정함.
-	 * 2. 총 몇 개 타입의 아이템을, 각각 얼마나 생성할지 결정함.
-	 * 3. for 문 돌려서 결정된 아이템들을 수량에 맞게 생성. 
-	 * 4. 결정된 데이터를 캐싱 후 스폰이 완료되면 현재 수량에서 깎아야 함.
-	 */
-	
 	// 스폰 요청
-	
-	bool bSuccess = LootComponent->SpawnLoot(SpawnTransform, PlayerLocation);
+	UE_LOG(ResourceControlSystem, Warning, TEXT("스폰 요청"));
+	bool bSuccess = LootComponent->SpawnLoot(SpawnTransform, PlayerLocation, CurrentItemCount);
 	if (!bSuccess) return;
 	
-	// 성공 시 Count를 깎고 제거 (일단 그냥 깎는 걸로)
-	--CurrentItemCount;
+	// 성공 시 Count를 깎고 제거 (스폰 루트 컴포넌트에서 총량을 깎아줘야 함.)
 	UE_LOG(ResourceControlSystem, Log, TEXT("%s 의 남은 수량 %d"), *GetName(), CurrentItemCount);
 
 	// 만약 현재 수량이 남은 게 없다? 그러면 일단 죽어.
@@ -263,6 +282,39 @@ void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector Hit
 	}
 	
 #pragma region 구 로직 (이제 안 씀)
+	// // 아이템 생성용 구조체 생성
+	// FItemData NewDataForNewItem = {};
+	//
+	// // 풀 시스템과 아이템에게 넘겨줄 래퍼 구조체 생성
+	// FSlotStructMaster NewSlotStructMasterForNewItem = {};
+	//
+	// // *** 생성 시작 *** //
+	//
+	// UItemDataSubsystem* ItemDataSubsystem = UItemDataSubsystem::GetItemDataSubsystem(this);
+	// if (!IsValid(ItemDataSubsystem))
+	// {
+	// 	UE_LOG(ResourceControlSystem, Error, TEXT("ItemDataSubsystem 찾지 못함."));
+	// 	return;
+	// }
+	//
+	// bool bFoundData = ItemDataSubsystem->GetItemDataSafe(ResourceRuntimeData.DropTableID,NewDataForNewItem);
+	// if (!bFoundData)
+	// {
+	// 	UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+	// 	UE_LOG(ResourceControlSystem, Error, TEXT("%s 가 자원 데이터를 찾는데 실패함."), *GetName());
+	// 	UE_LOG(ResourceControlSystem, Error, TEXT("ThisResourceID %d 찾지 못함."), ResourceRuntimeData.DropTableID);
+	// 	UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+	// 	return;
+	// }
+	// else
+	// {
+	// 	UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
+	// 	UE_LOG(ResourceControlSystem, Log, TEXT("%s 가 자원 원천 데이터를 찾는데 성공함."), *GetName());
+	// 	UE_LOG(ResourceControlSystem, Log, TEXT("ThisResourceID %d 찾음."), ResourceRuntimeData.DropTableID);
+	// 	NewSlotStructMasterForNewItem.ItemData.StaticDataID = NewDataForNewItem.ItemID;
+	// 	UE_LOG(ResourceControlSystem, Log, TEXT("NewSlotStructMasterForNewItem.ItemData.StaticDataID %d"), NewSlotStructMasterForNewItem.ItemData.StaticDataID);
+	// }
+
 	//// 월드 아이템 풀에게 우선 요청
 	//UWorldItemPoolSubsystem* Pool = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>();
 	//if (!IsValid(Pool))
