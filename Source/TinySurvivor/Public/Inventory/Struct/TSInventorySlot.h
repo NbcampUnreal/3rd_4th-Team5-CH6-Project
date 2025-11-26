@@ -59,11 +59,11 @@ struct TINYSURVIVOR_API FSlotStructMaster
 
 	// 부패 만료 시간
 	UPROPERTY(BlueprintReadOnly, Category = "Decay")
-	double ExpirationTime;
+	double ExpirationTime = 0.0;
 	
 	// 부패 진행도
 	UPROPERTY(BlueprintReadOnly, Category = "Decay")
-	float CurrentDecayPercent;
+	float CurrentDecayPercent = 1.0;
 	
 	// 아이템 인스턴스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ItemData")
