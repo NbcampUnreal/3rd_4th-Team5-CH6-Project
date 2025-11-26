@@ -222,26 +222,19 @@ void ATSResourceBaseActor::GetItemFromResource(int32 RequiredToolID, FVector Hit
 
 	if (DistToPlayer < MinPlayerDistance)
 	{
-		// 너무 가까우면 플레이어보다 높은 위치로 올림
-		float PlayerZ = PlayerLocation.Z;
-		float SpawnZ = FinalSpawnLocation.Z;
-
-		// 플레이어보다 위에 있도록 상승
-		float DesiredZ = PlayerZ + ExtraUp;
-		float AddZ = (DesiredZ - SpawnZ);
-
-		FinalSpawnLocation.Z += AddZ;
+		if (FinalSpawnLocation.Z < PlayerLocation.Z + ExtraUp)
+		{
+			FinalSpawnLocation.Z = PlayerLocation.Z + ExtraUp;
+		}
 	}
-	
-	// 최종 위치 트랜스폼 생성
-	FTransform SpawnTransform = FTransform();
-	SpawnTransform.SetLocation(FinalSpawnLocation);
-	SpawnTransform.SetRotation(FRotator::ZeroRotator.Quaternion());
-	
-	// 스폰 요청
-	UE_LOG(ResourceControlSystem, Warning, TEXT("스폰 요청"));
-	bool bSuccess = LootComponent->SpawnLoot(SpawnTransform, PlayerLocation, CurrentItemCount);
-	if (!bSuccess) return;
+
+	bool bSuccess = false;
+	if (IsValid(LootComponent))
+	{
+		bSuccess = LootComponent->SpawnHarvestLoot(PlayerLocation, FinalSpawnLocation);
+	}
+	if (!bSuccess)
+		return;
 	
 	// 성공 시 Count를 깎고 제거 (스폰 루트 컴포넌트에서 총량을 깎아줘야 함.)
 	UE_LOG(ResourceControlSystem, Log, TEXT("%s 의 남은 수량 %d"), *GetName(), CurrentItemCount);
