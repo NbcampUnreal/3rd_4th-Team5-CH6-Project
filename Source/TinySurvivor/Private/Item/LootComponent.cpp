@@ -9,7 +9,7 @@ ULootComponent::ULootComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool ULootComponent::SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation)
+bool ULootComponent::SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation, int32& LootNumForResource)
 {
 	// 서버에서만 실행
 	if (!GetOwner()->HasAuthority()) 
@@ -44,6 +44,9 @@ bool ULootComponent::SpawnLoot(FTransform& SpawnTransform, const FVector& Player
 		{
 			// 개수 결정
 			int32 CountToSpawn = FMath::RandRange(Rule.MinCount, Rule.MaxCount);
+			
+			// 자원 원천인 경우 뱉어내는 아이템 수 만큼 보유 수량을 깎아주기
+			LootNumForResource -= CountToSpawn;
 
 			for (int32 i = 0; i < CountToSpawn; i++)
 			{

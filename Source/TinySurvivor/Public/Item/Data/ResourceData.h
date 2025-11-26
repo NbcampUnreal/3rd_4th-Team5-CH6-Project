@@ -20,6 +20,7 @@ enum class ENodeType : uint8
 	INTERACT         UMETA(DisplayName = "Interact", ToolTip = "상호작용 가능한 오브젝트"),
 	WOOD             UMETA(DisplayName = "Wood", ToolTip = "나무 자원"),
 	PLASTIC          UMETA(DisplayName = "Plastic", ToolTip = "플라스틱 자원"),
+	OIL           	 UMETA(DisplayName = "Oil", ToolTip = "기름 자원"),
 	DRINK            UMETA(DisplayName = "Drink", ToolTip = "음료 자원"),
 	FOOD             UMETA(DisplayName = "Food", ToolTip = "식량 자원"),
 	CLOTH            UMETA(DisplayName = "Cloth", ToolTip = "천 자원"),
@@ -59,7 +60,14 @@ public:
 		, RequiredToolID(0)                               // 자원 채집에 필요한 도구 ID 초기화 (0 = 없음)
 		, NodeTier(ENodeTier::T1)                         // 노드 등급 초기화 (기본값: T1)
 		, TotalYield(1)                                   // 총 채집 가능량 초기화 (기본값: 1)
-		, DropTableID(0)                                  // 드롭 테이블 ID 초기화 (0 = 없음)
+		, MainDropTableID(0)                              // 메인 드롭 테이블 초기화 (0 = 없음)
+		, MainDropTablePrecent(1.f)						  // 메인 드롭 테이블 확률 (1 = 기본 고정)
+		, MainDropMinNum(1)								  // 메인 드롭 테이블 최소 드랍 개수 (1 = 기본 고정)				
+		, MainDropMaxNum(1)								  // 메인 드롭 테이블 최대 드랍 개수 (1 = 기본 고정)
+		, SubDropTableID(0)								  // 서브 드롭 테이블 초기화 (0 = 없음)
+		, SubDropTablePrecent(0.f)                        // 서브 드롭 테이블 확률 (0 = 기본 고정)
+		, SubDropMinNum(1)								  // 서브 드롭 테이블 최소 드랍 개수 (1 = 기본 고정)	
+		, SubDropMaxNum(1)								  // 서브 드롭 테이블 최대 드랍 개수 (1 = 기본 고정)
 		, RespawnTime(0.0f)                               // 자원 재생 시간 초기화 (0.0 = 즉시)
 		, WorldMesh(nullptr)                              // 월드 표시용 메시 초기화 (nullptr)
 		, ActorClass(nullptr)                        // 스폰될 액터 클래스 초기화 (nullptr)
@@ -113,10 +121,45 @@ public:
 		meta=(DisplayName="Total Yield", ToolTip="자원 원천에서 얻을 수 있는 총 수량", ClampMin="1"))
 	int32 TotalYield;
 	
-	// 원천을 수확했을 때 드랍되는 재료 아이템 목록 및 확률 테이블 ID
+	// 원천을 수확했을 때 드랍되는 메인 재료 아이템 ID
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Drop Table ID", ToolTip="원천을 수확했을 때 드랍되는 재료 아이템 목록 및 확률 테이블 ID"))
-	int32 DropTableID;
+		meta=(DisplayName="Main Drop ID", ToolTip="원천을 수확했을 때 드랍되는 메인 재료 아이템 ID"))
+	int32 MainDropTableID;
+
+	// 원천을 수확했을 때 드랍되는 메인 재료 아이템 확률
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+	meta=(DisplayName="Main Drop Rate", ToolTip="원천을 수확했을 때 드랍되는 메인 재료 아이템 확률")) 
+	float MainDropTablePrecent;
+	
+	// 원천을 수확했을 때 드랍되는 메인 재료 아이템 드랍 최소 개수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Main Drop Min Num", ToolTip="원천을 수확했을 때 드랍되는 메인 재료 아이템 드랍 최소 개수"))
+	int32 MainDropMinNum;
+	
+	// 원천을 수확했을 때 드랍되는 메인 재료 아이템 드랍 최대 개수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+	meta=(DisplayName="Main Drop Max Num", ToolTip="원천을 수확했을 때 드랍되는 메인 재료 아이템 드랍 최대 개수"))
+	int32 MainDropMaxNum;
+	
+	// 원천을 수확했을 때 드랍되는 메인 서브 아이템 ID
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Sub Drop ID", ToolTip="원천을 수확했을 때 드랍되는 서브 재료 아이템 ID"))
+	int32 SubDropTableID;
+
+	// 원천을 수확했을 때 드랍되는 메인 서브 아이템 확률
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+	meta=(DisplayName="Drop Table Rate", ToolTip="원천을 수확했을 때 드랍되는 서브 재료 아이템 확률")) 
+	float SubDropTablePrecent;
+	
+	// 원천을 수확했을 때 드랍되는 서브 재료 아이템 드랍 최소 개수
+   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+	   meta=(DisplayName="Sub Drop Min Num", ToolTip="원천을 수확했을 때 드랍되는 서브 재료 아이템 드랍 최소 개수"))
+	int32 SubDropMinNum;
+	
+	// 원천을 수확했을 때 드랍되는 서브 재료 아이템 드랍 최대 개수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+	meta=(DisplayName="Sub Drop Max Num", ToolTip="원천을 수확했을 때 드랍되는 서브 재료 아이템 드랍 최대 개수"))
+	int32 SubDropMaxNum;
 	
 	// 원천이 다시 사용 가능한 상태로 재생되는 시간 (초 단위)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",

@@ -68,6 +68,10 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<ATSResourcePoint> OwningPoint;
 	
+	// 테스트를 위해 레벨에 배치된 상태인가?
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool IsLevelPlaced = false;
+	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
 	//========================
