@@ -22,7 +22,14 @@ void FResourceData::PrintDebugInfo() const
 	UE_LOG(LogFResourceData, Display, TEXT("RequiredToolID: %d"), RequiredToolID);
 	UE_LOG(LogFResourceData, Display, TEXT("NodeTier: %d"), static_cast<int32>(NodeTier));
 	UE_LOG(LogFResourceData, Display, TEXT("TotalYield: %d"), TotalYield);
-	UE_LOG(LogFResourceData, Display, TEXT("DropTableID: %d"), DropTableID);
+	UE_LOG(LogFResourceData, Display, TEXT("MainDropTableID: %d"), MainDropTableID);
+	UE_LOG(LogFResourceData, Display, TEXT("MainDropTablePrecent: %f"), MainDropTablePrecent);
+	UE_LOG(LogFResourceData, Display, TEXT("MainDropMinNum: %d"), MainDropMinNum);
+	UE_LOG(LogFResourceData, Display, TEXT("MainDropMaxNum: %d"), MainDropMaxNum);
+	UE_LOG(LogFResourceData, Display, TEXT("SubDropTableID: %d"), SubDropTableID);
+	UE_LOG(LogFResourceData, Display, TEXT("SubDropTablePrecent: %f"), SubDropTablePrecent);
+	UE_LOG(LogFResourceData, Display, TEXT("SubDropMinNum: %d"), SubDropMinNum);
+	UE_LOG(LogFResourceData, Display, TEXT("SubDropMaxNum: %d"), SubDropMaxNum);
 	UE_LOG(LogFResourceData, Display, TEXT("RespawnTime: %.2f"), RespawnTime);
 	
 	// Visual

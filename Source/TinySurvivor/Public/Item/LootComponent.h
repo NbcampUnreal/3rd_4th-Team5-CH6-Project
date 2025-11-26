@@ -45,7 +45,7 @@ public:
 
 	// 드랍 테이블을 보고 확률적으로 떨구기 (죽을 때 사용)
 	UFUNCTION(BlueprintCallable)
-	bool SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation);
+	bool SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation, int32& LootNumForResource);
 	// 특정 아이템을 지정된 개수만큼 즉시 떨구기 (채집 시 사용)
 	UFUNCTION(BlueprintCallable)
 	bool SpawnSpecificLoot(int32 ItemID, int32 Count);
