@@ -293,4 +293,11 @@ private:
 	// ========================================
 	void HandleInventoryChanged();
 	void HandleActiveHotkeyIndexChanged();
+	
+	// ■ ItemConsumed
+	//[S]=====================================================================================
+	// GameplayEvent 수신 함수
+	void OnItemConsumedEvent(const FGameplayEventData* Payload);
+	//[E]=====================================================================================
+	
 };
