@@ -739,12 +739,6 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	return OutRemainingQuantity == 0;
 }
 
-bool UTSInventoryMasterComponent::AddItem(const int32 StaticDataID, int32 Quantity, int32& OutRemainingQuantity)
-{
-	FItemInstance ItemData = FItemInstance(StaticDataID, GetWorld()->GetTimeSeconds());
-	return AddItem(ItemData, Quantity, OutRemainingQuantity);
-}
-
 bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
 	if (!GetOwner()->HasAuthority() || !IsValidSlotIndex(InventoryType, SlotIndex))
@@ -1035,8 +1029,9 @@ void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity
 		FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[i];
 		if (Slot.ItemData.StaticDataID == StaticDataID)
 		{
-			RemoveItem(EInventoryType::HotKey, i, Quantity);
-			Quantity -= Slot.CurrentStackSize;
+			int32 ToRemove = FMath::Min(Quantity, Slot.CurrentStackSize);
+			RemoveItem(EInventoryType::HotKey, i, ToRemove);
+			Quantity -= ToRemove;
 			if (ActiveHotkeyIndex == i)
 			{
 				HandleActiveHotkeyIndexChanged();
@@ -1055,8 +1050,9 @@ void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity
 			FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
 			if (Slot.ItemData.StaticDataID == StaticDataID)
 			{
-				RemoveItem(EInventoryType::BackPack, i, Quantity);
-				Quantity -= Slot.CurrentStackSize;
+				int32 ToRemove = FMath::Min(Quantity, Slot.CurrentStackSize);
+				RemoveItem(EInventoryType::BackPack, i, ToRemove);
+				Quantity -= ToRemove;
 				if (Quantity <= 0)
 				{
 					break;
