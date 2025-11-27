@@ -6,14 +6,13 @@
 #include "Controller/TSPlayerController.h"
 #include "Character/TSCharacter.h"
 #include "Crafting/System/CraftingDataSubsystem.h"
+#include "Inventory/TSCraftingTableInventory.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 
 // Sets default values
 ATSCraftingTable::ATSCraftingTable()
 {
-	InventoryComp = CreateDefaultSubobject<UTSInventoryMasterComponent>(TEXT("InventoryComp"));
-	InventoryComp->HotkeySlotCount = 0;
-	InventoryComp->InitialBagSlotCount = 1;
+	CraftingInventory = CreateDefaultSubobject<UTSCraftingTableInventory>(TEXT("CraftingInventory"));
 }
 
 bool ATSCraftingTable::CanInteract(ATSCharacter* InstigatorCharacter)
@@ -39,7 +38,7 @@ void ATSCraftingTable::Interact(ATSCharacter* InstigatorCharacter)
 	{
 		return;
 	}
-	PC->ToggleContentsWidget(EContentWidgetIndex::CraftingMode);
+	PC->ToggleContainer(EContentWidgetIndex::CraftingMode, this);
 }
 
 bool ATSCraftingTable::RunOnServer()
@@ -130,7 +129,26 @@ void ATSCraftingTable::StartCrafting(int32 RecipeID, ATSCharacter* InstigatorCha
 	}
 	// 제작대 인벤토리 가방에 제작한 아이템 추가
 	int32 RemainingQuantity = RecipeData.ResultCount;
-	InventoryComp->AddItem(RecipeData.ResultItemID, RecipeData.ResultCount, RemainingQuantity);
+	APlayerController* PC = Cast<APlayerController>(InstigatorCharacter->GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	int32 SlotIndex = CraftingInventory->PlaceCraftResult(PC, RecipeData.ResultItemID, RemainingQuantity);
+	if (SlotIndex == -1)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to place craft result"));
+		return;
+	}
+	// 제작 완료 브로드캐스트
+	ClientNotifyCraftResult(SlotIndex);
+}
+
+void ATSCraftingTable::ClientNotifyCraftResult_Implementation(int32 SlotIndex)
+{
+	// 제작 완료 델리게이트 브로드캐스트
+	OnCraftComplete.Broadcast(SlotIndex);
 }
 
 // Called when the game starts or when spawned
