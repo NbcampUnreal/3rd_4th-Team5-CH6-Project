@@ -16,6 +16,7 @@
  * - 컨테이너 거리 체크 및 자동 닫기
  */
 
+class ATSCraftingTable;
 enum class EInventoryType : uint8;
 class ATSCharacter;
 struct FSlotStructMaster;
@@ -52,6 +53,10 @@ public:
 		int32 ToSlotIndex,
 		bool bIsFullStack = true);
 
+	/** 제작 요청 서버로 전달 */
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Crafting")
+	void ServerRequestCraft(ATSCraftingTable* CraftingTable, int32 RecipeID);
+
 	//~=============================================================================
 	// UI Management
 	//~=============================================================================
@@ -68,13 +73,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ToggleInventory();
 
-	/** 컨테이너 UI 토글 */
+	/** 컨테이너,제작대 UI 토글 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
-	void ToggleContainer(AActor* ContainerActor);
+	void ToggleContainer(EContentWidgetIndex NewIndex, AActor* ContainerActor = nullptr);
 
-	/** 콘텐츠(빌딩, 크래프팅, 설정) UI 토글 */
+	/** 콘텐츠(빌딩, 설정) UI 토글 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
-	void ToggleContentsWidget(EContentWidgetIndex NewIndex, AActor* ContainerActor = nullptr);
+	void ToggleContentsWidget(EContentWidgetIndex NewIndex);
 
 	/** ESC 키 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
