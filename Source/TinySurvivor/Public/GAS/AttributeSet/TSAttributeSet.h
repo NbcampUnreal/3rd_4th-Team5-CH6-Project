@@ -31,58 +31,56 @@ protected:
 	void ClampBeforeChange(const FGameplayAttribute& Attribute, float& NewValue) const;
 	void ClampAfterEffect(const struct FGameplayEffectModCallbackData& Data);
 
-	
+public:
 	// 1. Health (체력) 
 	UPROPERTY(BlueprintReadOnly,Category = "Vital", ReplicatedUsing = OnRep_Health)
 	FGameplayAttributeData Health;
-
+	
 	UPROPERTY(BlueprintReadOnly,Category = "Vital", ReplicatedUsing = OnRep_MaxHealth)
 	FGameplayAttributeData MaxHealth;
-
+	
 	// 2. Stamina (스태미나)
 	UPROPERTY(BlueprintReadOnly, Category = "Vital", ReplicatedUsing = OnRep_Stamina)
 	FGameplayAttributeData Stamina;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Vital", ReplicatedUsing = OnRep_MaxStamina)
 	FGameplayAttributeData MaxStamina;
-
-	//3. Hunger (배고픔)
+	
+	// 3. Hunger (배고픔)
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_Hunger)
 	FGameplayAttributeData Hunger;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_MaxHunger)
 	FGameplayAttributeData MaxHunger;
-
+	
 	// 4. Thirst (갈증)
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_Thirst)
 	FGameplayAttributeData Thirst;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_MaxThirst)
 	FGameplayAttributeData MaxThirst;
-
+	
 	// 5. Sanity (정신력)
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_Sanity)
 	FGameplayAttributeData Sanity;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_MaxSanity)
 	FGameplayAttributeData MaxSanity;
-
-
+	
 	// 6. Temperature (체온)
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_Temperature)
 	FGameplayAttributeData Temperature;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Survival", ReplicatedUsing = OnRep_MaxTemperature)
 	FGameplayAttributeData MaxTemperature;
 	
 	// 7. Speed (속도) 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", ReplicatedUsing = OnRep_MoveSpeed)
 	FGameplayAttributeData MoveSpeed;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", ReplicatedUsing = OnRep_MaxMoveSpeed)
 	FGameplayAttributeData MaxMoveSpeed;
-
-public:
+	
 	// 매크로
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, Health)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxHealth)
