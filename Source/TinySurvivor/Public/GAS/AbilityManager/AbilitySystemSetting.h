@@ -12,8 +12,15 @@ class TINYSURVIVOR_API UAbilitySystemSetting : public UDeveloperSettings
 	GENERATED_BODY()
 	
 public:
-	static const UAbilitySystemSetting* GeAbilitySystemSetting() { return GetDefault<UAbilitySystemSetting>();}
+	
+	UAbilitySystemSetting()
+	{
+		CategoryName = TEXT("Game");
+		SectionName = TEXT("Ability System");
+	}
 	
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, meta=(DisplayName="어빌리티 데이터 에셋"))
 	TSoftObjectPtr<UTSAbilityDataAsset> AbilityDataAsset;
+	
+	static const UAbilitySystemSetting* GeAbilitySystemSetting() { return GetDefault<UAbilitySystemSetting>();}
 };

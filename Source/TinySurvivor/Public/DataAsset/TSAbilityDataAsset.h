@@ -12,8 +12,6 @@ class TINYSURVIVOR_API UTSAbilityDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
-	
 	UPROPERTY(EditAnywhere,Category="Ability")
 	TMap<FName,UDataTable*> AbilityTables;
 };

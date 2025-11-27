@@ -35,12 +35,6 @@ void UTSAbilityManagerSubSystem::Initialize(FSubsystemCollectionBase& Collection
 		return;
 	}
 	
-	if (AbilitySystemSetting->AbilityDataAsset == nullptr)
-	{
-		UE_LOG(AbilityManager, Error, TEXT("UAbilitySystemSetting 의 데이터 에셋 유효하지 않음."));
-		return;;
-	}
-	
 	UTSAbilityDataAsset* AbilityDataAsset = AbilitySystemSetting->AbilityDataAsset.LoadSynchronous();
 	if (!IsValid(AbilityDataAsset))
 	{
@@ -157,6 +151,7 @@ void UTSAbilityManagerSubSystem::ActivateAbilityByTag(UAbilitySystemComponent* A
 	ASC->TryActivateAbility(ASC->GiveAbility(Spec));
 
 }
+
 void UTSAbilityManagerSubSystem::ClearAbilityByTag(UAbilitySystemComponent* ASC, FGameplayTag DesiredTag, FName TableKey, int32 AbilityLevel, int32 InputID) const
 {
 	//1.유효성검사
