@@ -32,8 +32,9 @@ public class TinySurvivor : ModuleRules
 			"DeveloperSettings"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "SequencerCore", "SequencerCore", "SequencerCore", "AITestSuite" });
-
+#if WITH_EDITOR
+		PrivateDependencyModuleNames.AddRange(new string[] { "SequencerCore", "AITestSuite" });
+#endif
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
 		// Uncomment if you are using online features
