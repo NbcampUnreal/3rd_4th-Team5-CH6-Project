@@ -4,27 +4,58 @@
 #include "Abilities/GameplayAbility.h"
 #include "DataAsset/TSAbilityDataAsset.h"
 #include "DataAsset/TSAbilityDataRow.h"
-#include "GameInstance/TSGameInstance.h"
+#include "GAS/AbilityManager/AbilitySystemSetting.h"
 
+DEFINE_LOG_CATEGORY(AbilityManager)
 
 void UTSAbilityManagerSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	// 어빌리티 매니저 초기화
-	// 1. GI에서 AbilityAsset 참조
-	if (UTSGameInstance* GI = Cast<UTSGameInstance>(GetGameInstance()))
+	
+	// // 어빌리티 매니저 초기화
+	// // 1. GI에서 AbilityAsset 참조
+	// if (UTSGameInstance* GI = Cast<UTSGameInstance>(GetGameInstance()))
+	// {
+	// 	if (GI->AbilityAsset)
+	// 	{
+	// 		// 2. DataAsset의 TMap을 Subsystem TMap으로 복사
+	// 		AbilityTables = GI->AbilityAsset->AbilityTables;
+	// 		for (auto Table : AbilityTables)
+	// 		{
+	// 			UE_LOG(LogTemp, Log, TEXT("Subsystem loaded Ability DataTable: %s"), *Table.Key.ToString());
+	// 		}
+	// 	}
+	// }
+	//
+
+	const UAbilitySystemSetting* AbilitySystemSetting = UAbilitySystemSetting::GeAbilitySystemSetting();
+	if (!IsValid(AbilitySystemSetting))
 	{
-		if (GI->AbilityAsset)
-		{
-			// 2. DataAsset의 TMap을 Subsystem TMap으로 복사
-			AbilityTables = GI->AbilityAsset->AbilityTables;
-			for (auto Table : AbilityTables)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Subsystem loaded Ability DataTable: %s"), *Table.Key.ToString());
-			}
-		}
+		UE_LOG(AbilityManager, Error, TEXT("UAbilitySystemSetting 찾지 못함."));
+		return;
 	}
+	
+	UTSAbilityDataAsset* AbilityDataAsset = AbilitySystemSetting->AbilityDataAsset.LoadSynchronous();
+	if (!IsValid(AbilityDataAsset))
+	{
+		UE_LOG(AbilityManager, Error, TEXT("AbilityDataAsset 로드 실패."));
+		return;
+	}
+	
+	if (!AbilityDataAsset->AbilityTables.Num())
+	{
+		UE_LOG(AbilityManager, Error, TEXT("AbilityDataAsset의 AbilityTables가 비어있음."));
+		return;
+	}
+	
+	AbilityTables = AbilitySystemSetting->AbilityDataAsset->AbilityTables;
+	for (auto Table : AbilityTables)
+	{
+		UE_LOG(AbilityManager, Log, TEXT("Subsystem loaded Ability DataTable: %s"), *Table.Key.ToString());
+	}
+	
 }
+
 void UTSAbilityManagerSubSystem::GiveAbilityByTag(UAbilitySystemComponent* ASC, FGameplayTag DesiredTag, FName TableKey, int32 AbilityLevel, int32 InputID) const
 {
 	// 1. ASC, DesiredTag 유효성 검사
@@ -120,6 +151,7 @@ void UTSAbilityManagerSubSystem::ActivateAbilityByTag(UAbilitySystemComponent* A
 	ASC->TryActivateAbility(ASC->GiveAbility(Spec));
 
 }
+
 void UTSAbilityManagerSubSystem::ClearAbilityByTag(UAbilitySystemComponent* ASC, FGameplayTag DesiredTag, FName TableKey, int32 AbilityLevel, int32 InputID) const
 {
 	//1.유효성검사

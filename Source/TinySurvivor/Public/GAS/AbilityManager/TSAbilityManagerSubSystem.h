@@ -5,6 +5,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "TSAbilityManagerSubSystem.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(AbilityManager, Log, All);
+
 struct FGameplayTag;
 class UAbilitySystemComponent;
 class UDataTable;
