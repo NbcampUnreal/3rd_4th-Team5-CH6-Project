@@ -9,6 +9,8 @@
 UGA_Crouch::UGA_Crouch()
 {
 	SpeedHandle.Invalidate();
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	
 }
 
 bool UGA_Crouch::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
