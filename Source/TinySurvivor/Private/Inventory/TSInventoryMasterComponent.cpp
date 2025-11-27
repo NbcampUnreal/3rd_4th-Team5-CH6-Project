@@ -8,6 +8,7 @@
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
 #include "Item/Runtime/DecayManager.h"
+#include "GameplayTags/ItemGameplayTags.h"
 #include "Item/System/WorldItemPoolSubsystem.h"
 
 UTSInventoryMasterComponent::UTSInventoryMasterComponent()
@@ -41,6 +42,22 @@ void UTSInventoryMasterComponent::BeginPlay()
 
 	if (GetOwner()->HasAuthority())
 	{
+		// ■ ItemConsumed
+		//[S]=====================================================================================
+		// Event.Item.Consumed 태그 리스닝
+		UAbilitySystemComponent* ASC = GetASC();
+		if (ASC)
+		{
+			//FGameplayTag ConsumedTag = FGameplayTag::RequestGameplayTag(FName("Event.Item.Consumed"));
+			FGameplayTag ConsumedTag = ItemTags::TAG_Event_Item_Consumed;
+			
+			ASC->GenericGameplayEventCallbacks.FindOrAdd(ConsumedTag).AddUObject(
+				this, &UTSInventoryMasterComponent::OnItemConsumedEvent);
+			
+			UE_LOG(LogTemp, Log, TEXT("Registered Event.Item.Consumed listener"));
+		}
+		//[E]=====================================================================================
+		
 		// 부패도 매니저 OnDecayTick 바인딩
 		UDecayManager* DecayMgr = GetWorld()->GetSubsystem<UDecayManager>();
 		if (DecayMgr)
@@ -379,27 +396,116 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		UE_LOG(LogTemp, Warning, TEXT("UseItem failed: Invalid ItemData for ID=%d"), Slot.ItemData.StaticDataID);
 		return;
 	}
+	
+	// ■ ItemConsumed
+	//[S]=====================================================================================
+	// 원본[S]-------------------------------------------------------
+	// if (ItemInfo.AbilityBP)
+	// {
+	// 	FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
+	// 	FGameplayAbilitySpecHandle Handle = ASC->GiveAbilityAndActivateOnce(Spec);
+	// 	// 어빌리티 활성화 시 진행
+	// 	if (Handle.IsValid())
+	// 	{
+	// 		// 아이템 소비
+	// 		if (ItemInfo.Category != EItemCategory::ARMOR)
+	// 		{
+	// 			// 방어구가 아닌 경우: 소비
+	// 			Slot.CurrentStackSize -= 1;
+	// 			if (Slot.CurrentStackSize <= 0)
+	// 			{
+	// 				ClearSlot(Slot);
+	// 			}
+	// 			UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
+	// 		}
+	// 		else
+	// 		{
+	// 			// 방어구인 경우: 장착
+	// 			UnequipCurrentItem();
+	// 			int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
+	// 			if (TargetSlotIndex == -1)
+	// 			{
+	// 				return;
+	// 			}
+	// 			Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
+	// 			                      EInventoryType::Equipment, TargetSlotIndex, true);
+	// 			EquipArmor(ItemInfo, TargetSlotIndex);
+	// 			UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
+	// 		}
+	// 	}
+	// 	else
+	// 	{
+	// 		UE_LOG(LogTemp, Log, TEXT("Failed to activate ability for item: ID=%d"), Slot.ItemData.StaticDataID);
+	// 	}
+	// }
+	// HandleInventoryChanged();
+	//
+	// // 활성화 슬롯 상태 변경 시 브로드캐스트
+	// if (Slot.CurrentStackSize == 0)
+	// {
+	// 	HandleActiveHotkeyIndexChanged();
+	// }
+	// 원본[E]-------------------------------------------------------
+	
 	if (ItemInfo.AbilityBP)
 	{
+		// ItemInfo.AbilityBP가 존재할 경우, 해당 Ability를 런타임으로 ASC(AbilitySystemComponent)에 추가
 		FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
-		FGameplayAbilitySpecHandle Handle = ASC->GiveAbilityAndActivateOnce(Spec);
-		// 어빌리티 활성화 시 진행
-		if (Handle.IsValid())
+		FGameplayAbilitySpecHandle SpecHandle = ASC->GiveAbility(Spec);
+		if (SpecHandle.IsValid())
 		{
-			// 아이템 소비
-			if (ItemInfo.Category != EItemCategory::ARMOR)
+			if (ItemInfo.Category == EItemCategory::CONSUMABLE)
 			{
-				// 방어구가 아닌 경우: 소비
-				Slot.CurrentStackSize -= 1;
-				if (Slot.CurrentStackSize <= 0)
+				/*
+					여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
+					아이템 Ability를 Add한 직후 곧바로 이벤트 트리거 시도하면 실패해서, 다음 틱에서 트리거하기 위한 구조
+					
+					원래는 GiveAbility 후 즉시 TriggerAbilityFromGameplayEvent하려 했으나,
+					다음 틱(0.01초 뒤)에 TriggerAbilityFromGameplayEvent를 호출.
+					
+					GiveAbility → TriggerAbilityFromGameplayEvent를 같은 틱에서 호출하면,
+					
+					- 문제 1:
+					ASC가 Ability를 아직 InternalList에 제대로 등록하지 않아 실패할 수 있음.
+					부여 직후 즉시 Trigger하면 Activation 실패 가능
+					
+					- 문제 2:
+					AbilityActorInfo 갱신 시점 문제
+					AbilityActorInfo가 업데이트되기 전에 Trigger하면,
+					SpecHandle이 유효하지 않거나 Ability가 검색되지 않는 이슈 발생.
+					
+					따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
+				*/
+				// EventData를 전달하며 활성화
+				// if (!ASC->TriggerAbilityFromGameplayEvent(
+				// 	SpecHandle,
+				// 	ASC->AbilityActorInfo.Get(),
+				// 	ItemTags::TAG_Ability_Item_Consume,
+				// 	&EventData,
+				// 	*ASC))
+				// {
+				// 	UE_LOG(LogTemp, Warning, TEXT("Failed to trigger ability for ItemID: %d"), Slot.ItemData.StaticDataID);
+				// }
+			
+				// 다음 틱에서 트리거
+				FTimerHandle TimerHandle;
+				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ASC, SpecHandle, SlotIndex]()
 				{
-					ClearSlot(Slot);
-				}
-				UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
+					// EventData로 슬롯 인덱스 전달
+					FGameplayEventData EventData;
+					EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
+					EventData.EventMagnitude = static_cast<float>(SlotIndex);
+					EventData.Instigator = ASC->GetOwner();
+					EventData.Target = ASC->GetOwner();
+				
+					ASC->TriggerAbilityFromGameplayEvent(
+						SpecHandle, ASC->AbilityActorInfo.Get(),
+						ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
+				}, 0.01f, false);
 			}
-			else
+			else if (ItemInfo.Category == EItemCategory::ARMOR)
 			{
-				// 방어구인 경우: 장착
+				// 방어구인 경우: 장착, 기존 코드 유지
 				UnequipCurrentItem();
 				int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
 				if (TargetSlotIndex == -1)
@@ -407,7 +513,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 					return;
 				}
 				Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
-				                      EInventoryType::Equipment, TargetSlotIndex, true);
+									  EInventoryType::Equipment, TargetSlotIndex, true);
 				EquipArmor(ItemInfo, TargetSlotIndex);
 				UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
 			}
@@ -417,13 +523,10 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 			UE_LOG(LogTemp, Log, TEXT("Failed to activate ability for item: ID=%d"), Slot.ItemData.StaticDataID);
 		}
 	}
-	HandleInventoryChanged();
 
-	// 활성화 슬롯 상태 변경 시 브로드캐스트
-	if (Slot.CurrentStackSize == 0)
-	{
-		HandleActiveHotkeyIndexChanged();
-	}
+	
+	HandleInventoryChanged();
+	//[E]=====================================================================================
 }
 #pragma endregion
 
@@ -1348,4 +1451,50 @@ void UTSInventoryMasterComponent::HandleActiveHotkeyIndexChanged()
 		UnequipCurrentItem();
 	}
 }
+#pragma endregion
+
+#pragma region OnItemConsumedEvent
+// ■ ItemConsumed
+//[S]=====================================================================================
+void UTSInventoryMasterComponent::OnItemConsumedEvent(const FGameplayEventData* Payload)
+{
+	if (!Payload)
+	{
+		return;
+	}
+	
+	int32 SlotIndex = static_cast<int32>(Payload->EventMagnitude);
+	
+	if (!IsValidSlotIndex(EInventoryType::HotKey, SlotIndex))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid SlotIndex in OnItemConsumedEvent: %d"), SlotIndex);
+		return;
+	}
+	
+	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
+	
+	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
+	{
+		return;
+	}
+	
+	// 아이템 소비
+	Slot.CurrentStackSize -= 1;
+	if (Slot.CurrentStackSize <= 0)
+	{
+		ClearSlot(Slot);
+	}
+	
+	HandleInventoryChanged();
+	
+	// 활성화 슬롯 상태 변경 시 브로드캐스트
+	if (Slot.CurrentStackSize == 0)
+	{
+		HandleActiveHotkeyIndexChanged();
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("Item consumed: SlotIndex=%d, ItemID=%d"), 
+		SlotIndex, Slot.ItemData.StaticDataID);
+}
+//[E]=====================================================================================
 #pragma endregion

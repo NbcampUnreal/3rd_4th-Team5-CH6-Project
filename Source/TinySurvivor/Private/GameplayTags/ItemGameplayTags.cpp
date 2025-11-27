@@ -42,6 +42,28 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Effect_HP_DAMAGE, "Item.Effect.HP_DAMAGE");
 #pragma endregion
 	
+#pragma region Data
+	//========================================
+	// SetByCaller 데이터 전달용 태그
+	//========================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Data, "Data");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_ItemID, "Data.ItemID");
+#pragma endregion
+	
+#pragma region Ability
+	//========================================
+	// 아이템 관련 Ability 태그 정의
+	//========================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Item_Consume, "Ability.Item.Consume");
+#pragma endregion
+	
+#pragma region Event
+	//========================================
+	// 아이템 관련 이벤트 태그 정의
+	//========================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Item_Consumed, "Event.Item.Consumed");
+#pragma endregion
+	
 #pragma region PlacementArea
 	//========================================
 	// 설치 구역 (PlacementArea) 정의

@@ -167,6 +167,14 @@ public:
 		meta = (EditCondition="bDecayEnabled", EditConditionHides,
 			DisplayName="DecayRate (부패 속도)", ToolTip="부패가 진행되는 속도"))
 	float DecayRate;
+	
+	//========================================
+	// 기획 비포함, 개발 편의상 추가
+	// 소모품 아이템용 소비 몽타주
+	//========================================
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Consumable")
+	TSoftObjectPtr<UAnimMontage> ConsumptionMontage;
 };
 #pragma endregion
 
