@@ -449,78 +449,81 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	
 	if (ItemInfo.AbilityBP)
 	{
-		/*
-			여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
-			아이템 Ability를 Add한 직후 곧바로 이벤트 트리거 시도하면 실패해서, 다음 틱에서 트리거하기 위한 구조
-			
-			원래는 GiveAbility 후 즉시 TriggerAbilityFromGameplayEvent하려 했으나,
-			다음 틱(0.01초 뒤)에 TriggerAbilityFromGameplayEvent를 호출.
-			
-			GiveAbility → TriggerAbilityFromGameplayEvent를 같은 틱에서 호출하면,
-			
-			- 문제 1:
-			ASC가 Ability를 아직 InternalList에 제대로 등록하지 않아 실패할 수 있음.
-			부여 직후 즉시 Trigger하면 Activation 실패 가능
-			
-			- 문제 2:
-			AbilityActorInfo 갱신 시점 문제
-			AbilityActorInfo가 업데이트되기 전에 Trigger하면,
-			SpecHandle이 유효하지 않거나 Ability가 검색되지 않는 이슈 발생.
-			
-			따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
-		*/
-		
 		// ItemInfo.AbilityBP가 존재할 경우, 해당 Ability를 런타임으로 ASC(AbilitySystemComponent)에 추가
 		FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
 		FGameplayAbilitySpecHandle SpecHandle = ASC->GiveAbility(Spec);
 		if (SpecHandle.IsValid())
 		{
-			// EventData를 전달하며 활성화
-			// if (!ASC->TriggerAbilityFromGameplayEvent(
-			// 	SpecHandle,
-			// 	ASC->AbilityActorInfo.Get(),
-			// 	ItemTags::TAG_Ability_Item_Consume,
-			// 	&EventData,
-			// 	*ASC))
-			// {
-			// 	UE_LOG(LogTemp, Warning, TEXT("Failed to trigger ability for ItemID: %d"), Slot.ItemData.StaticDataID);
-			// }
-		
-			// 다음 틱에서 트리거
-			FTimerHandle TimerHandle;
-			GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ASC, SpecHandle, SlotIndex]()
+			if (ItemInfo.Category == EItemCategory::CONSUMABLE)
 			{
-				// EventData로 슬롯 인덱스 전달
-				FGameplayEventData EventData;
-				EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
-				EventData.EventMagnitude = static_cast<float>(SlotIndex);
-				EventData.Instigator = ASC->GetOwner();
-				EventData.Target = ASC->GetOwner();
+				/*
+					여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
+					아이템 Ability를 Add한 직후 곧바로 이벤트 트리거 시도하면 실패해서, 다음 틱에서 트리거하기 위한 구조
+					
+					원래는 GiveAbility 후 즉시 TriggerAbilityFromGameplayEvent하려 했으나,
+					다음 틱(0.01초 뒤)에 TriggerAbilityFromGameplayEvent를 호출.
+					
+					GiveAbility → TriggerAbilityFromGameplayEvent를 같은 틱에서 호출하면,
+					
+					- 문제 1:
+					ASC가 Ability를 아직 InternalList에 제대로 등록하지 않아 실패할 수 있음.
+					부여 직후 즉시 Trigger하면 Activation 실패 가능
+					
+					- 문제 2:
+					AbilityActorInfo 갱신 시점 문제
+					AbilityActorInfo가 업데이트되기 전에 Trigger하면,
+					SpecHandle이 유효하지 않거나 Ability가 검색되지 않는 이슈 발생.
+					
+					따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
+				*/
+				// EventData를 전달하며 활성화
+				// if (!ASC->TriggerAbilityFromGameplayEvent(
+				// 	SpecHandle,
+				// 	ASC->AbilityActorInfo.Get(),
+				// 	ItemTags::TAG_Ability_Item_Consume,
+				// 	&EventData,
+				// 	*ASC))
+				// {
+				// 	UE_LOG(LogTemp, Warning, TEXT("Failed to trigger ability for ItemID: %d"), Slot.ItemData.StaticDataID);
+				// }
 			
-				ASC->TriggerAbilityFromGameplayEvent(
-					SpecHandle, ASC->AbilityActorInfo.Get(),
-					ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
-			}, 0.01f, false);
+				// 다음 틱에서 트리거
+				FTimerHandle TimerHandle;
+				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ASC, SpecHandle, SlotIndex]()
+				{
+					// EventData로 슬롯 인덱스 전달
+					FGameplayEventData EventData;
+					EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
+					EventData.EventMagnitude = static_cast<float>(SlotIndex);
+					EventData.Instigator = ASC->GetOwner();
+					EventData.Target = ASC->GetOwner();
+				
+					ASC->TriggerAbilityFromGameplayEvent(
+						SpecHandle, ASC->AbilityActorInfo.Get(),
+						ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
+				}, 0.01f, false);
+			}
+			else if (ItemInfo.Category == EItemCategory::ARMOR)
+			{
+				// 방어구인 경우: 장착, 기존 코드 유지
+				UnequipCurrentItem();
+				int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
+				if (TargetSlotIndex == -1)
+				{
+					return;
+				}
+				Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
+									  EInventoryType::Equipment, TargetSlotIndex, true);
+				EquipArmor(ItemInfo, TargetSlotIndex);
+				UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
+			}
 		}
 		else
 		{
 			UE_LOG(LogTemp, Log, TEXT("Failed to activate ability for item: ID=%d"), Slot.ItemData.StaticDataID);
 		}
 	}
-	else if (ItemInfo.Category == EItemCategory::ARMOR)
-	{
-		// 방어구인 경우: 장착, 기존 코드 유지
-		UnequipCurrentItem();
-		int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
-		if (TargetSlotIndex == -1)
-		{
-			return;
-		}
-		Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
-							  EInventoryType::Equipment, TargetSlotIndex, true);
-		EquipArmor(ItemInfo, TargetSlotIndex);
-		UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
-	}
+
 	
 	HandleInventoryChanged();
 	//[E]=====================================================================================
