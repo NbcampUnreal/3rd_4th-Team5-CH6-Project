@@ -17,7 +17,7 @@ namespace ItemTags
 	//========================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item);
 #pragma endregion
-
+	
 #pragma region HarvestTarget
 	//========================================
 	// 채취 대상 자원 태그 (HarvestTarget)
@@ -52,6 +52,29 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_HP_DAMAGE);			// 체력 감소
 #pragma endregion
 	
+#pragma region Data
+	//========================================
+	// SetByCaller 데이터 전달용 태그
+	// GameplayEffect에서 동적으로 값을 전달받기 위한 태그
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_ItemID);
+#pragma endregion
+	
+#pragma region Ability
+	//========================================
+	// 아이템 관련 Ability 태그
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Item_Consume);
+#pragma endregion
+	
+#pragma region Event
+	//========================================
+	// 아이템 관련 이벤트 태그
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Item_Consumed);
+#pragma endregion
+	
 #pragma region PlacementArea
 	//========================================
 	// 설치 구역 (PlacementArea)
@@ -70,7 +93,7 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource_CRAFTING);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource_STORAGE);
 #pragma endregion
-
+	
 #pragma region Temp
 	//========================================
 	// (임시)
