@@ -139,6 +139,97 @@ void ATSCharacter::InitAbilitySystem()
 		ASC->GetGameplayAttributeValueChangeDelegate(
 			UTSAttributeSet::GetMoveSpeedAttribute()
 		).AddUObject(this, &ATSCharacter::OnMoveSpeedChanged);
+		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		// ■ 추적: Hunger 변경 추적 (서버에서만 로그)
+		ASC->GetGameplayAttributeValueChangeDelegate(
+			UTSAttributeSet::GetHungerAttribute()
+		).AddLambda([this](const FOnAttributeChangeData& Data)
+		{
+			if (HasAuthority())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[서버] Hunger 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+			}
+		});
+		
+		// ■ 추적: Thirst 변경 추적 (서버에서만 로그)
+		ASC->GetGameplayAttributeValueChangeDelegate(
+			UTSAttributeSet::GetThirstAttribute()
+		).AddLambda([this](const FOnAttributeChangeData& Data)
+		{
+			if (HasAuthority())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[서버] Thirst 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+			}
+		});
+		
+		// ■ 추적: Health 변경 추적 (서버에서만 로그)
+		ASC->GetGameplayAttributeValueChangeDelegate(
+			UTSAttributeSet::GetHealthAttribute()
+		).AddLambda([this](const FOnAttributeChangeData& Data)
+		{
+			if (HasAuthority())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[서버] Health 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+			}
+		});
+		
+		// ■ 추적: Sanity 변경 추적 (서버에서만 로그)
+		ASC->GetGameplayAttributeValueChangeDelegate(
+			UTSAttributeSet::GetSanityAttribute()
+		).AddLambda([this](const FOnAttributeChangeData& Data)
+		{
+			if (HasAuthority())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[서버] Sanity 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+			}
+		});
+		
+		// ■ 추적: Temperature 변경 추적 (서버에서만 로그)
+		ASC->GetGameplayAttributeValueChangeDelegate(
+			UTSAttributeSet::GetTemperatureAttribute()
+		).AddLambda([this](const FOnAttributeChangeData& Data)
+		{
+			if (HasAuthority())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[서버] Temperature 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+			}
+		});
+		
+		// ■ 추적: State.Status.Immune.Poison 태그 변화 추적
+		ASC->RegisterGameplayTagEvent(
+			AbilityTags::TAG_State_Status_Immune_Poison, 
+			EGameplayTagEventType::NewOrRemoved
+		).AddLambda([this](const FGameplayTag CallbackTag, int32 NewCount)
+		{
+			// NewCount > 0 : 태그가 적용됨
+			// NewCount == 0 : 태그가 제거됨
+			if (NewCount > 0)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+			}
+		});
+		
+		// ■ 추적: State.Status.Poison 태그 변화 추적
+		ASC->RegisterGameplayTagEvent(
+			AbilityTags::TAG_State_Status_Poison,
+			EGameplayTagEventType::NewOrRemoved
+		).AddLambda([this](const FGameplayTag CallbackTag, int32 NewCount)
+		{
+			if (NewCount > 0)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+			}
+		});
+#endif
 	}
 }
 
@@ -216,6 +307,14 @@ void ATSCharacter::BeginPlay()
 			}
 		}
 	}
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	// TODO: 독 상태이상 디버깅 용도 - 테스트 종료시 반드시 제거
+	// 아직은 테스트 중이라 적용 상태로 올림
+	// 초기 독 상태 태그 추가
+	if (!ASC) return;
+	ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Poison);
+	UE_LOG(LogTemp, Error, TEXT("초기 독 상태 태그 적용!"));
+#endif
 }
 
 void ATSCharacter::Move(const FInputActionValue& Value)
@@ -668,6 +767,58 @@ void ATSCharacter::Tick(float DeltaTime)
 			bIsSwitchingShoulder = false;
 		}
 	}
+	
+	// ■ WASD 태그 관리
+	//[S]=====================================================================================
+	if (ASC && GetCharacterMovement())
+	{
+		// 이동 상태 태그 정의
+		const FGameplayTag WASDTag = AbilityTags::TAG_State_Move_WASD.GetTag();
+		
+		// 태그 유효성 확인
+		if (!WASDTag.IsValid())
+		{
+			UE_LOG(LogTemp, Error, TEXT("[WASD] TAG_State_Move_WASD is INVALID! 태그가 등록되지 않았습니다!"));
+			LineTrace(); // 디버깅용 레이 트레이스
+			return;
+		}
+		
+		// 현재 캐릭터가 해당 태그를 가지고 있는지 확인
+		bool bHasTag = ASC->HasMatchingGameplayTag(WASDTag);
+		
+		// 실제 이동 속도로 이동 여부 판단
+		FVector Velocity = GetVelocity();
+		float Speed2D = Velocity.Size2D();	// Z축 제외, 수평 속도만 계산
+		bool bIsMoving = Speed2D > 1.0f;	// 1.0f 이상이면 이동 중으로 간주
+		
+		// 매 프레임 상태 로그 (디버깅용)
+		// UE_LOG(LogTemp, Warning, TEXT("[WASD Debug] Speed: %.2f | IsMoving: %s | HasTag: %s | ASC Valid: %s"), 
+		// 	Speed2D, 
+		// 	bIsMoving ? TEXT("YES") : TEXT("NO"),
+		// 	bHasTag ? TEXT("YES") : TEXT("NO"),
+		// 	ASC ? TEXT("YES") : TEXT("NO"));
+		
+		if (bIsMoving && !bHasTag)
+		{// 이동 중이고 태그가 없으면 태그 추가
+			ASC->AddLooseGameplayTag(WASDTag);
+			//UE_LOG(LogTemp, Error, TEXT("[WASD] ★★★ 태그 추가됨! Speed: %.2f ★★★"), Speed2D);
+			
+			// 태그가 실제로 추가되었는지 재확인
+			bool bCheckTag = ASC->HasMatchingGameplayTag(WASDTag);
+			//UE_LOG(LogTemp, Error, TEXT("[WASD] 추가 후 재확인: %s"), bCheckTag ? TEXT("성공") : TEXT("실패!"));
+		}
+		else if (!bIsMoving && bHasTag)
+		{// 이동하지 않는데 태그가 있으면 제거
+			ASC->RemoveLooseGameplayTag(WASDTag);
+			//UE_LOG(LogTemp, Error, TEXT("[WASD] ★★★ 태그 제거됨! ★★★"));
+		}
+	}
+	else
+	{// ASC 또는 CharacterMovement가 nullptr이면 에러 로그 출력
+		//UE_LOG(LogTemp, Error, TEXT("[WASD] ASC 또는 CharacterMovement가 nullptr!"));
+	}
+	//[E]=====================================================================================
+	
 	LineTrace();
 }
 
