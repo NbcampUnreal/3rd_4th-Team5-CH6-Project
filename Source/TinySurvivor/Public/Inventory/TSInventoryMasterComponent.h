@@ -22,7 +22,7 @@ struct FEquippedArmor
 	GENERATED_BODY()
 
 	UPROPERTY()
-	EEquipSlot SlotType;
+	EEquipSlot SlotType = EEquipSlot::HEAD;
 
 	UPROPERTY()
 	TObjectPtr<ATSEquippedItem> EquippedArmor = nullptr;
@@ -166,23 +166,24 @@ public:
 	// 아이템 추가/제거
 	// ========================================
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	UFUNCTION(Category = "Inventory")
 	bool AddItem(const FItemInstance& ItemData, int32 Quantity, int32& OutRemainingQuantity);
+	bool AddItem(const int32 StaticDataID, int32 Quantity, int32& OutRemainingQuantity);
 
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	UFUNCTION(Category = "Inventory")
 	bool RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
 
 	// ========================================
 	// 슬롯 조회
 	// ========================================
 
-	UFUNCTION(BlueprintPure, Category = "Inventory")
+	UFUNCTION(BlueprintPure, Category = "Inventory|Search")
 	FSlotStructMaster GetSlot(EInventoryType InventoryType, int32 SlotIndex) const;
 
-	UFUNCTION(BlueprintPure, Category = "Inventory")
+	UFUNCTION(BlueprintPure, Category = "Inventory|Search")
 	bool IsSlotEmpty(EInventoryType InventoryType, int32 SlotIndex) const;
 
-	UFUNCTION(BlueprintPure, Category = "Inventory")
+	UFUNCTION(BlueprintPure, Category = "Inventory|Search")
 	int32 FindEmptySlot(EInventoryType InventoryType) const;
 
 	// ========================================
@@ -226,6 +227,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Hotkey")
 	void UnequipCurrentItem();
+
+	// ========================================
+	// 아이템 검색/소비
+	// ========================================
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Search")
+	int32 GetItemCount(int32 StaticDataID) const;
+	UFUNCTION(BlueprintCallable, Category = "Inventory|Search")
+	void ConsumeItem(int32 StaticDataID, int32 Quantity);
 
 private:
 	// 부패도 매니저 델리게이트 바인딩 함수

@@ -364,7 +364,8 @@ void UWorldItemPoolSubsystem::SwapInstanceToActor(int32 InstanceIndex)
 		
 		if (SpawnedActor)
 		{
-			SpawnedActor->SourceInstanceIndex = InstanceIndex; 
+			// SpawnedActor->SourceInstanceIndex = InstanceIndex;
+			SpawnedActor->SetSourceInstanceIndex(InstanceIndex);
 		}
        
 		// RPC로 클라에게도 숨기라고 명령

@@ -9,71 +9,58 @@ ULootComponent::ULootComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool ULootComponent::SpawnLoot(FTransform& SpawnTransform, const FVector& PlayerLocation, int32& LootNumForResource)
+
+bool ULootComponent::SpawnLoot(FVector TargetLocation)
 {
-	// 서버에서만 실행
-	if (!GetOwner()->HasAuthority()) 
+	if (!GetOwner()->HasAuthority())
 		return false;
-
+	
 	UWorld* World = GetWorld();
-	if (!World) 
-		return false;
-
-	// 풀 서브시스템 가져오기
-	auto* PoolSys = World->GetSubsystem<UWorldItemPoolSubsystem>();
-	if (!PoolSys) 
+	auto* PoolSys = World ? World->GetSubsystem<UWorldItemPoolSubsystem>() : nullptr;
+	if (!PoolSys)
 	{
-		UE_LOG(LogTemp, Error, TEXT("LootComponent: PoolSubsystem Not Found!"));
+		UE_LOG(LogTemp, Error, TEXT("LootComponent : PoolSubsystem not found"));
 		return false;
 	}
 	
-	// 기준 위치
 	FVector OriginLocation = GetOwner()->GetActorLocation();
-	// 가장 가까운 플레이어 찾기
-	FVector TargetPlayerLoc = GetClosestPlayerLocation(OriginLocation);
 	
-	// 드랍 테이블 순회하며 확률 계산
+	// 타겟 위치 결정
+	FVector FinalTargetloc = TargetLocation;
+	if (FinalTargetloc.IsZero())
+	{
+		FinalTargetloc = GetClosestPlayerLocation(OriginLocation);
+	}
+	
 	for (const FLootRule& Rule : LootTable)
 	{
-		// ID 유효성 체크
-		if (Rule.ItemID <= 0) 
+		if (Rule.ItemID <= 0)
 			continue;
-
-		// 확률 체크
+		
 		if (FMath::FRand() <= Rule.DropChance)
 		{
-			// 개수 결정
 			int32 CountToSpawn = FMath::RandRange(Rule.MinCount, Rule.MaxCount);
 			
-			// 자원 원천인 경우 뱉어내는 아이템 수 만큼 보유 수량을 깎아주기
-			LootNumForResource -= CountToSpawn;
-
 			for (int32 i = 0; i < CountToSpawn; i++)
 			{
-				// 아이템 데이터 구성
 				FSlotStructMaster NewItem;
 				NewItem.ItemData.StaticDataID = Rule.ItemID;
-
-				// 위치 약간 흩뿌리기
+				
+				// AddToTranslation 대신 매번 원점에서 새로 계산
 				FVector RandomOffset = FMath::VRand() * FMath::RandRange(0.0f, ScatterRadius);
-				RandomOffset.Z = 50.0f; // 바닥에서 살짝 위
+				RandomOffset.Z = 50.0f;
 				
-				SpawnTransform.AddToTranslation(RandomOffset);
-                
-				FTransform SpawnTrans(SpawnTransform);
-				
-				bool SpawnSuccess = PoolSys->DropItem(NewItem, SpawnTrans, TargetPlayerLoc);
-				if (!SpawnSuccess) 
-					return false;
+				PoolSys->DropItem(NewItem, FTransform(OriginLocation + RandomOffset), TargetLocation);
 			}
 		}
 	}
+	
 	return true;
 }
 
-bool ULootComponent::SpawnSpecificLoot(int32 ItemID, int32 Count)
+bool ULootComponent::SpawnHarvestLoot(FVector TargetLocation, FVector SpawnOriginLocation)
 {
-	if (!GetOwner()->HasAuthority() || Count <= 0 || ItemID <= 0) 
+	if (!GetOwner()->HasAuthority())
 		return false;
 	
 	UWorld* World = GetWorld();
@@ -81,21 +68,41 @@ bool ULootComponent::SpawnSpecificLoot(int32 ItemID, int32 Count)
 	if (!PoolSys)
 		return false;
 	
-	// 기준 위치
-	FVector OriginLocation = GetOwner()->GetActorLocation();
-	// 가장 가까운 플레이어 찾기
-	FVector TargetPlayerLoc = GetClosestPlayerLocation(OriginLocation);
-	
-	for (int32 i = 0; i < Count; i++)
+	FVector OriginLocation = SpawnOriginLocation;
+	if (OriginLocation.IsZero())
 	{
-		FSlotStructMaster NewItem;
-		NewItem.ItemData.StaticDataID = ItemID;
+		OriginLocation = GetOwner()->GetActorLocation();
+	}
+	
+	FVector FinalTargetLoc = TargetLocation;
+	if (FinalTargetLoc.IsZero())
+		FinalTargetLoc = GetClosestPlayerLocation(OriginLocation);
+	
+	// LootTable 순회 (Main[0], Sub[1])
+	for (const FLootRule& Rule : LootTable)
+	{
+		if (Rule.ItemID <= 0)
+			continue;
 		
-		// 위치 약간 흩뿌리기
-		FVector RandomOffset = FMath::VRand() * FMath::RandRange(0.0f, ScatterRadius);
-		RandomOffset.Z = 50.0f; // 바닥에서 살짝 위
-		
-		PoolSys->DropItem(NewItem, FTransform(OriginLocation + RandomOffset), TargetPlayerLoc);
+		// 확률 체크 (Main은 1.0이라 무조건 통과, Sub는 확률에 따라)
+		if (FMath::FRand() <= Rule.DropChance)
+		{
+			// 개수 결정 (Min ~ Max)
+			int32 CountToSpawn = FMath::RandRange(Rule.MinCount, Rule.MaxCount);
+			
+			for (int32 i = 0; i < CountToSpawn; i++)
+			{
+				FSlotStructMaster NewItem;
+				NewItem.ItemData.StaticDataID = Rule.ItemID;
+				
+				FVector Direction = (FinalTargetLoc - OriginLocation).GetSafeNormal();
+				FVector RandomDir = (Direction + FMath::VRand()).GetSafeNormal();
+				FVector RandomOffset = RandomDir * FMath::RandRange(50.0f, ScatterRadius);
+				RandomOffset.Z = 50.0f;
+				
+				PoolSys->DropItem(NewItem, FTransform(OriginLocation + RandomOffset), FinalTargetLoc);
+			}
+		}
 	}
 	
 	return true;

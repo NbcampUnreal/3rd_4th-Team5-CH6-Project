@@ -32,7 +32,9 @@
 //[S]=====================================================================================
 #include "Item/Runtime/DecayManager.h"
 //[E]=====================================================================================
+#if WITH_EDITOR
 #include "IDetailTreeNode.h"
+#endif
 #include "Kismet/GameplayStatics.h"
 
 AWorldItem::AWorldItem()
@@ -291,6 +293,12 @@ void AWorldItem::ActivatePhysicsDrop()
 	// QueryAndPhysics: 충돌 감지와 물리 시뮬레이션 둘 다 활성화
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	// 물리가 적용되려면 Block 속성도 있어야 함
+	MeshComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	
+	// 플레이어와 카메라 채널은 무시하도록 설정
+	MeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	
 	MeshComponent->SetSimulatePhysics(true);
 	
 	// 랜덤한 힘 가하기 (살짝 튀어오르며 퍼지게)
@@ -539,4 +547,15 @@ void AWorldItem::UpdateDebugText()
 	DebugString.Append(FString::Printf(TEXT("\nSrcIdx: %d"), SourceInstanceIndex));
 
 	DebugTextComp->SetText(FText::FromString(DebugString));
+}
+
+// 디버그용
+void AWorldItem::SetSourceInstanceIndex(int32 NewIndex)
+{
+	SourceInstanceIndex = NewIndex;
+	
+	if (HasAuthority())
+	{
+		UpdateDebugText();
+	}
 }

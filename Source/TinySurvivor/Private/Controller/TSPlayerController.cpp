@@ -237,8 +237,7 @@ void ATSPlayerController::ToggleContainer(AActor* ContainerActor)
 	{
 		return;
 	}
-
-	Switcher->SetActiveWidgetIndex(Container);
+	SetContentWidgetIndex(Switcher, EContentWidgetIndex::Container);
 	UWidget* ActiveWidget = Switcher->GetActiveWidget();
 	if (ActiveWidget)
 	{
@@ -258,7 +257,7 @@ void ATSPlayerController::ToggleContainer(AActor* ContainerActor)
 	UpdateInputMode();
 }
 
-void ATSPlayerController::ToggleBuildingMode()
+void ATSPlayerController::ToggleContentsWidget(EContentWidgetIndex NewIndex, AActor* ContainerActor)
 {
 	if (!HUDWidget)
 	{
@@ -272,10 +271,10 @@ void ATSPlayerController::ToggleBuildingMode()
 	}
 	int32 CurrentIndex = Switcher->GetActiveWidgetIndex();
 
-	// 토글: 빌딩모드 ↔ 빈 위젯
-	if (CurrentIndex == BuildingMode)
+	// 토글: 콘텐츠 위젯 ↔ 빈 위젯
+	if (CurrentIndex == static_cast<int32>(NewIndex))
 	{
-		Switcher->SetActiveWidgetIndex(Empty_Content);
+		SetContentWidgetIndex(Switcher, EContentWidgetIndex::Empty_Content);
 	}
 	else
 	{
@@ -283,13 +282,28 @@ void ATSPlayerController::ToggleBuildingMode()
 		{
 			CloseCurrentContainer();
 		}
-		Switcher->SetActiveWidgetIndex(BuildingMode);
-		UWidget* ActiveWidget = Switcher->GetActiveWidget();
-		if (ActiveWidget)
+		SetContentWidgetIndex(Switcher, NewIndex);
+
+		if (ContainerActor)
 		{
-			// TODO : 빌딩모드 관련 내용 추후 업데이트
+			UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
+				CurrentContainer->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+
+			if (ContainerInventory)
+			{
+				UWidget* ActiveWidget = Switcher->GetActiveWidget();
+				if (ActiveWidget)
+				{
+					if (ActiveWidget->Implements<UIWidgetActivation>())
+					{
+						IIWidgetActivation::Execute_SetContainerData(ActiveWidget, ContainerActor, ContainerInventory);
+					}
+				}
+			}
 		}
 	}
+	// 현재 열려있는 위젯이 설정 위젯인지 확인
+	bIsSettingsOpen = Switcher->GetActiveWidgetIndex() == static_cast<int32>(EContentWidgetIndex::Settings);
 
 	UpdateInputMode();
 }
@@ -299,7 +313,7 @@ void ATSPlayerController::HandleEscapeKey()
 	// 1순위: 환경설정이 열려있으면 → 환경설정만 닫기
 	if (bIsSettingsOpen)
 	{
-		CloseSettings();
+		ToggleContentsWidget(EContentWidgetIndex::Settings);
 		return;
 	}
 
@@ -311,46 +325,7 @@ void ATSPlayerController::HandleEscapeKey()
 	}
 
 	// 3순위: 아무것도 안 열려있으면 → 환경설정 열기
-	OpenSettings();
-}
-
-void ATSPlayerController::OpenSettings()
-{
-	if (!HUDWidget)
-	{
-		return;
-	}
-	CloseCurrentContainer();
-	bIsSettingsOpen = true;
-
-	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
-	if (!Switcher)
-	{
-		return;
-	}
-
-	Switcher->SetActiveWidgetIndex(Settings);
-
-	UpdateInputMode();
-}
-
-void ATSPlayerController::CloseSettings()
-{
-	if (!bIsSettingsOpen || !HUDWidget)
-	{
-		return;
-	}
-
-	bIsSettingsOpen = false;
-	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
-	if (!Switcher)
-	{
-		return;
-	}
-
-	Switcher->SetActiveWidgetIndex(Empty_Content);
-
-	UpdateInputMode();
+	ToggleContentsWidget(EContentWidgetIndex::Settings);
 }
 
 void ATSPlayerController::CheckContainerDistance()
@@ -401,9 +376,19 @@ void ATSPlayerController::CloseCurrentContainer()
 	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
 	if (Switcher)
 	{
-		Switcher->SetActiveWidgetIndex(Empty_Content);
+		SetContentWidgetIndex(Switcher, EContentWidgetIndex::Empty_Content);
 	}
 	UpdateInputMode();
+}
+
+void ATSPlayerController::SetContentWidgetIndex(UWidgetSwitcher* Switcher, EContentWidgetIndex NewIndex)
+{
+	if (!Switcher)
+	{
+		return;
+	}
+	int32 Index = static_cast<int32>(NewIndex);
+	Switcher->SetActiveWidgetIndex(Index);
 }
 
 void ATSPlayerController::CloseAllGameUI()
@@ -436,7 +421,7 @@ void ATSPlayerController::CloseAllGameUI()
 
 		if (ContentSwitcher)
 		{
-			ContentSwitcher->SetActiveWidgetIndex(Empty_Content);
+			SetContentWidgetIndex(ContentSwitcher, EContentWidgetIndex::Empty_Content);
 		}
 	}
 
@@ -488,7 +473,8 @@ bool ATSPlayerController::IsAnyUIOpen() const
 		HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content"))
 	);
 
-	if (ContentSwitcher && ContentSwitcher->GetActiveWidgetIndex() != Empty_Content)
+	if (ContentSwitcher && ContentSwitcher->GetActiveWidgetIndex() != static_cast<int32>(
+		EContentWidgetIndex::Empty_Content))
 	{
 		return true;
 	}
@@ -496,7 +482,8 @@ bool ATSPlayerController::IsAnyUIOpen() const
 	return false;
 }
 
-void ATSPlayerController::Client_ReceiveItemChunk_Implementation(const TArray<FSlotStructMaster>& ChunkData, const TArray<FTransform>& ChunkTransforms)
+void ATSPlayerController::Client_ReceiveItemChunk_Implementation(const TArray<FSlotStructMaster>& ChunkData,
+                                                                 const TArray<FTransform>& ChunkTransforms)
 {
 	if (UWorld* World = GetWorld())
 	{

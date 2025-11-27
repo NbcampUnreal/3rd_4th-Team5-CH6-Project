@@ -382,34 +382,48 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	if (ItemInfo.AbilityBP)
 	{
 		FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
-		ASC->GiveAbilityAndActivateOnce(Spec);
-	}
-	// 아이템 소비
-	if (ItemInfo.Category != EItemCategory::ARMOR)
-	{
-		// 방어구가 아닌 경우: 소비
-		Slot.CurrentStackSize -= 1;
-		if (Slot.CurrentStackSize <= 0)
+		FGameplayAbilitySpecHandle Handle = ASC->GiveAbilityAndActivateOnce(Spec);
+		// 어빌리티 활성화 시 진행
+		if (Handle.IsValid())
 		{
-			ClearSlot(Slot);
+			// 아이템 소비
+			if (ItemInfo.Category != EItemCategory::ARMOR)
+			{
+				// 방어구가 아닌 경우: 소비
+				Slot.CurrentStackSize -= 1;
+				if (Slot.CurrentStackSize <= 0)
+				{
+					ClearSlot(Slot);
+				}
+				UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
+			}
+			else
+			{
+				// 방어구인 경우: 장착
+				UnequipCurrentItem();
+				int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
+				if (TargetSlotIndex == -1)
+				{
+					return;
+				}
+				Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
+				                      EInventoryType::Equipment, TargetSlotIndex, true);
+				EquipArmor(ItemInfo, TargetSlotIndex);
+				UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
+			}
 		}
-		UE_LOG(LogTemp, Log, TEXT("Item used: ID=%d"), Slot.ItemData.StaticDataID);
-	}
-	else
-	{
-		// 방어구인 경우: 장착
-		UnequipCurrentItem();
-		int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
-		if (TargetSlotIndex == -1)
+		else
 		{
-			return;
+			UE_LOG(LogTemp, Log, TEXT("Failed to activate ability for item: ID=%d"), Slot.ItemData.StaticDataID);
 		}
-		Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
-		                      EInventoryType::Equipment, TargetSlotIndex, true);
-		EquipArmor(ItemInfo, TargetSlotIndex);
-		UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
 	}
 	HandleInventoryChanged();
+
+	// 활성화 슬롯 상태 변경 시 브로드캐스트
+	if (Slot.CurrentStackSize == 0)
+	{
+		HandleActiveHotkeyIndexChanged();
+	}
 }
 #pragma endregion
 
@@ -620,6 +634,12 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	}
 
 	return OutRemainingQuantity == 0;
+}
+
+bool UTSInventoryMasterComponent::AddItem(const int32 StaticDataID, int32 Quantity, int32& OutRemainingQuantity)
+{
+	FItemInstance ItemData = FItemInstance(StaticDataID, GetWorld()->GetTimeSeconds());
+	return AddItem(ItemData, Quantity, OutRemainingQuantity);
 }
 
 bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
@@ -876,8 +896,75 @@ void UTSInventoryMasterComponent::UnequipCurrentItem()
 	UE_LOG(LogTemp, Log, TEXT("Unequipped: ID=%d"), ActiveSlot.ItemData.StaticDataID);
 }
 
-
 #pragma endregion
+#pragma region Helper - Search/Consumer Item
+int32 UTSInventoryMasterComponent::GetItemCount(int32 StaticDataID) const
+{
+	int32 ResultCount = 0;
+	// 핫키 인벤토리 탐색
+	for (const FSlotStructMaster& Slot : HotkeyInventory.InventorySlotContainer)
+	{
+		if (Slot.ItemData.StaticDataID == StaticDataID)
+		{
+			ResultCount += Slot.CurrentStackSize;
+		}
+	}
+	// 가방 인벤토리 탐색
+	if (GetCurrentBagSlotCount() == 0)
+	{
+		return ResultCount;
+	}
+	for (const FSlotStructMaster& Slot : BagInventory.InventorySlotContainer)
+	{
+		if (Slot.ItemData.StaticDataID == StaticDataID)
+		{
+			ResultCount += Slot.CurrentStackSize;
+		}
+	}
+	return ResultCount;
+}
+
+void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity)
+{
+	// 핫키 인벤토리 탐색
+	for (int32 i = 0; i < HotkeyInventory.InventorySlotContainer.Num(); ++i)
+	{
+		FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[i];
+		if (Slot.ItemData.StaticDataID == StaticDataID)
+		{
+			RemoveItem(EInventoryType::HotKey, i, Quantity);
+			Quantity -= Slot.CurrentStackSize;
+			if (ActiveHotkeyIndex == i)
+			{
+				HandleActiveHotkeyIndexChanged();
+			}
+			if (Quantity <= 0)
+			{
+				break;
+			}
+		}
+	}
+	// 가방 인벤토리 탐색
+	if (GetCurrentBagSlotCount() > 0)
+	{
+		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
+		{
+			FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
+			if (Slot.ItemData.StaticDataID == StaticDataID)
+			{
+				RemoveItem(EInventoryType::BackPack, i, Quantity);
+				Quantity -= Slot.CurrentStackSize;
+				if (Quantity <= 0)
+				{
+					break;
+				}
+			}
+		}
+	}
+	HandleInventoryChanged();
+}
+#pragma endregion
+#pragma region Helper - Decay
 void UTSInventoryMasterComponent::OnDecayTick()
 {
 	ConvertToDecayedItem(EInventoryType::HotKey);
@@ -926,6 +1013,7 @@ void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryT
 		}
 	}
 }
+#pragma endregion
 #pragma region Helper - Slot
 
 void UTSInventoryMasterComponent::ClearSlot(FSlotStructMaster& Slot)

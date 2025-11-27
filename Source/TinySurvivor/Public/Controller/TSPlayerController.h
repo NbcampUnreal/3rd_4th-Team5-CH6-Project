@@ -19,6 +19,17 @@
 enum class EInventoryType : uint8;
 class ATSCharacter;
 struct FSlotStructMaster;
+class UWidgetSwitcher;
+
+UENUM(BlueprintType)
+enum class EContentWidgetIndex : uint8
+{
+	Empty_Content = 0 UMETA(DisplayName="Empty"),
+	Container = 1 UMETA(DisplayName="Container"),
+	CraftingMode = 2 UMETA(DisplayName="Crafting Mode"),
+	BuildingMode = 3 UMETA(DisplayName="Building Mode"),
+	Settings = 4 UMETA(DisplayName="Settings")
+};
 
 UCLASS()
 class TINYSURVIVOR_API ATSPlayerController : public APlayerController
@@ -61,21 +72,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ToggleContainer(AActor* ContainerActor);
 
-	/** 건설 모드 UI 토글 */
+	/** 콘텐츠(빌딩, 크래프팅, 설정) UI 토글 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
-	void ToggleBuildingMode();
+	void ToggleContentsWidget(EContentWidgetIndex NewIndex, AActor* ContainerActor = nullptr);
 
 	/** ESC 키 입력 처리 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void HandleEscapeKey();
-
-	/** 설정 UI 열기 */
-	UFUNCTION(BlueprintCallable, Category = "UI")
-	void OpenSettings();
-
-	/** 설정 UI 닫기 */
-	UFUNCTION(BlueprintCallable, Category = "UI")
-	void CloseSettings();
 
 	/** 현재 열린 컨테이너 닫기 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
@@ -84,6 +87,7 @@ public:
 	/**서버로부터 아이템 데이터 묶음을 수신하는 RPC*/
 	UFUNCTION(Client, Reliable)
 	void Client_ReceiveItemChunk(const TArray<FSlotStructMaster>& ChunkData, const TArray<FTransform>& ChunkTransforms);
+
 protected:
 	//~=============================================================================
 	// Lifecycle Overrides
@@ -131,15 +135,15 @@ private:
 		PlayerInventory = 1
 	};
 
-	enum EContentWidgetIndex
-	{
-		Empty_Content = 0,
-		Container = 1,
-		BuildingMode = 2,
-		CraftingMode = 3,
-		Settings = 4
-	};
-
+	// enum EContentWidgetIndex
+	// {
+	// 	Empty_Content = 0,
+	// 	Container = 1,
+	// 	BuildingMode = 2,
+	// 	CraftingMode = 3,
+	// 	Settings = 4
+	// };
+	void SetContentWidgetIndex(UWidgetSwitcher* Switcher, EContentWidgetIndex NewIndex);
 	//~=============================================================================
 	// Helper Functions
 	//~=============================================================================
