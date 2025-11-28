@@ -38,7 +38,7 @@ void ATSContainer::Interact(ATSCharacter* InstigatorCharacter)
 	{
 		return;
 	}
-	PC->ToggleContainer(this);
+	PC->ToggleContainer(EContentWidgetIndex::Container,this);
 }
 
 bool ATSContainer::RunOnServer()

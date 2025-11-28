@@ -69,7 +69,7 @@ public:
 	FInventoryStructMaster BagInventory;
 
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveHotkeyIndex, BlueprintReadOnly, Category = "Inventory")
-	int32 ActiveHotkeyIndex = -1;
+	int32 ActiveHotkeyIndex = 0;
 
 	// ========================================
 	// 초기 설정
@@ -166,9 +166,8 @@ public:
 	// 아이템 추가/제거
 	// ========================================
 
-	UFUNCTION(Category = "Inventory")
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AddItem(const FItemInstance& ItemData, int32 Quantity, int32& OutRemainingQuantity);
-	bool AddItem(const int32 StaticDataID, int32 Quantity, int32& OutRemainingQuantity);
 
 	UFUNCTION(Category = "Inventory")
 	bool RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
@@ -236,7 +235,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Search")
 	void ConsumeItem(int32 StaticDataID, int32 Quantity);
 
-private:
+protected:
 	// 부패도 매니저 델리게이트 바인딩 함수
 	UFUNCTION()
 	void OnDecayTick();

@@ -3,6 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Character/TSCharacter.h"
 #include "Components/WidgetSwitcher.h"
+#include "Crafting/TSCraftingTable.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "Item/System/WorldItemInstanceSubsystem.h"
 #include "UI/Interface/IWidgetActivation.h"
@@ -110,6 +111,25 @@ bool ATSPlayerController::ServerTransferItem_Validate(AActor* SourceActor,
 	return true;
 }
 
+void ATSPlayerController::ServerRequestCraft_Implementation(ATSCraftingTable* CraftingTable, int32 RecipeID)
+{
+	if (!CraftingTable)
+	{
+		return;
+	}
+	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetPawn());
+	if (!TSCharacter)
+	{
+		return;
+	}
+	CraftingTable->ServerRequestCraft(RecipeID, TSCharacter);
+}
+
+bool ATSPlayerController::ServerRequestCraft_Validate(ATSCraftingTable* CraftingTable, int32 RecipeID)
+{
+	return CraftingTable && RecipeID > 0;
+}
+
 void ATSPlayerController::InitializePlayerHUD()
 {
 	if (HUDWidget)
@@ -206,7 +226,7 @@ void ATSPlayerController::ToggleInventory()
 	}
 }
 
-void ATSPlayerController::ToggleContainer(AActor* ContainerActor)
+void ATSPlayerController::ToggleContainer(EContentWidgetIndex NewIndex, AActor* ContainerActor)
 {
 	if (!HUDWidget || !ContainerActor)
 	{
@@ -237,7 +257,7 @@ void ATSPlayerController::ToggleContainer(AActor* ContainerActor)
 	{
 		return;
 	}
-	SetContentWidgetIndex(Switcher, EContentWidgetIndex::Container);
+	SetContentWidgetIndex(Switcher, NewIndex);
 	UWidget* ActiveWidget = Switcher->GetActiveWidget();
 	if (ActiveWidget)
 	{
@@ -257,7 +277,7 @@ void ATSPlayerController::ToggleContainer(AActor* ContainerActor)
 	UpdateInputMode();
 }
 
-void ATSPlayerController::ToggleContentsWidget(EContentWidgetIndex NewIndex, AActor* ContainerActor)
+void ATSPlayerController::ToggleContentsWidget(EContentWidgetIndex NewIndex)
 {
 	if (!HUDWidget)
 	{
@@ -278,29 +298,7 @@ void ATSPlayerController::ToggleContentsWidget(EContentWidgetIndex NewIndex, AAc
 	}
 	else
 	{
-		if (CurrentContainer)
-		{
-			CloseCurrentContainer();
-		}
 		SetContentWidgetIndex(Switcher, NewIndex);
-
-		if (ContainerActor)
-		{
-			UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
-				CurrentContainer->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
-
-			if (ContainerInventory)
-			{
-				UWidget* ActiveWidget = Switcher->GetActiveWidget();
-				if (ActiveWidget)
-				{
-					if (ActiveWidget->Implements<UIWidgetActivation>())
-					{
-						IIWidgetActivation::Execute_SetContainerData(ActiveWidget, ContainerActor, ContainerInventory);
-					}
-				}
-			}
-		}
 	}
 	// 현재 열려있는 위젯이 설정 위젯인지 확인
 	bIsSettingsOpen = Switcher->GetActiveWidgetIndex() == static_cast<int32>(EContentWidgetIndex::Settings);
