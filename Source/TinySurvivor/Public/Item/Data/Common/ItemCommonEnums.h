@@ -37,6 +37,8 @@ enum class EItemAnimType : uint8
 {
 	NONE          UMETA(DisplayName = "None", ToolTip="애니메이션 없음"),
 	PICK          UMETA(DisplayName = "Pick", ToolTip="곡괭이 타입 도구"),
-	WEAPON_SPEAR  UMETA(DisplayName = "Weapon Spear", ToolTip="창 타입 무기")
+	AXE           UMETA(DisplayName = "Axe", ToolTip="도끼 타입 도구"),
+	WEAPON_SPEAR  UMETA(DisplayName = "Weapon Spear", ToolTip="창 타입 무기"),
+	WEAPON_MELEE  UMETA(DisplayName = "Weapon Melee", ToolTip="근거리 전투용 무기 타입")
 };
 
