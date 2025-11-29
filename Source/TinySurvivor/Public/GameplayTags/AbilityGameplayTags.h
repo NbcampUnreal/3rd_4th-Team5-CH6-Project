@@ -42,7 +42,10 @@ namespace AbilityTags
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Increase_Stamina);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Stamina_Block);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Thirst);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Thirst); // 갈증 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Hunger); // 배고픔 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempHot); // 더위 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempCold); // 추위 상태이상
 	
 	// Poison 관련 태그
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상

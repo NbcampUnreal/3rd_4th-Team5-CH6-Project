@@ -29,9 +29,12 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Move_Jump, "State.Move.Jump");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Move_Climb, "State.Move.Climb");
 	
-	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Increase_Stamina, "State.Increase.Stamina");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Stamina_Block, "State.Stamina.Block");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Thirst, "State.Status.Thirst");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Increase_Stamina, "State.Increase.Stamina"); //스태미나 자동회복
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Stamina_Block, "State.Stamina.Block"); // 스태미나 자동회복 차단
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Thirst, "State.Status.Thirst"); //갈증 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Hunger, "State.Status.Hunger"); //배고픔 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempHot, "State.Status.TempHot"); // 더위 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempCold, "State.Status.TempCold"); // 추위 상태이상
 	
 	// Poison 관련 태그
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Poison, "State.Status.Poison");					// 독 상태이상
