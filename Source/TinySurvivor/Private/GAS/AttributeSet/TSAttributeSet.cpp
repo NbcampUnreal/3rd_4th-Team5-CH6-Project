@@ -25,7 +25,7 @@ UTSAttributeSet::UTSAttributeSet()
 	InitSanity(100.0f);
 	InitMaxSanity(100.0f);
 	
-	InitTemperature(100.f); //36.5??
+	InitTemperature(36.5f); //36.5??
 	InitMaxTemperature(100.0f); //36.5? max는 한 39? 일단 100으로 다 맞춰둠
 	
 	InitMoveSpeed(600.f);
@@ -95,7 +95,65 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 			}
 		}
 	}
-	
+	if (Data.EvaluatedData.Attribute == GetHungerAttribute())
+	{
+		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+		FGameplayTag HungerStatusTag = AbilityTags::TAG_State_Status_Hunger;
+		if (GetHunger() <= 0.0f)
+		{
+			if (!ASC->HasMatchingGameplayTag(HungerStatusTag))
+			{
+				ASC->AddLooseGameplayTag(HungerStatusTag);
+			}
+		}else
+		{
+			if (ASC->HasMatchingGameplayTag(HungerStatusTag))
+			{
+				ASC->RemoveLooseGameplayTag(HungerStatusTag);
+			}
+		}
+	}
+	if (Data.EvaluatedData.Attribute == GetTemperatureAttribute())
+	{
+		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+		FGameplayTag TempHotStatusTag = AbilityTags::TAG_State_Status_TempHot;
+		FGameplayTag TempColdStatusTag = AbilityTags::TAG_State_Status_TempCold;
+		
+		if (GetTemperature() >= 40.0f)
+		{
+			// 더위 상태이상 -> Hot 태그 붙이고 Cold 태그 제거
+			if (!ASC->HasMatchingGameplayTag(TempHotStatusTag))
+			{
+				ASC->AddLooseGameplayTag(TempHotStatusTag);
+			}
+			if (ASC->HasMatchingGameplayTag(TempColdStatusTag))
+			{
+				ASC->RemoveLooseGameplayTag(TempColdStatusTag);
+			}
+		}else if (GetTemperature() <= 30.0f)
+		{
+			// 추위 상태이상 -> Cold 태그 붙이고 Hot 태그 제거 
+			if (!ASC->HasMatchingGameplayTag(TempColdStatusTag))
+			{
+				ASC->AddLooseGameplayTag(TempColdStatusTag);
+			}
+			if (ASC->HasMatchingGameplayTag(TempHotStatusTag))
+			{
+				ASC->RemoveLooseGameplayTag(TempHotStatusTag);
+			}
+		} else //정상 범위면 둘 다 제거
+		{
+			if (ASC->HasMatchingGameplayTag(TempHotStatusTag))
+			{
+				ASC->RemoveLooseGameplayTag(TempHotStatusTag);
+			}
+
+			if (ASC->HasMatchingGameplayTag(TempColdStatusTag))
+			{
+				ASC->RemoveLooseGameplayTag(TempColdStatusTag);
+			}
+		}
+	}
 }
 //***********************************************
 //헬퍼 함수 구현
