@@ -229,10 +229,14 @@ void UGA_ConsumeItem_DualEffect_Base::Multicast_PlayConsumeMontage_Implementatio
 {
 	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Multicast] PlayConsumeMontage 호출 시작"));
 	
-	// if (GetAvatarActorFromActorInfo()->HasAuthority())
-	// {// 서버는 재생하지 않음 (중복 재생 방지)
-	// 	return;
-	// }
+	if (GetAvatarActorFromActorInfo()->HasAuthority())
+	{// 서버는 재생하지 않음 (중복 재생 방지)
+		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Server] Multicast 스킵 (Task가 이미 실행 중)"));
+		return;
+	}
+	
+	// 클라이언트만 여기서 몽타주 재생
+	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Client] Multicast로 몽타주 재생"));
 	
 	if (!Montage)
 	{
@@ -272,6 +276,7 @@ void UGA_ConsumeItem_DualEffect_Base::Multicast_PlayConsumeMontage_Implementatio
 	
 	//=======================================================================
 	// 실제 몽타주 재생
+	// 서버 시작 시간과 현재 시간 차이만큼 건너뛰고 재생
 	//=======================================================================
 	
 	// 1. 현재 클라이언트 시간
@@ -434,21 +439,11 @@ void UGA_ConsumeItem_DualEffect_Base::WaitForConsumption()
 			ConsumeMontage->GetPlayLength(),
 			*GetAvatarActorFromActorInfo()->GetName());
 		
-		/*
-			Multicast RPC는 클라이언트에서만 호출
-			
-			서버는 이미 Montage Task로 애니메이션을 실행하고 있기 때문에,
-			서버에서 Multicast까지 실행하면 몽타주가 중복 재생되어
-			Ability Task가 Interrupt → Ability 취소가 발생할 수 있다.
-			
-			따라서 클라이언트(Non-Authority)에서만 Multicast RPC를 호출
-		*/
-		if (!GetAvatarActorFromActorInfo()->HasAuthority())
-		{// 모든 클라이언트에 몽타주 재생 명령
-			// 서버 기준 시작 시간 전달
-			float ServerStartTime = GetWorld()->GetTimeSeconds();
-			Multicast_PlayConsumeMontage(ConsumeMontage, ServerStartTime);
-		}
+		// 서버 시작 시간 기록
+		float ServerStartTime = GetWorld()->GetTimeSeconds();
+		
+		// Multicast 호출 (모든 클라이언트 + 서버에 전달)
+		Multicast_PlayConsumeMontage(ConsumeMontage, ServerStartTime);
 	}
 	else
 	{
