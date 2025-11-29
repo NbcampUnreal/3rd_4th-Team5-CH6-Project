@@ -101,6 +101,67 @@ void ATSCharacter::PossessedBy(AController* NewController)
 			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
+	
+	if (HungerSpeedEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(HungerSpeedEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	if (HungerHealthEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(HungerHealthEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	if (TempHotEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(TempHotEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	if (TempColdEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(TempColdEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	//테스트 코드 GE_TempHot,GE_TempCold 잘 되는지 테스트 하는 용도
+	// 이 GE는 추후 삭제 예정 (체온 원하는 값으로 override 할 수 있는 GE)
+	// 현재 값 : 30으로 되어있음. 체온에 관한 아이템 적용 되면 삭제할 예정
+	if (TempTESTClass)
+	{
+		FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+		Context.AddSourceObject(this);
+		FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(TempTESTClass, 1.0f, Context);
+		if (Spec.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+		}
+	}
+	// 여기까지 체온 테스트 코드
 }
 
 void ATSCharacter::OnRep_PlayerState()
@@ -629,6 +690,7 @@ void ATSCharacter::OnHotKey0(const struct FInputActionValue& Value)
 void ATSCharacter::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
 {
 	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
+	GetCharacterMovement()->MaxWalkSpeedCrouched = Data.NewValue;
 }
 
 void ATSCharacter::LineTrace()

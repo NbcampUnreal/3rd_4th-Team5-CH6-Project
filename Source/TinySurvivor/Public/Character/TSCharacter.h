@@ -96,15 +96,33 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-#pragma region SurvivalDecay
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SurvivalDecay")
-	TSubclassOf<UGameplayEffect> StaminaIncreaseEffectClass;
+#pragma region SurvivalAttribute
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> StaminaIncreaseEffectClass; // 스태미나 자연 회복용 GE
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SurvivalDecay")
-	TSubclassOf<UGameplayEffect> ThirstDecayEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> ThirstDecayEffectClass; // 갈증 자연 감소용 -> 20초마다 -1
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SurvivalDecay")
-	TSubclassOf<UGameplayEffect> HungerDecayEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> HungerDecayEffectClass; // 배고픔 자연 감소용 -> 30초마다 -1 
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> HungerSpeedEffectClass; // hunger 0 -> 속도 * 0.9
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> HungerHealthEffectClass; // hunger 0 -> 체력 20초당 -1
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> TempHotEffectClass;   // 더위 상태이상 -> 최대 스태미나 * 0.5
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> TempColdEffectClass; // 추위 상태이상 -> 속도 * 0.5 
+	
+	
+	// test -> 체온 상태이상에 따라 GE 적용 되는지 보기 위한 GE 적용 테스트 코드
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> TempTESTClass;
+	
 #pragma endregion
 #pragma region Function
 	// GAS 안쓰는 함수
