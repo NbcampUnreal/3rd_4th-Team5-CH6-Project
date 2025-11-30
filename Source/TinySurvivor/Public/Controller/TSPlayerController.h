@@ -16,6 +16,7 @@
  * - 컨테이너 거리 체크 및 자동 닫기
  */
 
+class UTSCraftingTableInventory;
 class ATSCraftingTable;
 enum class EInventoryType : uint8;
 class ATSCharacter;
@@ -31,6 +32,8 @@ enum class EContentWidgetIndex : uint8
 	BuildingMode = 3 UMETA(DisplayName="Building Mode"),
 	Settings = 4 UMETA(DisplayName="Settings")
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftComplete, int32, SlotIndex);
 
 UCLASS()
 class TINYSURVIVOR_API ATSPlayerController : public APlayerController
@@ -56,7 +59,14 @@ public:
 	/** 제작 요청 서버로 전달 */
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Crafting")
 	void ServerRequestCraft(ATSCraftingTable* CraftingTable, int32 RecipeID);
-
+	/** 제작대 종료 RPC */
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
+	void ServerNotifyCraftingTableClosed(UTSCraftingTableInventory* CraftingInventory);
+	/** 제작 완료 브로드캐스트 RPC */
+	UFUNCTION(Client, Reliable, Category = "Crafting")
+	void ClientNotifyCraftResult(int32 SlotIndex);
+	UPROPERTY(BlueprintAssignable, Category = "Crafting")
+	FOnCraftComplete OnCraftComplete;
 	//~=============================================================================
 	// UI Management
 	//~=============================================================================

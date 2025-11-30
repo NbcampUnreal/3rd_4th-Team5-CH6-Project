@@ -4,6 +4,7 @@
 #include "Character/TSCharacter.h"
 #include "Components/WidgetSwitcher.h"
 #include "Crafting/TSCraftingTable.h"
+#include "Inventory/TSCraftingTableInventory.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "Item/System/WorldItemInstanceSubsystem.h"
 #include "UI/Interface/IWidgetActivation.h"
@@ -71,7 +72,7 @@ void ATSPlayerController::ServerTransferItem_Implementation(AActor* SourceActor,
 		UE_LOG(LogTemp, Warning, TEXT("ServerTransferItemBetweenActors: Missing inventory components"));
 		return;
 	}
-
+	
 	// Internal 함수 호출
 	SourceInventory->Internal_TransferItem(
 		SourceInventory,
@@ -128,6 +129,19 @@ void ATSPlayerController::ServerRequestCraft_Implementation(ATSCraftingTable* Cr
 bool ATSPlayerController::ServerRequestCraft_Validate(ATSCraftingTable* CraftingTable, int32 RecipeID)
 {
 	return CraftingTable && RecipeID > 0;
+}
+
+void ATSPlayerController::ClientNotifyCraftResult_Implementation(int32 SlotIndex)
+{
+	OnCraftComplete.Broadcast(SlotIndex);
+}
+
+void ATSPlayerController::ServerNotifyCraftingTableClosed_Implementation(UTSCraftingTableInventory* CraftingInventory)
+{
+	if (CraftingInventory)
+	{
+		CraftingInventory->OnPlayerClosedUI(this);
+	}
 }
 
 void ATSPlayerController::InitializePlayerHUD()
@@ -374,8 +388,18 @@ void ATSPlayerController::CloseCurrentContainer()
 	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Content")));
 	if (Switcher)
 	{
+		// 컨테이너 UI 닫기
+		UWidget* ActiveWidget = Switcher->GetActiveWidget();
+		if (ActiveWidget)
+		{
+			if (ActiveWidget->Implements<UIWidgetActivation>())
+			{
+				IIWidgetActivation::Execute_OnCloseContainerUI(ActiveWidget);
+			}
+		}
 		SetContentWidgetIndex(Switcher, EContentWidgetIndex::Empty_Content);
 	}
+
 	UpdateInputMode();
 }
 
