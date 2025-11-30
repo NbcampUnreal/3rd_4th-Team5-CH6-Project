@@ -48,4 +48,9 @@ namespace AbilityTags
 	// Input 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Input_HotKey, "Input.HotKey");
+	
+	//================================
+	// Data 관련 태그 정의
+	//================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Damage_Fall, "Data.Damage.Fall");
 }
