@@ -129,7 +129,7 @@ void ATSCraftingTable::StartCrafting(int32 RecipeID, ATSCharacter* InstigatorCha
 	}
 	// 제작대 인벤토리 가방에 제작한 아이템 추가
 	int32 RemainingQuantity = RecipeData.ResultCount;
-	APlayerController* PC = Cast<APlayerController>(InstigatorCharacter->GetController());
+	ATSPlayerController* PC = Cast<ATSPlayerController>(InstigatorCharacter->GetController());
 	if (!PC)
 	{
 		return;
@@ -142,17 +142,5 @@ void ATSCraftingTable::StartCrafting(int32 RecipeID, ATSCharacter* InstigatorCha
 		return;
 	}
 	// 제작 완료 브로드캐스트
-	ClientNotifyCraftResult(SlotIndex);
-}
-
-void ATSCraftingTable::ClientNotifyCraftResult_Implementation(int32 SlotIndex)
-{
-	// 제작 완료 델리게이트 브로드캐스트
-	OnCraftComplete.Broadcast(SlotIndex);
-}
-
-// Called when the game starts or when spawned
-void ATSCraftingTable::BeginPlay()
-{
-	Super::BeginPlay();
+	PC->ClientNotifyCraftResult(SlotIndex);
 }

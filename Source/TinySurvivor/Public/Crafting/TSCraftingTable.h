@@ -10,7 +10,6 @@ class UTSCraftingTableInventory;
 class UCraftingDataSubsystem;
 class ATSCharacter;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftComplete, int32, SlotIndex);
 UCLASS()
 class TINYSURVIVOR_API ATSCraftingTable : public ATSInteractionActorBase
 {
@@ -33,18 +32,9 @@ public:
 	bool CanCraft(int32 RecipeID, ATSCharacter* InstigatorCharacter);
 	UFUNCTION()
 	void StartCrafting(int32 RecipeID, ATSCharacter* InstigatorCharacter);
-	// 제작 완료 브로드캐스트 RPC
-	UFUNCTION(Client, Reliable)
-	void ClientNotifyCraftResult(int32 SlotIndex);
-	
-	UPROPERTY(BlueprintAssignable)
-	FOnCraftComplete OnCraftComplete;
 #pragma endregion
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UTSCraftingTableInventory> CraftingInventory;
 };
