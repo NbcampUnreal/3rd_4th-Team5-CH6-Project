@@ -26,5 +26,8 @@ public:
 	// 컨테이너 데이터 설정
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Container")
 	void SetContainerData(AActor* OwnerActor, UTSInventoryMasterComponent* ContainerInventory);
+	// 컨테이너 UI 닫기
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Container")
+	void OnCloseContainerUI();
 
 };
