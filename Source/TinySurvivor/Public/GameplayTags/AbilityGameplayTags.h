@@ -59,5 +59,10 @@ namespace AbilityTags
 	// Input 관련 태그
 	//================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Input_HotKey);
+	
+	//================================
+	// Data 관련 태그 정의
+	//================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Damage_Fall);
 }
 

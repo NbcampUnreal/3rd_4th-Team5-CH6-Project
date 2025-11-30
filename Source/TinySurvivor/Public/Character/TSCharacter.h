@@ -118,6 +118,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> TempColdEffectClass; // 추위 상태이상 -> 속도 * 0.5 
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> FallDamageEffectClass; // 낙하데미지 GE
 	
 	// test -> 체온 상태이상에 따라 GE 적용 되는지 보기 위한 GE 적용 테스트 코드
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
@@ -162,6 +164,7 @@ protected:
 	
 	
 	virtual void OnMoveSpeedChanged(const FOnAttributeChangeData& Data);
+	virtual void Landed(const FHitResult& Hit) override; //낙하 감지 함수
 #pragma endregion
 		
 #pragma region LineTrace
