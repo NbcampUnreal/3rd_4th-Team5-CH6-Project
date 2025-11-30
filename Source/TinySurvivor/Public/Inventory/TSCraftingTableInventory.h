@@ -37,7 +37,7 @@ public:
 private:
 	// 빈 슬롯 찾기 (없으면 -1 반환)
 	int32 GetUnusedSlot() const;
-	// 플레이어 슬롯 매핑 해제
+	// 플레이어 슬롯 매핑 해제 및 아이템 드랍
 	void ReleasePlayerSlot(APlayerController* PC);
 	
 	// 제작대 고정 슬롯 개수 (최대 동시 접속자 수)

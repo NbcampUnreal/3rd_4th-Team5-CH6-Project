@@ -132,9 +132,12 @@ void UTSCraftingTableInventory::ReleasePlayerSlot(APlayerController* PC)
 	{
 		return;
 	}
-	if (IsSlotEmpty(EInventoryType::BackPack, *SlotIndex))
+	// 슬롯에 아이템이 남아있으면 월드에 드랍
+	if (!IsSlotEmpty(EInventoryType::BackPack, *SlotIndex))
 	{
-		UsedSlot[*SlotIndex] = false;
-		PlayerSlotMap.Remove(PC);
+		const FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[*SlotIndex];
+		ServerDropItemToWorld(EInventoryType::BackPack, *SlotIndex, Slot.CurrentStackSize);
 	}
+	UsedSlot[*SlotIndex] = false;
+	PlayerSlotMap.Remove(PC);
 }
