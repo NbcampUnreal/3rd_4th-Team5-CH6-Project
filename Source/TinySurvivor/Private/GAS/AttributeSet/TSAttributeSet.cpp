@@ -154,6 +154,17 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 			}
 		}
 	}
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
+	{
+		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+		if (GetHealth() <= 0.0f)
+		{
+			/////////////////////////
+			//내 캐릭터 죽는 함수 구현//
+			////////////////////////
+			UE_LOG(LogTemp, Log, TEXT("캐릭터 사망 로직 구현 전 -> 체력 0 이 되어 죽었음 !! 로그만 찍기"));
+		}
+	}
 }
 //***********************************************
 //헬퍼 함수 구현
