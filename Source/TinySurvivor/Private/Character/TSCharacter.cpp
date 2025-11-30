@@ -153,12 +153,12 @@ void ATSCharacter::PossessedBy(AController* NewController)
 	// 현재 값 : 30으로 되어있음. 체온에 관한 아이템 적용 되면 삭제할 예정
 	if (TempTESTClass)
 	{
-		FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
-		Context.AddSourceObject(this);
-		FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(TempTESTClass, 1.0f, Context);
-		if (Spec.IsValid())
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(TempTESTClass, 1, ContextHandle);
+		if (SpecHandle.IsValid())
 		{
-			ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
 	// 여기까지 체온 테스트 코드
@@ -691,6 +691,39 @@ void ATSCharacter::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
 {
 	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
 	GetCharacterMovement()->MaxWalkSpeedCrouched = Data.NewValue;
+}
+
+void ATSCharacter::Landed(const FHitResult& Hit)
+{
+	float FallingSpeed_Z = GetVelocity().Z;
+	Super::Landed(Hit);
+	if (!HasAuthority() || !ASC )
+	{
+		return;
+	}
+	// v=g*t니까 낙하속도가 1000이면 대충 1초 지났을 때부터 데미지 받음
+	// h=1/2 * g * t^2이니까 0.5*10(대충)*1*1 =5미터부터 데미지 받음 -> 너무 빡세면 낙하 기준 속도 올리면 됨 
+	float FallSpeed = FallingSpeed_Z * (-1.0); //낙하속도는 음수라 -1 곱하기 
+	float StandSpeed = 1000.0f; // 데미지 판정 기준 : 속도 1000 이상일때만 데미지 닳도록
+	if ( FallSpeed < StandSpeed)
+	{
+		return; // 살살 떨어졌으니 데미지 없음
+	}
+	float FallDamage = (FallSpeed - StandSpeed) * 0.1; //데미지 공식 아직 미정
+	
+	if (FallDamageEffectClass && FallDamage > 0.0f)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(FallDamageEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			FGameplayTag DamageTag = AbilityTags::TAG_Data_Damage_Fall;
+			SpecHandle.Data.Get()->SetSetByCallerMagnitude(DamageTag, -FallDamage);
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
 }
 
 void ATSCharacter::LineTrace()
