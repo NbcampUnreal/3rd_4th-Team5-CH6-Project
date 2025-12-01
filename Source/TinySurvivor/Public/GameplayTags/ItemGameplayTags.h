@@ -59,6 +59,11 @@ namespace ItemTags
 	//========================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_ItemID);
+	
+	// 무기 스탯 전달용 태그 추가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackDamage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackSpeed);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackRange);
 #pragma endregion
 	
 #pragma region Ability
