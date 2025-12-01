@@ -9,7 +9,11 @@
 #include "Item/Data/ItemData.h"
 #include "Item/Runtime/DecayManager.h"
 #include "GameplayTags/ItemGameplayTags.h"
+#include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Item/System/WorldItemPoolSubsystem.h"
+
+// 로그 카테고리 정의 (이 파일 내에서만 사용)
+DEFINE_LOG_CATEGORY_STATIC(LogInventoryComp, Log, All);
 
 UTSInventoryMasterComponent::UTSInventoryMasterComponent()
 {
@@ -39,6 +43,13 @@ void UTSInventoryMasterComponent::BeginPlay()
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to get ItemDataSubsystem!"));
 	}
+	
+	// WeaponStatEffectClass가 설정되지 않은 경우 출력
+	// 이 클래스가 없으면 무기 장착 시 캐릭터 스탯을 적용할 수 없음
+	if (!WeaponStatEffectClass)
+	{
+		UE_LOG(LogInventoryComp, Warning, TEXT("WeaponStatEffectClass가 설정되지 않았습니다! 무기 스탯이 적용되지 않습니다."));
+	}
 
 	if (GetOwner()->HasAuthority())
 	{
@@ -54,7 +65,7 @@ void UTSInventoryMasterComponent::BeginPlay()
 			ASC->GenericGameplayEventCallbacks.FindOrAdd(ConsumedTag).AddUObject(
 				this, &UTSInventoryMasterComponent::OnItemConsumedEvent);
 			
-			UE_LOG(LogTemp, Log, TEXT("Registered Event.Item.Consumed listener"));
+			UE_LOG(LogInventoryComp, Log, TEXT("Registered Event.Item.Consumed listener"));
 		}
 		//[E]=====================================================================================
 		
@@ -926,71 +937,126 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 		UnequipCurrentItem();
 		return;
 	}
-
+	
 	const FSlotStructMaster& ActiveSlot = HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex];
-
+	
 	if (ActiveSlot.ItemData.StaticDataID == 0 || ActiveSlot.CurrentStackSize <= 0)
 	{
 		UnequipCurrentItem();
 		return;
 	}
-
-	// 서버에서 아이템 장착
-	if (GetOwner()->HasAuthority())
+	
+	// 서버에서만 실행
+	if (!GetOwner()->HasAuthority())
 	{
-		UnequipCurrentItem();
-
-		FItemData ItemInfo;
-		if (!GetItemData(ActiveSlot.ItemData.StaticDataID, ItemInfo))
-		{
-			return;
-		}
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = GetOwner();
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		CurrentEquippedItem = GetWorld()->SpawnActor<ATSEquippedItem>(
-			ATSEquippedItem::StaticClass(), FVector::ZeroVector,
-			FRotator::ZeroRotator, SpawnParams);
-
-		if (UStaticMesh* LoadedMesh = ItemInfo.WorldMesh.LoadSynchronous())
-		{
-			CurrentEquippedItem->SetMesh(LoadedMesh);
-		}
-		ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
-		if (TSCharacter)
-		{
-			CurrentEquippedItem->AttachToComponent(TSCharacter->GetMesh(),
-			                                       FAttachmentTransformRules::SnapToTargetIncludingScale,
-			                                       TEXT("Ws_r"));
-			TSCharacter->SetAnimType(ItemInfo.AnimType);
-		}
+		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("Equipped: ID=%d (Slot %d)"),
-	       ActiveSlot.ItemData.StaticDataID, ActiveHotkeyIndex);
+	
+	UnequipCurrentItem();
+	
+	FItemData ItemInfo;
+	if (!GetItemData(ActiveSlot.ItemData.StaticDataID, ItemInfo))
+	{
+		return;
+	}
+	
+	// 아이템 ID 캐싱 (UnequipCurrentItem에서 사용)
+	CachedEquippedItemID = ActiveSlot.ItemData.StaticDataID;
+		
+	// 무기 스탯 적용 추가
+	if (ItemInfo.Category == EItemCategory::WEAPON)
+	{
+		ApplyWeaponStats(ItemInfo);
+	}
+	
+	// 아이템 액터 생성
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = GetOwner();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
+	CurrentEquippedItem = GetWorld()->SpawnActor<ATSEquippedItem>(
+		ATSEquippedItem::StaticClass(),
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		SpawnParams);
+	
+	if (!CurrentEquippedItem)
+	{
+		UE_LOG(LogInventoryComp, Error, TEXT("장착 아이템 액터 생성 실패"));
+		RemoveWeaponStats(); // 스탯도 다시 제거
+		CachedEquippedItemID = 0;
+		return;
+	}
+	
+	// 메시 설정
+	if (UStaticMesh* LoadedMesh = ItemInfo.WorldMesh.LoadSynchronous())
+	{
+		CurrentEquippedItem->SetMesh(LoadedMesh);
+	}
+	else
+	{
+		UE_LOG(LogInventoryComp, Warning, TEXT("아이템 메시를 찾을 수 없습니다. ID=%d"), ActiveSlot.ItemData.StaticDataID);
+	}
+	
+	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
+	if (TSCharacter)
+	{
+		CurrentEquippedItem->AttachToComponent(
+			TSCharacter->GetMesh(),
+			FAttachmentTransformRules::SnapToTargetIncludingScale,
+			TEXT("Ws_r"));
+		TSCharacter->SetAnimType(ItemInfo.AnimType);
+	}
+	
+	UE_LOG(LogInventoryComp, Log, TEXT("Equipped: ID=%d (Slot %d, Category=%s)"),
+		ActiveSlot.ItemData.StaticDataID, 
+		ActiveHotkeyIndex,
+		*UEnum::GetValueAsString(ItemInfo.Category));
 }
 
 void UTSInventoryMasterComponent::UnequipCurrentItem()
 {
+	/*
+		슬롯 변경 시 (예: 3번 → 1번) ActiveHotkeyIndex가 먼저 갱신되므로
+		GetActiveHotkeySlot()으로 조회하면 이미 새 슬롯(1번)의 정보가 반환됨.
+		따라서 해제되는 아이템(3번)의 ID를 올바르게 로그에 남기기 위해
+		EquipActiveHotkeyItem()에서 장착 시점에 CachedEquippedItemID에 ID를 저장하고,
+		UnequipCurrentItem()에서 캐싱된 값을 사용.
+	*/
+	
 	// 서버에서 아이템 장착 해제
-	if (GetOwner()->HasAuthority())
+	if (!GetOwner()->HasAuthority())
 	{
-		if (CurrentEquippedItem)
-		{
-			CurrentEquippedItem->Destroy();
-			CurrentEquippedItem = nullptr;
-		}
-		ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
-		if (TSCharacter)
-		{
-			TSCharacter->SetAnimType(EItemAnimType::NONE);
-		}
+		return;
 	}
-
-	FSlotStructMaster ActiveSlot = GetActiveHotkeySlot();
-	UE_LOG(LogTemp, Log, TEXT("Unequipped: ID=%d"), ActiveSlot.ItemData.StaticDataID);
+	
+	// 1. 먼저 무기 스탯 제거 (CurrentEquippedItem이 nullptr이 되기 전에)
+	RemoveWeaponStats();
+	
+#if WITH_EDITOR
+	// 2. 로그 출력 (캐싱된 ID 사용)
+	if (CurrentEquippedItem && CachedEquippedItemID != 0)
+	{
+		UE_LOG(LogInventoryComp, Log, TEXT("Unequipped item: ID=%d"), CachedEquippedItemID);
+	}
+#endif
+	
+	// 3. 아이템 제거
+	if (CurrentEquippedItem)
+	{
+		CurrentEquippedItem->Destroy();
+		CurrentEquippedItem = nullptr;
+	}
+	
+	// 4. 캐싱 초기화 (제일 마지막에)
+	CachedEquippedItemID = 0;
+	
+	// 5. 애니메이션 타입 초기화
+	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
+	if (TSCharacter)
+	{
+		TSCharacter->SetAnimType(EItemAnimType::NONE);
+	}
 }
 
 #pragma endregion
@@ -1412,6 +1478,211 @@ void UTSInventoryMasterComponent::RemoveArmorStats(int32 ArmorSlotIndex)
 }
 #pragma endregion
 
+#pragma region Helper - EquipWeapon
+void UTSInventoryMasterComponent::ApplyWeaponStats(const FItemData& ItemInfo)
+{
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("무기 스탯 적용 실패: ASC가 존재하지 않습니다."));
+		return;
+	}
+	
+	if (!WeaponStatEffectClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("WeaponStatEffectClass가 설정되지 않았습니다!"));
+		return;
+	}
+	
+	//=======================================================================
+	// 적용 전 캐릭터 기본 스탯 조회
+	//=======================================================================
+	const UTSAttributeSet* AttrSet = ASC->GetSet<UTSAttributeSet>();
+	if (!AttrSet)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttributeSet을 찾을 수 없습니다!"));
+		return;
+	}
+	
+	// 기존 Base 값 (캐릭터 기본)
+	float CurrentBaseDamage = AttrSet->GetBaseDamage();
+	float CurrentBaseAttackSpeed = AttrSet->GetBaseAttackSpeed();
+	float CurrentBaseAttackRange = AttrSet->GetBaseAttackRange();
+	
+	// 기존 Bonus 값 (적용 전)
+	float CurrentDamageBonus = AttrSet->GetDamageBonus();
+	float CurrentAttackSpeedBonus = AttrSet->GetAttackSpeedBonus();
+	float CurrentAttackRangeBonus = AttrSet->GetAttackRangeBonus();
+	
+#if WITH_EDITOR
+	auto PrintStatLine = [](const FString& Name, float Base, float Bonus, float Total, const FString& Extra = TEXT(""))
+	{
+		UE_LOG(LogInventoryComp, Display, TEXT("%-15s | Base: %6.1f | Bonus: %6.2f | Total: %6.2f %s"),
+			*Name, Base, Bonus, Total, *Extra);
+	};
+	
+	UE_LOG(LogInventoryComp, Display, TEXT("========== 무기 스탯 적용 =========="));
+	UE_LOG(LogInventoryComp, Display, TEXT(">> 적용 전 스탯"));
+	PrintStatLine(TEXT("Damage"), CurrentBaseDamage, CurrentDamageBonus, CurrentBaseDamage + CurrentDamageBonus);
+	PrintStatLine(TEXT("AttackSpeed"), CurrentBaseAttackSpeed, CurrentAttackSpeedBonus, CurrentBaseAttackSpeed * CurrentAttackSpeedBonus);
+	PrintStatLine(TEXT("AttackRange"), CurrentBaseAttackRange, CurrentAttackRangeBonus, CurrentBaseAttackRange * CurrentAttackRangeBonus);
+	
+	UE_LOG(LogInventoryComp, Display, TEXT(">> 무기 스탯"));
+	UE_LOG(LogInventoryComp, Display, TEXT("Damage: %.1f, AttackSpeed: %.1f, AttackRange: %.1f"),
+		ItemInfo.WeaponData.DamageValue, ItemInfo.WeaponData.AttackSpeed, ItemInfo.WeaponData.AttackRange);
+#endif
+	
+	//=======================================================================
+	// GameplayEffect 적용
+	//=======================================================================
+	// GameplayEffect Context 생성
+	FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
+	EffectContext.AddSourceObject(this);
+	
+	// GameplayEffect Spec 생성
+	FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(
+		WeaponStatEffectClass, 1, EffectContext);
+	
+	if (SpecHandle.IsValid())
+	{
+		// SetByCaller로 무기 스탯 전달
+		SpecHandle.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_AttackDamage, ItemInfo.WeaponData.DamageValue);
+		SpecHandle.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_AttackSpeed, ItemInfo.WeaponData.AttackSpeed);
+		SpecHandle.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_AttackRange, ItemInfo.WeaponData.AttackRange);
+		
+		// Effect 적용 및 핸들 저장
+		CurrentWeaponEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		
+		if (CurrentWeaponEffectHandle.IsValid())
+		{
+#if WITH_EDITOR
+			//=======================================================================
+			// 적용 후 스탯 조회
+			//=======================================================================
+			float NewDamageBonus = AttrSet->GetDamageBonus();
+			float NewAttackSpeedBonus = AttrSet->GetAttackSpeedBonus();
+			float NewAttackRangeBonus = AttrSet->GetAttackRangeBonus();
+			
+			UE_LOG(LogInventoryComp, Display, TEXT(">> 적용 후 스탯"));
+			PrintStatLine(TEXT("Damage"), CurrentBaseDamage, NewDamageBonus, CurrentBaseDamage + NewDamageBonus,
+				FString::Printf(TEXT("(+%.2f)"), NewDamageBonus - CurrentDamageBonus));
+			PrintStatLine(TEXT("AttackSpeed"), CurrentBaseAttackSpeed, NewAttackSpeedBonus, CurrentBaseAttackSpeed * NewAttackSpeedBonus,
+				FString::Printf(TEXT("(×%.2f)"), NewAttackSpeedBonus / CurrentAttackSpeedBonus));
+			PrintStatLine(TEXT("AttackRange"), CurrentBaseAttackRange, NewAttackRangeBonus, CurrentBaseAttackRange * NewAttackRangeBonus,
+				FString::Printf(TEXT("(×%.2f)"), NewAttackRangeBonus / CurrentAttackRangeBonus));
+			
+			UE_LOG(LogInventoryComp, Display, TEXT("==================================="));
+			UE_LOG(LogInventoryComp, Log, TEXT("무기 스탯 적용 성공!"));
+#endif
+		}
+		else
+		{
+			UE_LOG(LogInventoryComp, Error, TEXT("무기 스탯 적용 실패!"));
+		}
+	}
+}
+
+void UTSInventoryMasterComponent:: RemoveWeaponStats()
+{
+	// Authority 체크
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	
+	// 핸들이 유효하지 않으면 조기 종료
+	if (!CurrentWeaponEffectHandle.IsValid())
+	{
+		return;
+	}
+	
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC)
+	{
+		UE_LOG(LogInventoryComp, Error, TEXT("무기 스탯 제거 실패: ASC가 존재하지 않습니다."));
+		CurrentWeaponEffectHandle.Invalidate();
+		return;
+	}
+	
+	const UTSAttributeSet* AttrSet = ASC->GetSet<UTSAttributeSet>();
+	if (!AttrSet)
+	{
+		UE_LOG(LogInventoryComp, Error, TEXT("무기 스탯 제거 실패: AttributeSet이 존재하지 않습니다."));
+		CurrentWeaponEffectHandle.Invalidate();
+		return;
+	}
+	
+	//=======================================================================
+	// 제거 전 스탯 조회
+	//=======================================================================
+	
+	// 현재 Base 값 (캐릭터 기본)
+	float CurrentBaseDamage = AttrSet->GetBaseDamage();
+	float CurrentBaseAttackSpeed = AttrSet->GetBaseAttackSpeed();
+	float CurrentBaseAttackRange = AttrSet->GetBaseAttackRange();
+	
+	// 현재 Bonus 값 (현재 적용된 모든 GE의 Bonus 총합 — 무기 GE 포함)
+	float CurrentDamageBonus = AttrSet->GetDamageBonus();
+	float CurrentAttackSpeedBonus = AttrSet->GetAttackSpeedBonus();
+	float CurrentAttackRangeBonus = AttrSet->GetAttackRangeBonus();
+	
+#if WITH_EDITOR
+	auto PrintStatLine = [](const FString& Name, float Base, float Bonus, float Total, const FString& Extra = TEXT(""))
+	{
+		UE_LOG(LogInventoryComp, Display, TEXT("%-15s | Base: %6.1f | Bonus: %6.2f | Total: %6.2f %s"),
+			*Name, Base, Bonus, Total, *Extra);
+	};
+	
+	UE_LOG(LogInventoryComp, Display, TEXT("========== 무기 스탯 제거 =========="));
+	UE_LOG(LogInventoryComp, Display, TEXT(">> 제거 전 스탯 (무기 포함)"));
+	PrintStatLine(TEXT("Damage"), CurrentBaseDamage, CurrentDamageBonus,
+		CurrentBaseDamage + CurrentDamageBonus);
+	PrintStatLine(TEXT("AttackSpeed"), CurrentBaseAttackSpeed, CurrentAttackSpeedBonus,
+		CurrentBaseAttackSpeed * CurrentAttackSpeedBonus);
+	PrintStatLine(TEXT("AttackRange"), CurrentBaseAttackRange, CurrentAttackRangeBonus,
+		CurrentBaseAttackRange * CurrentAttackRangeBonus);
+#endif
+	
+	//=======================================================================
+	// GameplayEffect 제거
+	//=======================================================================
+	bool bRemoved = ASC->RemoveActiveGameplayEffect(CurrentWeaponEffectHandle);
+	CurrentWeaponEffectHandle.Invalidate();
+	
+	if (!bRemoved)
+	{
+		UE_LOG(LogInventoryComp, Warning, TEXT("무기 효과 제거 실패 (이미 제거되었을 수 있음)"));
+		return;
+	}
+	
+	//=======================================================================
+	// 제거 후 스탯 조회
+	//=======================================================================
+	float NewDamageBonus = AttrSet->GetDamageBonus();
+	float NewAttackSpeedBonus = AttrSet->GetAttackSpeedBonus();
+	float NewAttackRangeBonus = AttrSet->GetAttackRangeBonus();
+			
+#if WITH_EDITOR
+	UE_LOG(LogInventoryComp, Display, TEXT(">> 제거 후 스탯"));
+	PrintStatLine(TEXT("Damage"), CurrentBaseDamage, NewDamageBonus,
+		CurrentBaseDamage + NewDamageBonus,
+		FString::Printf(TEXT("(-%.2f)"),
+			CurrentDamageBonus - NewDamageBonus));
+	PrintStatLine(TEXT("AttackSpeed"), CurrentBaseAttackSpeed, NewAttackSpeedBonus,
+		CurrentBaseAttackSpeed * NewAttackSpeedBonus,
+		FString::Printf(TEXT("(÷%.2f)"),
+			CurrentAttackSpeedBonus > 0 ? CurrentAttackSpeedBonus / FMath::Max(NewAttackSpeedBonus, 0.01f) : 1.0f));
+	PrintStatLine(TEXT("AttackRange"), CurrentBaseAttackRange, NewAttackRangeBonus,
+		CurrentBaseAttackRange * NewAttackRangeBonus,
+		FString::Printf(TEXT("(÷%.2f)"),
+			CurrentAttackRangeBonus > 0 ? CurrentAttackRangeBonus / FMath::Max(NewAttackRangeBonus, 0.01f) : 1.0f));
+	
+	UE_LOG(LogInventoryComp, Display, TEXT("==================================="));
+	UE_LOG(LogInventoryComp, Log, TEXT("무기 스탯 이펙트 제거 완료"));
+#endif
+}
+#pragma endregion
+
 #pragma region Helper - ASC
 UAbilitySystemComponent* UTSInventoryMasterComponent::GetASC()
 {
@@ -1463,7 +1734,7 @@ void UTSInventoryMasterComponent::OnItemConsumedEvent(const FGameplayEventData* 
 	
 	if (!IsValidSlotIndex(EInventoryType::HotKey, SlotIndex))
 	{
-		UE_LOG(LogTemp, Error, TEXT("Invalid SlotIndex in OnItemConsumedEvent: %d"), SlotIndex);
+		UE_LOG(LogInventoryComp, Error, TEXT("Invalid SlotIndex in OnItemConsumedEvent: %d"), SlotIndex);
 		return;
 	}
 	
@@ -1489,7 +1760,7 @@ void UTSInventoryMasterComponent::OnItemConsumedEvent(const FGameplayEventData* 
 		HandleActiveHotkeyIndexChanged();
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("Item consumed: SlotIndex=%d, ItemID=%d"), 
+	UE_LOG(LogInventoryComp, Log, TEXT("Item consumed: SlotIndex=%d, ItemID=%d"), 
 		SlotIndex, Slot.ItemData.StaticDataID);
 }
 //[E]=====================================================================================
