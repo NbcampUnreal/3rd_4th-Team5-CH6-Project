@@ -273,14 +273,20 @@ protected:
 	float UpdateDecayPercent(double CurrentExpirationTime, float DecayRate) const;
 
 	// ========================================
-	// 헬퍼 함수 - 방어구 착용
+	// 헬퍼 함수 - 방어구/무기 착용
 	// ========================================
 	UPROPERTY(Replicated)
 	TArray<FEquippedArmor> EquippedArmors;
+	
+	// 방어구 관련
 	int32 FindEquipmentSlot(EEquipSlot ArmorSlot) const;
 	void EquipArmor(const FItemData& ItemInfo, int32 ArmorSlotIndex);
 	void UnequipArmor(int32 ArmorSlotIndex);
 	void RemoveArmorStats(int32 ArmorSlotIndex);
+	
+	// 무기 관련
+	void ApplyWeaponStats(const FItemData& ItemInfo);
+	void RemoveWeaponStats();
 
 	// ========================================
 	// 헬퍼 함수 - ASC
@@ -298,5 +304,22 @@ protected:
 	// GameplayEvent 수신 함수
 	void OnItemConsumedEvent(const FGameplayEventData* Payload);
 	//[E]=====================================================================================
+
+#pragma region WeaponData
+protected:
+	/*
+		현재 장착된 무기의 스탯 이펙트 핸들
+	*/
+	FActiveGameplayEffectHandle CurrentWeaponEffectHandle;
 	
+	/*
+		무기 스탯 적용용 GameplayEffect 클래스
+		블루프린트에서 설정 (GE_WeaponStats_Base를 상속한 BP)
+	*/
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon Stats")
+	TSubclassOf<UGameplayEffect> WeaponStatEffectClass;
+#pragma endregion
+	
+private:
+	int32 CachedEquippedItemID = 0; // 현재 장착된 아이템 ID
 };
