@@ -51,7 +51,7 @@ UGA_ConsumeItem_DualEffect_Base::UGA_ConsumeItem_DualEffect_Base()
 	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Sprint);
 	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Roll);
 	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Jump);
-	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Crouch);
+	//ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Crouch);
 	//ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Combat_Hit); // 예상
 	
 	// Ability 활성화에 필요한 태그
