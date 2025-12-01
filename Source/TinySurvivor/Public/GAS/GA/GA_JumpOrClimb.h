@@ -5,6 +5,7 @@
 #include "GA_JumpOrClimb.generated.h"
 
 class UGameplayEffect;
+class UAnimMontage;
 
 UCLASS()
 class TINYSURVIVOR_API UGA_JumpOrClimb : public UTSGameplayAbilityBase
@@ -36,8 +37,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
 	float EyeHeight = 50.f;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
+	UAnimMontage* MantleMontage; // 마지막에 난간 올라가는 몽타주
+	
 private:
 	FTimerHandle ClimbableCheckTimerHandle;
+	FTimerHandle MantleFinishTimerHandle; // 마지막 난간 끝날 때 호출용 타이머
+	
 	FActiveGameplayEffectHandle CostHandle;
 	
 	//Delegate Handle
