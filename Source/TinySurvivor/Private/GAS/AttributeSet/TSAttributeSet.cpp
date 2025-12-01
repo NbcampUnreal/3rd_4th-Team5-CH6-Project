@@ -30,6 +30,15 @@ UTSAttributeSet::UTSAttributeSet()
 	
 	InitMoveSpeed(600.f);
 	InitMaxMoveSpeed(1000.0f);
+	
+	InitBaseDamage(10.0f);		// 기본 공격력
+	InitDamageBonus(0.0f);		// 무기 추가 공격력 (초기값 0)
+
+	InitBaseAttackSpeed(1.0f);	// 기본 공격속도
+	InitAttackSpeedBonus(1.0f);	// 무기 추가 속도, 적용 전 기본 배율 1
+
+	InitBaseAttackRange(100.0f);	// 기본 공격반경
+	InitAttackRangeBonus(1.0f);	// 무기 추가 반경, 적용 전 기본 배율 1
 }
 //***********************************************
 //복제 설정
@@ -53,6 +62,12 @@ void UTSAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxTemperature, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MoveSpeed, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxMoveSpeed, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseDamage, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DamageBonus, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseAttackSpeed, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AttackSpeedBonus, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseAttackRange, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AttackRangeBonus, COND_None, REPNOTIFY_Always);
 }
 //***********************************************
 //값 변경 전 Clamp
@@ -206,6 +221,19 @@ void UTSAttributeSet::ClampBeforeChange(const FGameplayAttribute& Attribute, flo
 	{
 		NewValue = FMath::Max(1.0f, NewValue);
 	}
+	else if (Attribute == GetBaseDamageAttribute())
+	{// 공격력은 0 이상 가능
+		NewValue = FMath::Max(0.0f, NewValue);
+	}
+	else if (Attribute == GetBaseAttackSpeedAttribute())
+	{// 공격 속도는 0이면 공격 불가이므로 최소 0.01로 제한
+		NewValue = FMath::Max(0.01f, NewValue);
+	}
+	else if (Attribute == GetBaseAttackRangeAttribute())
+	{// 공격 반경도 0이면 공격 불가, 최소 1로 제한
+		NewValue = FMath::Max(1.0f, NewValue);
+	}
+	// Bonus는 음수 허용 (디버프 가능)
 }
 void UTSAttributeSet::ClampAfterEffect(const struct FGameplayEffectModCallbackData& Data)
 {
@@ -295,4 +323,34 @@ void UTSAttributeSet::OnRep_MoveSpeed(const FGameplayAttributeData& OldMoveSpeed
 void UTSAttributeSet::OnRep_MaxMoveSpeed(const FGameplayAttributeData& OldMaxMoveSpeed)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxMoveSpeed, OldMaxMoveSpeed);
+}
+
+void UTSAttributeSet::OnRep_BaseDamage(const FGameplayAttributeData& OldBaseDamage)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, BaseDamage, OldBaseDamage);
+}
+
+void UTSAttributeSet::OnRep_DamageBonus(const FGameplayAttributeData& OldDamageBonus)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DamageBonus, OldDamageBonus);
+}
+
+void UTSAttributeSet::OnRep_BaseAttackSpeed(const FGameplayAttributeData& OldBaseAttackSpeed)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, BaseAttackSpeed, OldBaseAttackSpeed);
+}
+
+void UTSAttributeSet::OnRep_AttackSpeedBonus(const FGameplayAttributeData& OldAttackSpeedBonus)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, AttackSpeedBonus, OldAttackSpeedBonus);
+}
+
+void UTSAttributeSet::OnRep_BaseAttackRange(const FGameplayAttributeData& OldBaseAttackRange)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, BaseAttackRange, OldBaseAttackRange);
+}
+
+void UTSAttributeSet::OnRep_AttackRangeBonus(const FGameplayAttributeData& OldAttackRangeBonus)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, AttackRangeBonus, OldAttackRangeBonus);
 }
