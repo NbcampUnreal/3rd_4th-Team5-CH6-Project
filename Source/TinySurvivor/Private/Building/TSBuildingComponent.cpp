@@ -9,6 +9,7 @@
 #include "Item/System/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 
 // Sets default values for this component's properties
@@ -16,6 +17,16 @@ UTSBuildingComponent::UTSBuildingComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+	SetIsReplicatedByDefault(true);
+}
+
+void UTSBuildingComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UTSBuildingComponent, bIsBuildingMode);
+	DOREPLIFETIME(UTSBuildingComponent, CurrentBuildingDataID);
+	DOREPLIFETIME(UTSBuildingComponent, bCanPlace);
+	DOREPLIFETIME(UTSBuildingComponent, RotationYaw);
 }
 
 // Called when the game starts
@@ -43,21 +54,42 @@ void UTSBuildingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	UpdatePreviewMesh(DeltaTime);
 }
 
-void UTSBuildingComponent::StartBuildingMode(int32 BuildingDataID)
+
+void UTSBuildingComponent::ServerStartBuildingMode_Implementation(int32 BuildingDataID)
 {
 	bIsBuildingMode = true;
 	CurrentBuildingDataID = BuildingDataID;
-	SetComponentTickEnabled(true);
-	CreatePreviewMesh(BuildingDataID);
+
+	// 호스트 플레이어인 경우 로컬에서도 프리뷰 메시 생성
+	if (GetOwner()->GetInstigatorController() && GetOwner()->GetInstigatorController()->IsLocalController())
+	{
+		SetComponentTickEnabled(true);
+		CreatePreviewMesh(BuildingDataID);
+	}
 }
 
-void UTSBuildingComponent::EndBuildingMode()
+bool UTSBuildingComponent::ServerStartBuildingMode_Validate(int32 BuildingDataID)
+{
+	return BuildingDataID > 0;
+}
+
+void UTSBuildingComponent::ServerEndBuildingMode_Implementation()
 {
 	bIsBuildingMode = false;
-	SetComponentTickEnabled(false);
 	bCanPlace = false;
 	CurrentBuildingDataID = 0;
-	DestroyPreviewMesh();
+
+	// 호스트 플레이어인 경우 로컬에서도 프리뷰 메시 해제
+	if (GetOwner()->GetInstigatorController() && GetOwner()->GetInstigatorController()->IsLocalController())
+	{
+		SetComponentTickEnabled(false);
+		DestroyPreviewMesh();
+	}
+}
+
+bool UTSBuildingComponent::ServerEndBuildingMode_Validate()
+{
+	return true;
 }
 
 void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
@@ -83,10 +115,15 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 	// 프리뷰 메시 컴포넌트 생성
 	PreviewMeshComp = NewObject<UStaticMeshComponent>(GetOwner());
 	PreviewMeshComp->RegisterComponent();
-	PreviewMeshComp->AttachToComponent(
-		GetOwner()->GetRootComponent(),
-		FAttachmentTransformRules::KeepRelativeTransform
-	);
+	// PreviewMeshComp->AttachToComponent(
+	// 	GetOwner()->GetRootComponent(),
+	// 	FAttachmentTransformRules::KeepRelativeTransform
+	// );
+
+	// 플레이어 앞쪽에 초기 배치
+	FVector ForwardLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.f;
+	PreviewMeshComp->SetWorldLocation(ForwardLocation);
+
 	PreviewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// 메시 로드
@@ -94,6 +131,12 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 	if (PreviewMesh)
 	{
 		PreviewMeshComp->SetStaticMesh(PreviewMesh);
+	}
+
+	// DynamicMaterial 생성
+	if (PreviewMaterial)
+	{
+		CachedDynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(0, PreviewMaterial);
 	}
 }
 
@@ -109,26 +152,33 @@ void UTSBuildingComponent::DestroyPreviewMesh()
 
 void UTSBuildingComponent::UpdatePreviewMesh(float DeltaTime)
 {
+	// 로컬 플레이어만 실행
+	APlayerController* PC = Cast<APlayerController>(GetOwner()->GetInstigatorController());
+	if (!PC || !PC->IsLocalController())
+	{
+		return;
+	}
+
+
 	FHitResult HitResult = BuildingLineTrace();
 	if (!HitResult.IsValidBlockingHit() || !PreviewMeshComp)
 	{
 		return;
 	}
-	PreviewMeshComp->SetWorldLocation(HitResult.Location);
+	// 위치, 회전 설정
+	LastTransform.SetLocation(HitResult.Location);
+	LastTransform.SetRotation(FRotator(0.f, RotationYaw, 0.f).Quaternion());
+	// 프리뷰 메시 위치 설정
+	PreviewMeshComp->SetWorldTransform(LastTransform);
+	// 설치 가능 여부 검증
 	bCanPlace = ValidatePlacement(HitResult);
-	if (bCanPlace)
+
+	// 설치 가능 여부 변경 시 프리뷰 메시 색상 변경
+	if (bCanPlace != bLastCanPlace && CachedDynamicMaterial)
 	{
-		LastTransform = FTransform(FRotator::ZeroRotator, HitResult.Location);
-	}
-	// 설치 가능 여부로 프리뷰 메시 색상 변경
-	if (PreviewMaterial)
-	{
-		UMaterialInstanceDynamic* DynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(0, PreviewMaterial);
-		if (DynamicMaterial)
-		{
-			DynamicMaterial->SetVectorParameterValue(FName("Color"),
-			                                         bCanPlace ? FLinearColor::Green : FLinearColor::Red);
-		}
+		CachedDynamicMaterial->SetVectorParameterValue(FName("Color"),
+		                                               bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+		bLastCanPlace = bCanPlace;
 	}
 }
 
@@ -207,7 +257,26 @@ void UTSBuildingComponent::ConfirmPlacement()
 		return;
 	}
 	ServerSpawnBuilding(CurrentBuildingDataID, LastTransform);
-	EndBuildingMode();
+	ServerEndBuildingMode();
+}
+
+void UTSBuildingComponent::ServerRotateBuilding_Implementation(float InputValue)
+{
+	if (FMath::Abs(InputValue) < 0.01f)
+	{
+		return;
+	}
+	RotationYaw += FMath::Sign(InputValue) * 30.f;
+	UE_LOG(LogTemp, Error, TEXT("[ROTATE] Input: %f, Current RotationYaw: %f"), InputValue, RotationYaw);
+}
+
+bool UTSBuildingComponent::ServerRotateBuilding_Validate(float InputValue)
+{
+	if (!bIsBuildingMode)
+	{
+		return false;
+	}
+	return true;
 }
 
 void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingDataID, FTransform SpawnTransform)
@@ -310,4 +379,21 @@ bool UTSBuildingComponent::CheckOverlap(const FVector& Location, const FVector& 
 		}
 	}
 	return true;
+}
+
+void UTSBuildingComponent::OnRep_IsBuildingMode()
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnRep_IsBuildingMode called! Role: %d, bIsBuildingMode: %d"),
+	       GetOwnerRole(), bIsBuildingMode);
+	// 클라이언트에서 상태 변경 시 프리뷰 메시 처리
+	if (bIsBuildingMode)
+	{
+		SetComponentTickEnabled(true);
+		CreatePreviewMesh(CurrentBuildingDataID);
+	}
+	else
+	{
+		SetComponentTickEnabled(false);
+		DestroyPreviewMesh();
+	}
 }

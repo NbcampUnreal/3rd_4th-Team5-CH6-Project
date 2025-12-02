@@ -18,18 +18,22 @@ class TINYSURVIVOR_API UTSBuildingComponent : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UTSBuildingComponent();
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	// 위젯에서 호출
-	UFUNCTION(BlueprintCallable, Category = "Building")
-	void StartBuildingMode(int32 BuildingDataID);
-	UFUNCTION(BlueprintCallable, Category = "Building")
-	void EndBuildingMode();
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Building")
+	void ServerStartBuildingMode(int32 BuildingDataID);
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Building")
+	void ServerEndBuildingMode();
 	// 빌딩모드 진입 여부 리턴
 	bool IsBuildingMode() { return bIsBuildingMode; }
 	// 좌클릭으로 설치 확정
 	void ConfirmPlacement();
+	// 건물 회전
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerRotateBuilding(float InputValue);
 
 protected:
 	// Called when the game starts
@@ -58,17 +62,29 @@ private:
 	TEnumAsByte<ECollisionChannel> OverlapChannel = ECC_Pawn;
 
 	// 빌딩 관련 변수
+	UPROPERTY(ReplicatedUsing = OnRep_IsBuildingMode)
 	bool bIsBuildingMode = false;
+	UFUNCTION()
+	void OnRep_IsBuildingMode();
+	UPROPERTY(Replicated)
 	bool bCanPlace = false;
+	UPROPERTY(Replicated)
 	int32 CurrentBuildingDataID = 0;
+	UPROPERTY(Replicated)
+	float RotationYaw = 0.0f;
 
+	// 마지막 유효한 설치 위치
+	FTransform LastTransform;
+	
 	// 프리뷰 메시 관련 변수
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> PreviewMeshComp;
 	UPROPERTY(EditDefaultsOnly)
 	UMaterialInterface* PreviewMaterial;
-	// 마지막 유효한 설치 위치
-	FTransform LastTransform;
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> CachedDynamicMaterial = nullptr;
+    
+	bool bLastCanPlace = false; 
 
 	mutable UItemDataSubsystem* CachedIDS = nullptr;
 };
