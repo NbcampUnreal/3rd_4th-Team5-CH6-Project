@@ -38,11 +38,11 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
 	UFUNCTION()
 	void OnRep_ItemInstance();
 	
-private:
-	void InitializeFromItemData();
+	virtual void InitializeFromItemData();
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")

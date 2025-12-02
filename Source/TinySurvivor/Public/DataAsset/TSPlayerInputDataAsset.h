@@ -73,6 +73,9 @@ public:
 	//RightClickAction (ADS, TorchLight, Item,)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> RightClickAction;
+	//Esc 열려있는 위젯 닫기, 설정창 열기
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> EscAction;
 	
 	///////////// hotkeyInputMappingContext /////////////
 	//HotKey 1 9
