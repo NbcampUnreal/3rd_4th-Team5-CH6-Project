@@ -1,0 +1,1 @@
+#include "AI/Chaser/Task/ChaserFindPatrolPosTask.h"
