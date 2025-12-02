@@ -8,6 +8,8 @@
 #include "Item/Data/Common/ItemCommonEnums.h"
 #include "TSCharacter.generated.h"
 
+class UTSBuildingComponent;
+class UTSInventoryMasterComponent;
 enum class EItemAnimType : uint8;
 class UAbilitySystemComponent;
 class UTSAttributeSet;
@@ -188,13 +190,22 @@ public:
 	
 	bool IsClimbing();
 #pragma endregion
-
+	
+#pragma region Component
+	// 인벤토리 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UTSInventoryMasterComponent> InventoryMasterComponent;
+	// 빌딩 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UTSBuildingComponent> BuildingComponent;
+#pragma endregion
+	
 private:
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerSendHotKeyEvent(int HotKeyIndex);
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable,WithValidation)
 	void ServerSendUseItemEvent();
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable,WithValidation)
 	void ServerInteract(AActor* TargetActor);
 	
 public:	

@@ -17,13 +17,14 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Item/Interface/IInteraction.h"
 #include "GameplayTags/AbilityGameplayTags.h"
 // 테스트 코드
 
+#include "Building/TSBuildingComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Inventory/TSInventoryMasterComponent.h"
 #include "Item/System/WorldItemInstanceSubsystem.h"
 #include "Item/System/WorldItemPoolSubsystem.h"
 #include "Item/WorldItem.h"
@@ -49,6 +50,10 @@ ATSCharacter::ATSCharacter()
 
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+	
+	// 컴포넌트 생성
+	InventoryMasterComponent = CreateDefaultSubobject<UTSInventoryMasterComponent>(TEXT("InventoryComponent"));
+	BuildingComponent = CreateDefaultSubobject<UTSBuildingComponent>(TEXT("BuildingComponent"));
 }
 
 UAbilitySystemComponent* ATSCharacter::GetAbilitySystemComponent() const
@@ -548,6 +553,11 @@ void ATSCharacter::OnSprintCompleted(const struct FInputActionValue& Value)
 void ATSCharacter::OnOpenBag(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("i pressed Open Bag"));
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		return;
+	}
 	if (!IsLocallyControlled()) return;
 	if (ATSPlayerController* TSController = Cast<ATSPlayerController>(Controller))
 	{
@@ -558,17 +568,32 @@ void ATSCharacter::OnOpenBag(const struct FInputActionValue& Value)
 void ATSCharacter::OnBuild(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("b pressed"));
-	const FGameplayTag BuildTag = AbilityTags::TAG_Ability_Interact_Build.GetTag();
-	if (ASC && BuildTag.IsValid())
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
 	{
-		ASC->TryActivateAbilitiesByTag(BuildTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+		return;
 	}
+	// 빌딩 위젯 띄우기
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetController());
+	if (PC)
+	{
+		PC->ToggleContentsWidget(EContentWidgetIndex::BuildingMode);
+	}
+	// const FGameplayTag BuildTag = AbilityTags::TAG_Ability_Interact_Build.GetTag();
+	// if (ASC && BuildTag.IsValid())
+	// {
+	// 	ASC->TryActivateAbilitiesByTag(BuildTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+	// }
 }
 
 void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("e pressed"));
-
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		return;
+	}
 	if (!IsValid(CurrentHitActor.Get()))
 	{
 		return;
@@ -593,6 +618,13 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("l-click pressed"));
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		BuildingComponent->ConfirmPlacement();
+		return;
+	}
+	// 일반 공격	
 	const FGameplayTag LeftClickTag = AbilityTags::TAG_Ability_Interact_LeftClick.GetTag();
 	if (ASC && LeftClickTag.IsValid())
 	{
@@ -603,6 +635,11 @@ void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
 void ATSCharacter::OnRightClick(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("r-click pressed"));
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		return;
+	}
 	ServerSendUseItemEvent();
 	const FGameplayTag RightClickTag = AbilityTags::TAG_Ability_Interact_RightClick.GetTag();
 	if (ASC && RightClickTag.IsValid())
@@ -614,6 +651,11 @@ void ATSCharacter::OnRightClick(const struct FInputActionValue& Value)
 void ATSCharacter::OnPing(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel pressed"));
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		return;
+	}
 	const FGameplayTag PingTag = AbilityTags::TAG_Ability_Interact_Ping.GetTag();
 	if (ASC && PingTag.IsValid())
 	{
@@ -624,6 +666,11 @@ void ATSCharacter::OnPing(const struct FInputActionValue& Value)
 void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Vaule)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel scroll pressed"));
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		return;
+	}
 	// 가스 안쓸거임
 }
 
@@ -798,6 +845,11 @@ bool ATSCharacter::IsClimbing()
 
 void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 {
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		return;
+	}
 	if (!ASC) return;
 	const FGameplayTag EventTag = AbilityTags::TAG_Input_HotKey.GetTag();
 	FGameplayEventData EventData;
@@ -809,6 +861,11 @@ void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 
 	//페이로드 데이터를 사용하여 해당 액터에 대한 능력을 트리거하는데 사용하는 함수. 저는 페이로드라고 안쓰고 EventData로 사용함
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this/*Actor*/, EventTag, EventData/*Payload*/);
+}
+
+bool ATSCharacter::ServerSendHotKeyEvent_Validate(int HotKeyIndex)
+{
+	return HotKeyIndex >= 0 && HotKeyIndex < 10;
 }
 
 void ATSCharacter::ServerSendUseItemEvent_Implementation()
@@ -825,6 +882,11 @@ void ATSCharacter::ServerSendUseItemEvent_Implementation()
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this/*Actor*/, EventTag, EventData/*Payload*/);
 }
 
+bool ATSCharacter::ServerSendUseItemEvent_Validate()
+{
+	return IsValid(ASC);
+}
+
 void ATSCharacter::ServerInteract_Implementation(AActor* TargetActor)
 {
 	if (!IsValid(TargetActor))
@@ -839,6 +901,11 @@ void ATSCharacter::ServerInteract_Implementation(AActor* TargetActor)
 			InteractionInterface->Interact(this);
 		}
 	}
+}
+
+bool ATSCharacter::ServerInteract_Validate(AActor* TargetActor)
+{
+	return IsValid(TargetActor);
 }
 
 void ATSCharacter::Tick(float DeltaTime)
