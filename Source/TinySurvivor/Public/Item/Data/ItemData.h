@@ -50,6 +50,7 @@ public:
 	, AttackSpeed(1.f)
 	, AttackRange(100.f)
 	, MaxDurability(100)
+	, DurabilityLossRate(1.0f)
 	{}
 	
 	// 장착 가능 여부
@@ -76,6 +77,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
 		meta = (DisplayName="MaxDurability (최대 내구도)", ToolTip="무기의 최대 내구도"))
 	int32 MaxDurability;
+	
+	// 내구도 소모량
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="DurabilityLossRate (내구도 소모량)", ToolTip="무기 사용 시 감소하는 내구도 비율"))
+	float DurabilityLossRate;
 };
 #pragma endregion
 
