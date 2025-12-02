@@ -663,15 +663,33 @@ void ATSCharacter::OnPing(const struct FInputActionValue& Value)
 	}
 }
 
-void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Vaule)
+void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel scroll pressed"));
 	// 빌딩 모드인지 확인
 	if (BuildingComponent && BuildingComponent->IsBuildingMode())
 	{
+		BuildingComponent->ServerRotateBuilding(Value.Get<float>());
 		return;
 	}
 	// 가스 안쓸거임
+}
+
+void ATSCharacter::OnEsc(const struct FInputActionValue& Vaule)
+{	
+	UE_LOG(LogTemp, Log, TEXT("wheel scroll pressed"));
+	// 빌딩 모드인지 확인
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		BuildingComponent->ServerEndBuildingMode();
+		return;
+	}
+	// ESC 키 동작 (열린 위젯 닫기 or 설정창 열기)
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetController());
+	if (PC)
+	{
+		PC->HandleEscapeKey();
+	}
 }
 
 void ATSCharacter::OnHotKey1(const struct FInputActionValue& Value)
@@ -1025,6 +1043,8 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnSprintStarted);
 		EnhancedInputComponent->BindAction(InputDataAsset->SprintAction, ETriggerEvent::Completed, this,
 		                                   &ATSCharacter::OnSprintCompleted);
+		EnhancedInputComponent->BindAction(InputDataAsset->EscAction, ETriggerEvent::Started, this,
+										   &ATSCharacter::OnEsc);
 
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey1Action, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnHotKey1);

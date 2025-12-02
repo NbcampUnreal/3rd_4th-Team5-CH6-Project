@@ -151,6 +151,7 @@ protected:
 	void OnRightClick(const struct FInputActionValue& Value); // 얘넨 모르겠다.
 	void OnPing(const struct FInputActionValue& Value);
 	void OnWheelScroll(const struct FInputActionValue& Vaule);
+	void OnEsc(const struct FInputActionValue& Vaule);
 	
 	//hot key 함수들
 	void OnHotKey1(const struct FInputActionValue& Value);
