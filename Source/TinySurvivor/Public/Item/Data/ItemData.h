@@ -91,8 +91,9 @@ struct FToolData
 public:
 	FToolData()
 	: bEquipable(false)
-	, HarvestLevel(1)
-	, SpeedMultiplier(1.0f)
+	, DamageValue(0.f)
+	, AttackSpeed(1.f)
+	, AttackRange(100.f)
 	, MaxDurability(100)
 	, DurabilityLossRate(1.0f)
 	{}
@@ -101,11 +102,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly,
 		meta = (DisplayName="Equipable (장착 가능 여부)", ToolTip="도구를 장착할 수 있는지 여부"))
 	bool bEquipable;
-
-	// 최소 채취 가능 레벨
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="HarvestLevel (최소 채취 가능 레벨)", ToolTip="이 도구로 채취할 수 있는 최소 레벨"))
-	int32 HarvestLevel; 
 	
 	// 채취 대상 태그
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
@@ -113,10 +109,20 @@ public:
 			, DisplayName="HarvestTargetTag (채취 대상 태그)", ToolTip="이 도구로 채취할 수 있는 자원 태그"))
 	FGameplayTagContainer HarvestTargetTag;
 	
-	// 채취 속도 계수
+	// 기본 공격력
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="SpeedMultiplier (채취 속도 계수)", ToolTip="채취 속도에 곱해지는 계수"))
-	float SpeedMultiplier;
+		meta = (DisplayName="DamageValue (기본 공격력)", ToolTip="도구가 가진 기본 공격력 수치"))
+	float DamageValue;
+
+	// 공격과 다음 공격 사이의 딜레이
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="AttackSpeed (공격 속도)", ToolTip="공격 사이의 딜레이(초 단위)"))
+	float AttackSpeed;
+
+	// 공격 사거리
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="AttackRange (공격 사거리)", ToolTip="공격이 유효한 사거리(유닛 단위)"))
+	float AttackRange;
 	
 	// 최대 내구도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
@@ -572,13 +578,16 @@ public:
 		switch(Category)
 		{
 		case EItemCategory::WEAPON:
-			return WeaponData.DamageValue > 0.0f 
-				&& WeaponData.AttackSpeed > 0.0f 
+			return WeaponData.DamageValue > 0.0f
+				&& WeaponData.AttackSpeed > 0.0f
 				&& WeaponData.AttackRange > 0.0f;
 			
 		case EItemCategory::TOOL:
-			return ToolData.HarvestLevel > 0 
-				&& ToolData.SpeedMultiplier > 0.0f;
+			// 주의: Junk Torch 등 공격용이 아닌 도구는 DamageValue=0으로 무기 기능 없음
+			return
+				//ToolData.DamageValue > 0.0f &&
+				ToolData.AttackSpeed > 0.0f
+				&& ToolData.AttackRange > 0.0f;
 			
 		case EItemCategory::CONSUMABLE:
 			return ConsumableData.ConsumptionTime > 0.0f;
