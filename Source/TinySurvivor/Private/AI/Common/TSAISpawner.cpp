@@ -1,8 +1,8 @@
 // TSAISpawner.cpp
 
-#include "AI/TSAISpawner.h"
-#include "AI/Chaser/ChaserCharacter.h"
-#include "AI/TSAIController.h"
+#include "AI/Common/TSAISpawner.h"
+#include "AI/Common/TSAICharacter.h"
+#include "AI/Common/TSAIController.h"
 
 // Sets default values
 ATSAISpawner::ATSAISpawner()
@@ -34,7 +34,7 @@ void ATSAISpawner::OnMonsterDestroyed(AActor* DestroyedActor)
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	
 	// 몬스터 스폰
-	AChaserCharacter* NewMonster = World->SpawnActor<AChaserCharacter>(MonsterClass, GetActorLocation(), GetActorRotation(), SpawnParams);
+	ATSAICharacter* NewMonster = World->SpawnActor<ATSAICharacter>(MonsterClass, GetActorLocation(), GetActorRotation(), SpawnParams);
 	
 	if (NewMonster)
 	{

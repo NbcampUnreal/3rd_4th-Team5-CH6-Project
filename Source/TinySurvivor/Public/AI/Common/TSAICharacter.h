@@ -1,12 +1,17 @@
-// ChaserCharacter.h
+// TSAICharacter.h
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "ChaserCharacter.generated.h"
+#include "AbilitySystemInterface.h"
+#include "AbilitySystemComponent.h"
+#include "AttributeSet.h"
+#include "Item/LootComponent.h"
+#include "AbilitySystemInterface.h"
+#include "TSAICharacter.generated.h"
 
-class ULootComponent;
+class UMonsterAttributeSet;
 
 UENUM(Blueprintable)
 enum class EChaserState : uint8
@@ -18,15 +23,25 @@ enum class EChaserState : uint8
 	Dead
 };
 
-UCLASS()
-class TINYSURVIVOR_API AChaserCharacter : public ACharacter
+UCLASS(Abstract)
+class TINYSURVIVOR_API ATSAICharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 public:
-	AChaserCharacter();
+	ATSAICharacter();
+	
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 protected:
+	// ASC 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	
+	// 스탯 관리자
+	UPROPERTY()
+	TObjectPtr<const UMonsterAttributeSet> AttributeSetBase;
+	
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -41,6 +56,8 @@ public:
 	// 설정값
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	UAnimMontage* AttackMontage;
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	UAnimMontage* RoarMontage;
 	UPROPERTY(EditDefaultsOnly, Category = "Stats")
 	float MaxHealth = 100.0f;
 	

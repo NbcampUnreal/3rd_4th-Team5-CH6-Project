@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "TSAISpawner.generated.h"
 
-class AChaserCharacter;
+class ATSAICharacter;
 
 UCLASS()
 class TINYSURVIVOR_API ATSAISpawner : public AActor
@@ -22,7 +22,7 @@ protected:
 public:	
 	// 스폰할 몬스터 클래스
 	UPROPERTY(EditAnywhere, Category = "Spawner")
-	TSubclassOf<AChaserCharacter> MonsterClass;
+	TSubclassOf<ATSAICharacter> MonsterClass;
 	//배회 반경 (이 스포너를 중심으로 값만큼 돌아다님)
 	UPROPERTY(EditAnywhere, Category = "Spawner")
 	float PatrolRadius = 1500.0f;

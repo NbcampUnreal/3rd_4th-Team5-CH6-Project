@@ -1,18 +1,29 @@
-// ChaserCharacter.cpp
+// TSAICharacter.cpp
 
-#include "AI/Chaser/ChaserCharacter.h"
+#include "AI/Common/TSAICharacter.h"
 #include "Net/UnrealNetwork.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Item/LootComponent.h"
+#include "AbilitySystemComponent.h"
 
-AChaserCharacter::AChaserCharacter()
+ATSAICharacter::ATSAICharacter()
 {
 	bReplicates = true;
+	
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+	
 	LootComponent = CreateDefaultSubobject<ULootComponent>("LootComponent");
 }
 
-void AChaserCharacter::BeginPlay()
+UAbilitySystemComponent* ATSAICharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
+
+void ATSAICharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
@@ -22,13 +33,13 @@ void AChaserCharacter::BeginPlay()
 	}
 }
 
-void AChaserCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+void ATSAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AChaserCharacter, CurrentState);
+	DOREPLIFETIME(ATSAICharacter, CurrentState);
 }
 
-void AChaserCharacter::OnRep_ChaserState()
+void ATSAICharacter::OnRep_ChaserState()
 {
 	if (CurrentState == EChaserState::Chase)
 	{
@@ -40,7 +51,7 @@ void AChaserCharacter::OnRep_ChaserState()
 	}
 }
 
-void AChaserCharacter::PerformAttack()
+void ATSAICharacter::PerformAttack()
 {
 	if (!HasAuthority())
 		return;
@@ -51,7 +62,7 @@ void AChaserCharacter::PerformAttack()
 	Multicast_PlayerAttackMontage();
 }
 
-void AChaserCharacter::Multicast_PlayerAttackMontage_Implementation()
+void ATSAICharacter::Multicast_PlayerAttackMontage_Implementation()
 {
 	if (AttackMontage)
 	{
@@ -59,7 +70,7 @@ void AChaserCharacter::Multicast_PlayerAttackMontage_Implementation()
 	}
 }
 
-float AChaserCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+float ATSAICharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
 	class AController* EventInstigator, AActor* DamageCauser)
 {
 	if (!HasAuthority() || CurrentState == EChaserState::Dead)
@@ -74,7 +85,7 @@ float AChaserCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const
 	return DamageAmount;
 }
 
-void AChaserCharacter::Die()
+void ATSAICharacter::Die()
 {
 	CurrentState = EChaserState::Dead;
 	

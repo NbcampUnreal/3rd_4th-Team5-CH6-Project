@@ -1,6 +1,6 @@
 // TSAIController.cpp
 
-#include "AI/TSAIController.h"
+#include "AI/Common/TSAIController.h"
 #include "GameplayTagContainer.h"
 #include "StateTreeEvents.h"
 #include "Perception/AIPerceptionComponent.h"
