@@ -38,8 +38,9 @@ void FItemData::PrintDebugInfo() const
 		case EItemCategory::TOOL:
 			UE_LOG(LogFItemData, Display, TEXT("ToolData:"));
 			UE_LOG(LogFItemData, Display, TEXT("  Equipable: %s"), ToolData.bEquipable ? TEXT("True") : TEXT("False"));
-			UE_LOG(LogFItemData, Display, TEXT("  HarvestLevel: %d"), ToolData.HarvestLevel);
-			UE_LOG(LogFItemData, Display, TEXT("  SpeedMultiplier: %.2f"), ToolData.SpeedMultiplier);
+			UE_LOG(LogFItemData, Display, TEXT("  DamageValue: %.2f"), ToolData.DamageValue);
+			UE_LOG(LogFItemData, Display, TEXT("  AttackSpeed: %.2f"), ToolData.AttackSpeed);
+			UE_LOG(LogFItemData, Display, TEXT("  AttackRange: %.2f"), ToolData.AttackRange);
 			UE_LOG(LogFItemData, Display, TEXT("  MaxDurability: %d"), ToolData.MaxDurability);
 			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossRate: %.2f"), ToolData.DurabilityLossRate);
 			UE_LOG(LogFItemData, Display, TEXT("  HarvestTargetTag: %s"), *ToolData.HarvestTargetTag.ToString());
