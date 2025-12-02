@@ -18,9 +18,15 @@ ATSInteractionActorBase::ATSInteractionActorBase()
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	// 충돌 설정
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	MeshComponent->SetCollisionObjectType(ECC_WorldDynamic);
 	MeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	// 응답 설정
 	MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	MeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block); // 플레이어 통과 못함
+	MeshComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap); // 오버랩 감지용!
+	MeshComponent->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore); // 지면 트레이스는 무시
 
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
 	InteractionWidget->SetupAttachment(RootComponent);
@@ -44,6 +50,37 @@ void ATSInteractionActorBase::BeginPlay()
 	{
 		InteractionWidget->SetWidgetClass(InteractionWidgetClass);
 	}
+}
+
+void ATSInteractionActorBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	if (!Tags.Contains(FName("BlockBuilding")))
+	{
+		// 빌딩 오버랩 감지용 태그 추가
+		Tags.Add(FName("BlockBuilding"));
+	}
+
+#if WITH_EDITOR
+	// 충돌 설정 디버그 출력
+	if (MeshComponent)
+	{
+		ECollisionEnabled::Type CollisionType = MeshComponent->GetCollisionEnabled();
+		ECollisionChannel ObjectType = MeshComponent->GetCollisionObjectType();
+
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Collision Enabled: %d, ObjectType: %d"),
+		       *GetName(), (int32)CollisionType, (int32)ObjectType);
+
+		UE_LOG(LogTemp, Warning, TEXT("[%s] Response to Pawn: %d"),
+		       *GetName(), (int32)MeshComponent->GetCollisionResponseToChannel(ECC_Pawn));
+	}
+
+	// 태그 출력
+	for (const FName& Tag : Tags)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Has Tag: %s"), *GetName(), *Tag.ToString());
+	}
+#endif
 }
 
 void ATSInteractionActorBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
