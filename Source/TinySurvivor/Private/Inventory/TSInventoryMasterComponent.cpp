@@ -1001,10 +1001,25 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
 	if (TSCharacter)
 	{
-		CurrentEquippedItem->AttachToComponent(
-			TSCharacter->GetMesh(),
-			FAttachmentTransformRules::SnapToTargetIncludingScale,
-			TEXT("Ws_r"));
+		/*
+			캐릭터 파트 요청에 따라 무기만 왼손에 들도록 장착 소켓을 Ws_r에서 Ws_l로 변경.
+			아이템류는 기존과 동일하게 처리되고, 무기만 왼손 장착이 적용.
+		*/
+		if (ItemInfo.Category == EItemCategory::WEAPON)
+		{
+			CurrentEquippedItem->AttachToComponent(
+				TSCharacter->GetMesh(),
+				FAttachmentTransformRules::SnapToTargetIncludingScale,
+				TEXT("Ws_l"));
+		}
+		else
+		{
+			CurrentEquippedItem->AttachToComponent(
+				TSCharacter->GetMesh(),
+				FAttachmentTransformRules::SnapToTargetIncludingScale,
+				TEXT("Ws_r"));
+		}
+		
 		TSCharacter->SetAnimType(ItemInfo.AnimType);
 	}
 	
