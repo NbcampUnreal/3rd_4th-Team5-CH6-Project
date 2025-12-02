@@ -21,6 +21,7 @@ public class TinySurvivor : ModuleRules
 			"NavigationSystem",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
+			"StructUtils",
 			//GAS
 			"GameplayAbilities",
 			"GameplayTags",

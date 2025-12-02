@@ -25,11 +25,13 @@
 #include "Inventory/Struct/TSInventorySlot.h"
 #include "Engine/StreamableManager.h"
 #include "Runtime/DecayManager.h"
+#include "Components/WidgetComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "Item/Interface/IInteraction.h"
 #include "WorldItem.generated.h"
 
 class UStaticMeshComponent;
-class USphereComponent;
+class ATSCharacter;
 
 // ■ Decay
 //[S]=====================================================================================
@@ -37,7 +39,7 @@ class UDecayManager;
 //[E]=====================================================================================
 
 UCLASS()
-class TINYSURVIVOR_API AWorldItem : public APoolableActorBase
+class TINYSURVIVOR_API AWorldItem : public APoolableActorBase, public IIInteraction
 {
 	GENERATED_BODY()
 
@@ -53,8 +55,6 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	USphereComponent* InteractionCollision;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemData, Category = "Item")
 	FSlotStructMaster ItemData;
 
@@ -63,10 +63,6 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_ItemData();
-	UFUNCTION()
-	void OnInteractionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-	void OnInteractionEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
 	void UpdateAppearance();
 	
@@ -92,6 +88,13 @@ protected:
 	//[E]=====================================================================================
 	// 부패 시스템 초기화 헬퍼 함수
 	void InitializeDecaySystem();
+	
+	// 상호작용 UI 위젯
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction")
+	UWidgetComponent* InteractionWidget;
+	// 상호작용 텍스트
+	UPROPERTY(EditAnywhere, Category = "Interaction")
+	FText DefaultInteractionText = FText::FromString(TEXT("상호작용[E]"));
 
 public:
 	// 이 액터가 유래된 HISM 인스턴스 인덱스 (-1이면 순수 액터)
@@ -114,6 +117,14 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	//[E]=====================================================================================
+	
+	// 상호작용 IIteraction 오버라이드
+	virtual void Interact(ATSCharacter* InstigatorCharacter) override;
+	virtual bool CanInteract(ATSCharacter* InstigatorCharacter) override;
+	virtual void ShowInteractionWidget(ATSCharacter* InstigatorCharacter) override;
+	virtual void SetInteractionText(FText InteractionText) override;
+	virtual void HideInteractionWidget() override;
+	virtual bool RunOnServer() override;
 	
 	// 디버그용
 	// 인덱스를 설정하면서 디버그 텍스트도 갱신하는 함수

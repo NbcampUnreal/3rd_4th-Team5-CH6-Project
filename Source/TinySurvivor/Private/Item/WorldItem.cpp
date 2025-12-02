@@ -35,6 +35,10 @@
 #if WITH_EDITOR
 #include "IDetailTreeNode.h"
 #endif
+#include "Character/TSCharacter.h"
+#include "Components/TextBlock.h"
+#include "Inventory/TSInventoryMasterComponent.h"
+#include "Item/System/WorldItemPoolSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 AWorldItem::AWorldItem()
@@ -47,22 +51,12 @@ AWorldItem::AWorldItem()
 	MeshComponent->SetupAttachment(RootComponent);
 	// 시작시 물리 시뮬레이션 비활성화 (풀에서 꺼낼 때 켤 수 있음)
 	MeshComponent->SetSimulatePhysics(false);
-
-	// 상호작용 콜리전 생성 (줍기 감지용)
-	InteractionCollision = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionCollision"));
-	InteractionCollision->SetupAttachment(RootComponent);
-	InteractionCollision->SetSphereRadius(150.0f);	// 줍기 반경 (임시)
-
-	// 생성자에서 콜리전을 비활성화
-	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	InteractionCollision->SetGenerateOverlapEvents(false);
+	MeshComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 	
-	// 오버램 이벤트 바인딩 (서버에서만)
-	if (HasAuthority())
-	{
-		InteractionCollision->OnComponentBeginOverlap.AddDynamic(this, &AWorldItem::OnInteractionOverlap);
-		InteractionCollision->OnComponentBeginOverlap.AddDynamic(this, &AWorldItem::OnInteractionEndOverlap);
-	}
+	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
+	InteractionWidget->SetupAttachment(RootComponent);
+	
+	Tags.AddUnique(FName("BlockBuilding"));
 	
 	// [디버그] 텍스트 렌더 컴포넌트 추가
 	DebugTextComp = CreateDefaultSubobject<UTextRenderComponent>(TEXT("DebugTextComp"));
@@ -97,10 +91,9 @@ void AWorldItem::OnAcquire_Implementation(const int32& IntParam, const FString& 
 		MeshComponent->SetSimulatePhysics(false); 
 	}
 	
-	if (InteractionCollision)
+	if (InteractionWidget)
 	{
-		InteractionCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		InteractionCollision->SetGenerateOverlapEvents(true);
+		InteractionWidget->SetVisibility(false);	
 	}
 	
 	// ■ Decay
@@ -162,18 +155,15 @@ void AWorldItem::OnRelease_Implementation()
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false); // 액터 자체 충돌 끄기
     
-	// 컴포넌트들도 확실하게 끄기
-	if (InteractionCollision)
-	{
-		InteractionCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
-    
 	if (MeshComponent)
 	{
 		MeshComponent->SetStaticMesh(nullptr);
 		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
+	if (InteractionWidget)
+		InteractionWidget->SetVisibility(false);
+	
 	ItemData = FSlotStructMaster();
 	SourceInstanceIndex = -1;
 	
@@ -311,28 +301,6 @@ void AWorldItem::ActivatePhysicsDrop()
 	
 	// 질량 무시하고 즉각적인 힘 적용
 	MeshComponent->AddImpulse(RandomDir * ImpulseStrength, NAME_None, true);
-}
-
-// 플레이어가 줍기 콜리전에 들어왓을 때 서버에서만 호출
-void AWorldItem::OnInteractionOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	// 서버에서만 실행됨
-	// TODO:
-	// 1. OtherActor가 줍기 가능한 플레이어(Pawn)인지 확인
-	// 2. 플레이어라면 줍기 UI 표시 요청 (플레이어 컨트롤러/HUD로 알림)
-	// 3. 플레이어가 줍기 키를 누르면 (이 함수가 아닌 별도 RPC로)
-	// 4.   해당 플레이어의 InventoryComponent->TryAddItem(this->ItemData) 호출
-	// 5.   TryAddItem이 true를 반환하면 (줍기 성공)
-	// 6.      UWorldItemPoolSubsystem* PoolSubsystem = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>();
-	// 7.      PoolSubsystem->ReleaseItemActor(this); // 풀에 반납
-	
-	UE_LOG(LogTemp, Warning, TEXT("AWorldItem overlapped by %s"), *OtherActor->GetName());
-}
-
-void AWorldItem::OnInteractionEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	
 }
 
 // ■ Decay
@@ -547,6 +515,103 @@ void AWorldItem::UpdateDebugText()
 	DebugString.Append(FString::Printf(TEXT("\nSrcIdx: %d"), SourceInstanceIndex));
 
 	DebugTextComp->SetText(FText::FromString(DebugString));
+}
+
+void AWorldItem::Interact(ATSCharacter* InstigatorCharacter)
+{
+	if (!HasAuthority())
+		return;
+	
+	if (!InstigatorCharacter)
+		return;
+	
+	if (ItemData.ItemData.StaticDataID <= 0)
+		return;
+	
+	UTSInventoryMasterComponent* InventoryComp = Cast<UTSInventoryMasterComponent>(
+		InstigatorCharacter->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+	
+	if (!InventoryComp)
+		return;
+	
+	int32 RemainingQuantity = 0;
+	int32 Amount = 1;
+	
+	// 인벤토리 추가 시도
+	bool bCanAdd = InventoryComp->AddItem(ItemData.ItemData, Amount, RemainingQuantity);
+	
+	if (bCanAdd)
+	{
+		if (UWorldItemPoolSubsystem* PoolSys = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>())
+		{
+			PoolSys->ReleaseItemActor(this);
+		}
+		else
+		{
+			Destroy();
+		}
+	}
+}
+
+bool AWorldItem::CanInteract(ATSCharacter* InstigatorCharacter)
+{
+	if (ItemData.ItemData.StaticDataID <= 0)
+		return false;
+	
+	if (IsHidden())
+		return false;
+	
+	if (InstigatorCharacter)
+	{
+		if (InstigatorCharacter->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+void AWorldItem::ShowInteractionWidget(ATSCharacter* InstigatorCharacter)
+{
+	if (!InteractionWidget)
+		return;
+	
+	InteractionWidget->SetVisibility(true);
+	
+	if (CanInteract(InstigatorCharacter))
+	{
+		SetInteractionText(DefaultInteractionText);
+	}
+}
+
+void AWorldItem::SetInteractionText(FText InteractionText)
+{
+	if (!InteractionWidget)
+		return;
+	
+	UUserWidget* Widget = InteractionWidget->GetWidget();
+	if (Widget)
+	{
+		UTextBlock* TextBlock = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("InteractionText")));
+		if (TextBlock)
+		{
+			TextBlock->SetText(InteractionText);
+		}
+	}
+}
+
+void AWorldItem::HideInteractionWidget()
+{
+	if (InteractionWidget)
+	{
+		InteractionWidget->SetVisibility(false);
+	}
+}
+
+bool AWorldItem::RunOnServer()
+{
+	return true;
 }
 
 // 디버그용

@@ -13,7 +13,8 @@
 				"GameplayTags",
 				"GameplayTasks",
 				"ActorPoolManager",
-				"Engine"
+				"Engine",
+				"AIModule"
 			]
 		}
 	],

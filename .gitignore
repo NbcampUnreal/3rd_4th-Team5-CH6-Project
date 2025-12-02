@@ -29,12 +29,10 @@ Saved/
 Content/ThirdParty/
 
 # Plugins 폴더를 추가함으로써 규칙 추가
-/Plugins/*/Binaries/
-/Plugins/*/Intermediate/
-Plugins/Efficien2ca1d1521a94V5/Content
-Plugins/Efficien2ca1d1521a94V5/Resources
-Plugins/rdInst95b84e21fd17V8/Content
-Plugins/rdInst95b84e21fd17V8/Resources
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+Plugins/*/Content/
+Plugins/*/Resources/
 
 # Claude 폴더 제외
 /.claude/
