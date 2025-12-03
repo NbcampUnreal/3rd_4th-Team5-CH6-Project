@@ -33,6 +33,7 @@ void FItemData::PrintDebugInfo() const
 			UE_LOG(LogFItemData, Display, TEXT("  AttackSpeed: %.2f"), WeaponData.AttackSpeed);
 			UE_LOG(LogFItemData, Display, TEXT("  AttackRange: %.2f"), WeaponData.AttackRange);
 			UE_LOG(LogFItemData, Display, TEXT("  MaxDurability: %d"), WeaponData.MaxDurability);
+			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossAmount: %d"), WeaponData.DurabilityLossAmount);
 			break;
 		
 		case EItemCategory::TOOL:
@@ -42,7 +43,7 @@ void FItemData::PrintDebugInfo() const
 			UE_LOG(LogFItemData, Display, TEXT("  AttackSpeed: %.2f"), ToolData.AttackSpeed);
 			UE_LOG(LogFItemData, Display, TEXT("  AttackRange: %.2f"), ToolData.AttackRange);
 			UE_LOG(LogFItemData, Display, TEXT("  MaxDurability: %d"), ToolData.MaxDurability);
-			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossRate: %.2f"), ToolData.DurabilityLossRate);
+			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossAmount: %d"), ToolData.DurabilityLossAmount);
 			UE_LOG(LogFItemData, Display, TEXT("  HarvestTargetTag: %s"), *ToolData.HarvestTargetTag.ToString());
 			break;
 		

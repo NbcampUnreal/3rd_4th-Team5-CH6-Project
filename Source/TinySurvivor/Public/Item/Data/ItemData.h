@@ -50,7 +50,7 @@ public:
 	, AttackSpeed(1.f)
 	, AttackRange(100.f)
 	, MaxDurability(100)
-	, DurabilityLossRate(1.0f)
+	, DurabilityLossAmount(1)
 	{}
 	
 	// 장착 가능 여부
@@ -80,8 +80,8 @@ public:
 	
 	// 내구도 소모량
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="DurabilityLossRate (내구도 소모량)", ToolTip="무기 사용 시 감소하는 내구도 비율"))
-	float DurabilityLossRate;
+		meta = (DisplayName="DurabilityLossAmount (내구도 소모량)", ToolTip="무기 사용 시 감소하는 고정 내구도 값"))
+	int32 DurabilityLossAmount;
 };
 #pragma endregion
 
@@ -101,7 +101,7 @@ public:
 	, AttackSpeed(1.f)
 	, AttackRange(100.f)
 	, MaxDurability(100)
-	, DurabilityLossRate(1.0f)
+	, DurabilityLossAmount(1)
 	{}
 	
 	// 장착 가능 여부
@@ -137,8 +137,8 @@ public:
 	
 	// 내구도 소모량
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="DurabilityLossRate (내구도 소모량)", ToolTip="도구 사용 시 감소하는 내구도 비율"))
-	float DurabilityLossRate;
+		meta = (DisplayName="DurabilityLossAmount (내구도 소모량)", ToolTip="도구 사용 시 감소하는 고정 내구도 값"))
+	int32 DurabilityLossAmount;
 };
 #pragma endregion
 
