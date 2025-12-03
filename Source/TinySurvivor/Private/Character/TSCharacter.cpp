@@ -626,11 +626,7 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 
 void ATSCharacter::OnStopInteract(const struct FInputActionValue& Value)
 {
-	if (IsValid(ASC))
-	{
-		FGameplayEventData EventData;
-		ASC->HandleGameplayEvent(InteractTag::INTERACTTAG_STOPINTERACT, &EventData);
-	}
+	ServerSendStopInteractEvent();
 }
 
 void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
@@ -942,6 +938,15 @@ void ATSCharacter::ServerInteract_Implementation(AActor* TargetActor)
 bool ATSCharacter::ServerInteract_Validate(AActor* TargetActor)
 {
 	return IsValid(TargetActor);
+}
+
+void ATSCharacter::ServerSendStopInteractEvent_Implementation()
+{
+	if (IsValid(ASC))
+	{
+		FGameplayEventData EventData;
+		ASC->HandleGameplayEvent(InteractTag::INTERACTTAG_STOPINTERACT, &EventData);
+	}
 }
 
 void ATSCharacter::Tick(float DeltaTime)

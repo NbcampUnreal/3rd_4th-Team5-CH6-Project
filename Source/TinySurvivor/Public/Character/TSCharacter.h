@@ -210,6 +210,8 @@ private:
 	void ServerSendUseItemEvent();
 	UFUNCTION(Server, Reliable,WithValidation)
 	void ServerInteract(AActor* TargetActor);
+	UFUNCTION(Server, Reliable)
+	void ServerSendStopInteractEvent();
 	
 public:	
 	virtual void Tick(float DeltaTime) override;
