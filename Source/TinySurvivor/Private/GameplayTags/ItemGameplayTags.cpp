@@ -67,6 +67,8 @@ namespace ItemTags
 	// 아이템 관련 이벤트 태그 정의
 	//========================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Item_Consumed, "Event.Item.Consumed");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Item_Tool_Harvest, "Event.Item.Tool.Harvest");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Item_Weapon_Attack, "Event.Item.Weapon.Attack");
 #pragma endregion
 	
 #pragma region PlacementArea

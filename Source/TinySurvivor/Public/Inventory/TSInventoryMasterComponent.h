@@ -287,7 +287,17 @@ protected:
 	// 무기 관련
 	void ApplyWeaponStats(const FItemData& ItemInfo);
 	void RemoveWeaponStats();
-
+	
+	// 무기 사용 이벤트 수신 함수
+	void OnWeaponAttackEvent(const FGameplayEventData* Payload);
+	
+	// 도구 관련
+	void ApplyToolTags(const FItemData& ItemInfo);
+	void RemoveToolTags();
+	
+	// 도구 사용 이벤트 수신 함수
+	void OnToolHarvestEvent(const FGameplayEventData* Payload);
+	
 	// ========================================
 	// 헬퍼 함수 - ASC
 	// ========================================
