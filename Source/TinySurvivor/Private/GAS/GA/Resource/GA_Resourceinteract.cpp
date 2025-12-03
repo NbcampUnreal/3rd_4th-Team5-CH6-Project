@@ -14,6 +14,7 @@
 UGA_Resourceinteract::UGA_Resourceinteract()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	UE_LOG(LogTemp, Warning, TEXT("자원 채취 시작"));
 }
 
