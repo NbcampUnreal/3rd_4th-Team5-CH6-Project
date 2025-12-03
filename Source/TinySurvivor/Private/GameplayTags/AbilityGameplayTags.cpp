@@ -53,4 +53,9 @@ namespace AbilityTags
 	// Data 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Damage_Fall, "Data.Damage.Fall");
+	
+	//================================
+	// Event 관련 태그 (몽타주 노티파이 등)
+	//================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Montage_HitCheck, "Event.Montage.HitCheck");
 }

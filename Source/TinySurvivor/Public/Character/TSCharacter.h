@@ -82,7 +82,8 @@ private:
 
 #pragma region Animation
 public:
-	EItemAnimType AnimType = EItemAnimType::NONE;
+	UPROPERTY(Replicated, EditAnywhere, Category = "Animation")
+	EItemAnimType AnimType = EItemAnimType::AXE;
 	
 	UFUNCTION(BlueprintPure, Category = "Animation")
 	EItemAnimType GetAnimType() const	{
@@ -93,6 +94,7 @@ public:
 	{
 		this->AnimType = ItemAnimType;
 	}
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 	
 protected:
@@ -212,30 +214,4 @@ private:
 public:	
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
-#pragma region Test
-	// [TEST] 디버그용 입력 액션
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> DebugDropAction;   // 키보드 'J'
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> DebugRemoveAction; // 키보드 'K'
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> TestCreateItemAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> TestDeleteItemAction;
-
-	// [TEST] 입력 바인딩 함수
-	void OnDebugDrop(const FInputActionValue& Value);
-	void OnDebugRemove(const FInputActionValue& Value);
-
-	// [TEST] 서버 로직
-	UFUNCTION(Server, Reliable)
-	void Server_DebugDropItem();
-
-	UFUNCTION(Server, Reliable)
-	void Server_DebugRemoveItem();
-#pragma endregion Test
 };

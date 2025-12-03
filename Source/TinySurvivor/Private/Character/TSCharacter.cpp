@@ -20,6 +20,10 @@
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Item/Interface/IInteraction.h"
 #include "GameplayTags/AbilityGameplayTags.h"
+#include "Net/UnrealNetwork.h"
+#include "Building/TSBuildingComponent.h"
+#include "Inventory/TSInventoryMasterComponent.h"
+
 
 ATSCharacter::ATSCharacter()
 {
@@ -328,6 +332,11 @@ void ATSCharacter::InitializeAbilities()
 	
 }
 
+void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ATSCharacter, AnimType);
+}
 void ATSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
