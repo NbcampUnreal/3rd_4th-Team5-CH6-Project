@@ -149,6 +149,7 @@ protected:
 	void OnOpenBag(const struct FInputActionValue& Value);
 	void OnBuild(const struct FInputActionValue& Value);
 	void OnInteract(const struct FInputActionValue& Value);
+	void OnStopInteract(const struct FInputActionValue& Value);
 	void OnLeftClick(const struct FInputActionValue& Value); //얘넨 모르겠다 (한 키에 여러가지 함수?)
 	void OnRightClick(const struct FInputActionValue& Value); // 얘넨 모르겠다.
 	void OnPing(const struct FInputActionValue& Value);
@@ -166,7 +167,6 @@ protected:
 	void OnHotKey8(const struct FInputActionValue& Value);
 	void OnHotKey9(const struct FInputActionValue& Value);
 	void OnHotKey0(const struct FInputActionValue& Value);
-	
 	
 	virtual void OnMoveSpeedChanged(const FOnAttributeChangeData& Data);
 	virtual void Landed(const FHitResult& Hit) override; //낙하 감지 함수

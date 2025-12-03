@@ -1,0 +1,7 @@
+﻿#include "GAS/InteractTag.h"
+
+namespace InteractTag
+{
+	TINYSURVIVOR_API UE_DEFINE_GAMEPLAY_TAG(INTERACTTAG_RESOURCE_STARTINTERACT, "InteractTag.StartInteract.Resource");
+	TINYSURVIVOR_API UE_DEFINE_GAMEPLAY_TAG(INTERACTTAG_STOPINTERACT, "InteractTag.StopInteract");
+}
