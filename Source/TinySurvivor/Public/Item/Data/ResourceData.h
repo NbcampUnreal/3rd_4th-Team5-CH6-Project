@@ -57,7 +57,7 @@ public:
 		, Name_EN(FText::FromString(TEXT("")))            // 영어 이름 초기화 (빈 문자열)
 		, Rarity(EItemRarity::NONE)                       // 등급 초기화 (기본값: NONE)
 		, NodeType(ENodeType::JUNK)                       // 노드 타입 초기화 (기본값: JUNK)
-		, RequiredToolID(0)                               // 자원 채집에 필요한 도구 ID 초기화 (0 = 없음)
+		, RequiredToolType(EItemAnimType::NONE)           // 자원 채집에 필요한 도구 타입 초기화 (NONE = 없음)
 		, NodeTier(ENodeTier::T1)                         // 노드 등급 초기화 (기본값: T1)
 		, TotalYield(1)                                   // 총 채집 가능량 초기화 (기본값: 1)
 		, MainDropTableID(0)                              // 메인 드롭 테이블 초기화 (0 = 없음)
@@ -68,6 +68,8 @@ public:
 		, SubDropTablePrecent(0.f)                        // 서브 드롭 테이블 확률 (0 = 기본 고정)
 		, SubDropMinNum(1)								  // 서브 드롭 테이블 최소 드랍 개수 (1 = 기본 고정)	
 		, SubDropMaxNum(1)								  // 서브 드롭 테이블 최대 드랍 개수 (1 = 기본 고정)
+		, GatheringTime(0)								  // 수확 시간
+		, ResourceHealth(0.f)							  // 원천 체력
 		, RespawnTime(0.0f)                               // 자원 재생 시간 초기화 (0.0 = 즉시)
 		, WorldMesh(nullptr)                              // 월드 표시용 메시 초기화 (nullptr)
 		, ActorClass(nullptr)                        // 스폰될 액터 클래스 초기화 (nullptr)
@@ -106,10 +108,10 @@ public:
 		meta=(DisplayName="Node Type", ToolTip="자원 원천 타입"))
 	ENodeType NodeType;
 	
-	// 필수 도구 ID (0이면 도구 불필요)
+	// 필수 도구 타입 (None이면 도구 불필요)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Required Tool ID", ToolTip="필수 도구 ID (0이면 도구 불필요)"))
-	int32 RequiredToolID;
+		meta=(DisplayName="Required Tool Type", ToolTip="필수 도구 타입 (None이면 도구 불필요)"))
+	EItemAnimType RequiredToolType;
 	
 	// 티어
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
@@ -160,6 +162,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
 	meta=(DisplayName="Sub Drop Max Num", ToolTip="원천을 수확했을 때 드랍되는 서브 재료 아이템 드랍 최대 개수"))
 	int32 SubDropMaxNum;
+	
+	// 원천을 수확할 때 필요한 시간 (타입 None 일 때만 사용)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+	meta=(DisplayName="Gathering Time", ToolTip="원천을 수확할 때 필요한 시간 "))
+	int32 GatheringTime;
+	
+	// 원천 체력 (타입이 None이 아닐 때만 사용)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+	meta=(DisplayName="ResourceHealth", ToolTip="원천 체력 (타입이 None이 아닐 때만 사용)"))
+	float ResourceHealth;
 	
 	// 원천이 다시 사용 가능한 상태로 재생되는 시간 (초 단위)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
