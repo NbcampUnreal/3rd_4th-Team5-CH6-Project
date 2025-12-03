@@ -8,6 +8,7 @@
 
 
 class UItemDataSubsystem;
+class ATSCharacter;
 struct FBuildingData;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -24,9 +25,14 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	// 위젯에서 호출
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Building")
-	void ServerStartBuildingMode(int32 BuildingDataID);
+	void ServerStartBuildingMode(int32 RecipeID);
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Building")
 	void ServerEndBuildingMode();
+	// 재료 확인
+	UFUNCTION(BlueprintCallable, Category = "Building")
+	bool CanBuild(int32 RecipeID, int32& OutResultID);
+	// 재료 소비
+	bool ConsumeIngredients(int32 RecipeID);
 	// 빌딩모드 진입 여부 리턴
 	bool IsBuildingMode() { return bIsBuildingMode; }
 	// 좌클릭으로 설치 확정
@@ -61,6 +67,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Building|Settings")
 	TEnumAsByte<ECollisionChannel> OverlapChannel = ECC_Pawn;
 
+	// LightSource 범위 체크
+	bool IsInLightSourceRange(const FVector& Location) const;
+	float LightSourceDetectionRadius = 5000.f;
+	
 	// 빌딩 관련 변수
 	UPROPERTY(ReplicatedUsing = OnRep_IsBuildingMode)
 	bool bIsBuildingMode = false;
@@ -69,9 +79,12 @@ private:
 	UPROPERTY(Replicated)
 	bool bCanPlace = false;
 	UPROPERTY(Replicated)
+	int32 CurrentRecipeID = 0;
+	UPROPERTY(Replicated)
 	int32 CurrentBuildingDataID = 0;
 	UPROPERTY(Replicated)
 	float RotationYaw = 0.0f;
+	float BuildingRange = 1000.f;
 
 	// 마지막 유효한 설치 위치
 	FTransform LastTransform;
