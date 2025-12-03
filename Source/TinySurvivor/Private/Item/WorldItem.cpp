@@ -55,6 +55,12 @@ AWorldItem::AWorldItem()
 	
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
 	InteractionWidget->SetupAttachment(RootComponent);
+	InteractionWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	// TODO: 루트 컴포넌트에 붙이고 위젯 컴포넌트 위치 설정 추가
+	//InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
+	InteractionWidget->SetDrawSize(FVector2D(300.f, 60.f));
+	InteractionWidget->SetVisibility(false);
+	InteractionWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 	Tags.AddUnique(FName("BlockBuilding"));
 	
