@@ -22,7 +22,9 @@
 #include "GameplayTags/AbilityGameplayTags.h"
 #include "Net/UnrealNetwork.h"
 #include "Building/TSBuildingComponent.h"
+#include "GAS/InteractTag.h"
 #include "Inventory/TSInventoryMasterComponent.h"
+#include "System/ResourceControl/TSResourceItemInterface.h"
 
 
 ATSCharacter::ATSCharacter()
@@ -330,6 +332,8 @@ void ATSCharacter::InitializeAbilities()
 	// HotKey
 	GiveByTag(AbilityTags::TAG_Ability_HotKey.GetTag());
 	
+	// 자원
+	GiveByTag(InteractTag::INTERACTTAG_RESOURCE_STARTINTERACT.GetTag());
 }
 
 void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -611,6 +615,21 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 				InteractionInterface->Interact(this);
 			}
 		}
+	}
+	if (CurrentHitActor->Implements<UTSResourceItemInterface>() && IsValid(ASC))
+	{
+		FGameplayTagContainer WithTags;
+		WithTags.AddTag(InteractTag::INTERACTTAG_RESOURCE_STARTINTERACT);
+		ASC->TryActivateAbilitiesByTag(WithTags);
+	}
+}
+
+void ATSCharacter::OnStopInteract(const struct FInputActionValue& Value)
+{
+	if (IsValid(ASC))
+	{
+		FGameplayEventData EventData;
+		ASC->HandleGameplayEvent(InteractTag::INTERACTTAG_STOPINTERACT, &EventData);
 	}
 }
 
@@ -1030,6 +1049,13 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnBuild);
 		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnInteract);
+		
+		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Canceled, this,
+										   &ATSCharacter::OnStopInteract);
+		
+		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Completed, this,
+										   &ATSCharacter::OnStopInteract);
+		
 		EnhancedInputComponent->BindAction(InputDataAsset->PingAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnPing);
 		EnhancedInputComponent->BindAction(InputDataAsset->WheelScrollAction, ETriggerEvent::Started, this,

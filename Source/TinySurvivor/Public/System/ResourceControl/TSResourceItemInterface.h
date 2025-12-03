@@ -22,4 +22,5 @@ class TINYSURVIVOR_API ITSResourceItemInterface
 
 public:
 	virtual void GetItemFromResource(UAbilitySystemComponent* ASC, EItemAnimType& RequiredToolType, int32& ATK, FVector& HitPoint, FVector& HitNormal, FVector PlayerLocation, FVector ForwardVector, bool IsLeftMouseCLicked) = 0;
+	virtual float GetTargetHaverestTimeRemaining() = 0;
 };
