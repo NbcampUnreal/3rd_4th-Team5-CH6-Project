@@ -19,7 +19,7 @@ void FResourceData::PrintDebugInfo() const
 	UE_LOG(LogFResourceData, Display, TEXT("---[System]"));
 	UE_LOG(LogFResourceData, Display, TEXT("Rarity: %d"), static_cast<int32>(Rarity));
 	UE_LOG(LogFResourceData, Display, TEXT("NodeType: %d"), static_cast<int32>(NodeType));
-	UE_LOG(LogFResourceData, Display, TEXT("RequiredToolID: %d"), RequiredToolID);
+	UE_LOG(LogFResourceData, Display, TEXT("RequiredToolType: %s"), *UEnum::GetValueAsString(RequiredToolType));
 	UE_LOG(LogFResourceData, Display, TEXT("NodeTier: %d"), static_cast<int32>(NodeTier));
 	UE_LOG(LogFResourceData, Display, TEXT("TotalYield: %d"), TotalYield);
 	UE_LOG(LogFResourceData, Display, TEXT("MainDropTableID: %d"), MainDropTableID);

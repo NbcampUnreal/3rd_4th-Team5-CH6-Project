@@ -2,7 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "Item/Data/Common/ItemCommonEnums.h"
 #include "TSResourceItemInterface.generated.h"
+
+class UAbilitySystemComponent;
 
 UINTERFACE()
 class UTSResourceItemInterface : public UInterface
@@ -18,5 +21,5 @@ class TINYSURVIVOR_API ITSResourceItemInterface
 	GENERATED_BODY()
 
 public:
-	virtual void GetItemFromResource(int32 RequiredToolID, FVector HitPoint, FVector HitNormal, FVector PlayerLocation, FVector ForwardVector) = 0;
+	virtual void GetItemFromResource(UAbilitySystemComponent* ASC, EItemAnimType& RequiredToolType, int32& ATK, FVector& HitPoint, FVector& HitNormal, FVector PlayerLocation, FVector ForwardVector, bool IsLeftMouseCLicked) = 0;
 };

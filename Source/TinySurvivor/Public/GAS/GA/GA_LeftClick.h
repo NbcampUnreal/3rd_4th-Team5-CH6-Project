@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "BaseAbility/TSGameplayAbilityBase.h"
+#include "Item/Data/Common/ItemCommonEnums.h"
 #include "GA_LeftClick.generated.h"
 
 UCLASS()
@@ -27,5 +28,5 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
 	TObjectPtr<UAnimMontage> WeaponSpearMontage; //창?
 private:
-	void BoxTrace();
+	void BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAnimType, int32& ATK);
 };

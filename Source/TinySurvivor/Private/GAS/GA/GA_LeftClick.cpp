@@ -1,13 +1,10 @@
 #include "GAS/GA/GA_LeftClick.h"
-
-#include "rdInstances.h"
 #include "Character/TSCharacter.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "System/ResourceControl/TSResourceItemInterface.h"
 
 UGA_LeftClick::UGA_LeftClick()
 {
-	
 }
 
 void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -33,11 +30,13 @@ void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 	}
 	
 	PlayMontage();
-	BoxTrace();
+	
+	int32 ATK = 10;
+	BoxTrace(ActorInfo->AbilitySystemComponent.Get(), Character->GetAnimType(), ATK);
 	//EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }
 
-void UGA_LeftClick::BoxTrace()
+void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAnimType, int32& ATK)
 {
 	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
 	const FVector Start = Character->GetActorLocation();
@@ -58,8 +57,8 @@ void UGA_LeftClick::BoxTrace()
 			if (ResourceInterface) //만약 자원원천이면 
 			{
 				//함수 불러오기
-				ResourceInterface->GetItemFromResource(0, Hit.ImpactPoint, Hit.ImpactNormal, Character->GetActorLocation(), Character->GetActorForwardVector());
-				//ㄴ 주먹이라 Required Tool ID = 0
+				ResourceInterface->GetItemFromResource(ASC, ItemAnimType, ATK, Hit.ImpactPoint, Hit.ImpactNormal, Character->GetActorLocation(), Character->GetActorForwardVector(), true);
+				// 주먹이라 Required Tool ID = 0
 				return;
 			}
 		}

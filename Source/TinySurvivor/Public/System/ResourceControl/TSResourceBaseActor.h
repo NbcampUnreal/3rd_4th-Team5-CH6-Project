@@ -9,6 +9,7 @@
 #include "Item/Interface/IInteraction.h"
 #include "TSResourceBaseActor.generated.h"
 
+class UAbilitySystemComponent;
 class ATSResourcePoint;
 class ULootComponent;
 
@@ -33,17 +34,26 @@ public:
 	//========================
 	// ATSResourceBaseActor 아이템 스폰  
 	//========================
-	
+
+public:
+
 	void SetSpawnPoint(ATSResourcePoint* Point);
-	void InitFromResourceData(const FResourceData& Data);
+	void InitFromResourceData(FResourceData& Data);
 	void SetMeshComp(UStaticMesh* MeshComp);
 
 	// 어빌리티로 트레이스 날려서 맞춘 놈이 이 액터인지 확인하고 이 API로 요청하면 됨.
 	UFUNCTION(BlueprintCallable)
-	virtual void GetItemFromResource(int32 RequiredToolID, FVector HitPoint, FVector HitNormal, FVector PlayerLocation, FVector ForwardVector) override;
+	virtual void GetItemFromResource(UAbilitySystemComponent* ASC, EItemAnimType& RequiredToolType, int32& ATK, FVector& HitPoint, FVector& HitNormal, FVector PlayerLocation, FVector ForwardVector, bool IsLeftMouseClicked) override;
 
+	// 수확 시간 게터  
+	FORCEINLINE int32 GetGatheringTime() const { return ResourceRuntimeData.GatheringTime; }
+	
 protected:
-	void SpawnItem_Internal(const FItemData& ItemDataForMesh, const FSlotStructMaster& ItemData, const FTransform& SpawnTransform);
+	// 수확 내부 유틸
+	void DoHarvestLogic(UAbilitySystemComponent* ASC, int32& ATK, FVector& TargetLocation, FVector& SpawnOriginLocation, bool& IsHasHealth);
+	
+	// 스폰 요청 
+	void RequestSpawnResource();
 	
 	// 껍데기
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -53,12 +63,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 ThisResourceID = 0;
 	
-	// 런타임 데이터	
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	FResourceData ResourceRuntimeData = {};
+	// 런타임 데이터 (정적 캐싱)
+	FResourceData ResourceRuntimeData;
 
 	// 현재 가진 아이템 수량
 	int32 CurrentItemCount = 0;
+	
+	// 현재 아이템 체력
+	float CurrentResourceHealth = 0;
 	
 	// 아이템 스폰용 root comp
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -71,6 +83,11 @@ protected:
 	// 테스트를 위해 레벨에 배치된 상태인가?
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool IsLevelPlaced = false;
+	
+	// 스폰 제어 변수 
+	bool bDoOnceSpawnedIn70 = false;
+	bool bDoOnceSpawnedIn30 = false;
+	bool bDoOnceSpawnedIn00 = false;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
