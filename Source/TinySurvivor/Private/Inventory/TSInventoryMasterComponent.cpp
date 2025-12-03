@@ -1801,12 +1801,12 @@ void UTSInventoryMasterComponent::OnWeaponAttackEvent(const FGameplayEventData* 
 		return;
 	}
 	
-	// 무기 자체의 DurabilityLossRate 사용
-	float DurabilityLoss = ItemInfo.WeaponData.DurabilityLossRate;
-	Slot.ItemData.CurrentDurability -= FMath::RoundToInt(DurabilityLoss);
+	// 무기 사용으로 인한 내구도 감소
+	int32 DurabilityLoss = ItemInfo.WeaponData.DurabilityLossAmount;
+	Slot.ItemData.CurrentDurability -= DurabilityLoss;
 	Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
 
-	UE_LOG(LogInventoryComp, Log, TEXT("무기 내구도 감소: 아이템ID=%d, 감소량=%.1f, 남은 내구도=%d/%d"),
+	UE_LOG(LogInventoryComp, Log, TEXT("무기 내구도 감소: 아이템ID=%d, 감소량=%d, 남은 내구도=%d/%d"),
 		Slot.ItemData.StaticDataID,
 		DurabilityLoss,
 		Slot.ItemData.CurrentDurability,
@@ -1975,11 +1975,11 @@ void UTSInventoryMasterComponent::OnToolHarvestEvent(const FGameplayEventData* P
 	}
 	
 	// 도구 사용으로 인한 내구도 감소
-	float DurabilityLoss = ItemInfo.ToolData.DurabilityLossRate;
-	Slot.ItemData.CurrentDurability -= FMath::RoundToInt(DurabilityLoss);
+	int32 DurabilityLoss = ItemInfo.ToolData.DurabilityLossAmount;
+	Slot.ItemData.CurrentDurability -= DurabilityLoss;
 	Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
 	
-	UE_LOG(LogInventoryComp, Log, TEXT("도구 내구도 감소: 아이템ID=%d, 감소량=%.1f, 남은 내구도=%d/%d"),
+	UE_LOG(LogInventoryComp, Log, TEXT("도구 내구도 감소: 아이템ID=%d, 감소량=%d, 남은 내구도=%d/%d"),
 		Slot.ItemData.StaticDataID,
 		DurabilityLoss,
 		Slot.ItemData.CurrentDurability,
