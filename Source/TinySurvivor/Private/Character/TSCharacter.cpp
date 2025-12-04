@@ -833,11 +833,15 @@ void ATSCharacter::LineTrace()
 	LastHitActor = CurrentHitActor;
 	CurrentHitActor = HitResult.GetActor();
 	
-	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_GameTraceChannel1);
-	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green, false, 1.f, 0, 1.f);
-	if (HitResult.bBlockingHit)
+	//test----------------------------------------------------
+	if (bLineTraceDebugDraw)
 	{
-		DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 8.f, 12, FColor::Red, false, 1.f);
+		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_GameTraceChannel1);
+		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green, false, 1.f, 0, 1.f);
+		if (HitResult.bBlockingHit)
+		{
+			DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 8.f, 12, FColor::Red, false, 1.f);
+		}
 	}
 	// 같은 걸 바라보면 아무것도 하지 않음.
 	if (CurrentHitActor == LastHitActor) return;
@@ -867,6 +871,11 @@ void ATSCharacter::LineTrace()
 			}
 		}
 	}
+}
+
+void ATSCharacter::OnTogglelinetrace(const struct FInputActionValue& Value)
+{
+	bLineTraceDebugDraw = ! bLineTraceDebugDraw;
 }
 
 bool ATSCharacter::IsClimbing()
@@ -1096,5 +1105,10 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnHotKey9);
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey0Action, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnHotKey0);
+		
+		
+		// --- test --- 
+		EnhancedInputComponent->BindAction(InputDataAsset->OnTogglelinetraceAction, ETriggerEvent::Started, this,
+										   &ATSCharacter::OnTogglelinetrace);
 	}
 }
