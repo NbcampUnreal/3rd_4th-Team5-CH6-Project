@@ -48,16 +48,16 @@ AWorldItem::AWorldItem()
 	SetReplicatingMovement(true);
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	MeshComponent->SetupAttachment(RootComponent);
+	RootComponent = MeshComponent;
 	// 시작시 물리 시뮬레이션 비활성화 (풀에서 꺼낼 때 켤 수 있음)
 	MeshComponent->SetSimulatePhysics(false);
 	MeshComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 	
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
-	InteractionWidget->SetupAttachment(RootComponent);
+	InteractionWidget->SetupAttachment(MeshComponent);
 	InteractionWidget->SetWidgetSpace(EWidgetSpace::Screen);
 	// TODO: 루트 컴포넌트에 붙이고 위젯 컴포넌트 위치 설정 추가
-	//InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 0.f));
+	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
 	InteractionWidget->SetDrawSize(FVector2D(300.f, 60.f));
 	InteractionWidget->SetVisibility(false);
 	InteractionWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -66,7 +66,7 @@ AWorldItem::AWorldItem()
 	
 	// [디버그] 텍스트 렌더 컴포넌트 추가
 	DebugTextComp = CreateDefaultSubobject<UTextRenderComponent>(TEXT("DebugTextComp"));
-	DebugTextComp->SetupAttachment(RootComponent);
+	DebugTextComp->SetupAttachment(MeshComponent);
 	DebugTextComp->SetRelativeLocation(FVector(0, 0, 100.0f)); // 아이템 머리 위 1m
 	DebugTextComp->SetHorizontalAlignment(EHTA_Center);
 	DebugTextComp->SetTextRenderColor(FColor::Red);
