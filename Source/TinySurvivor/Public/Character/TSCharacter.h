@@ -184,6 +184,14 @@ private:
 	TWeakObjectPtr<AActor> CurrentHitActor; //현재 라인트레이스에 맞고 있는 액터
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastHitActor; //직전 프레임에서 맞고 있던 액터
+	
+	
+	//test-----------------------------------------------------------------------
+	// 디버그 라인 On/Off
+	UPROPERTY(EditAnywhere, Category = "LineTrace|Debug")
+	bool bLineTraceDebugDraw = false;
+	
+	void OnTogglelinetrace(const struct FInputActionValue& Value);
 #pragma endregion
 
 #pragma region Climb
