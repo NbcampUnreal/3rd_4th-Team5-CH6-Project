@@ -47,6 +47,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	float GetLightscale(){ return LightScale; }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// ===============================

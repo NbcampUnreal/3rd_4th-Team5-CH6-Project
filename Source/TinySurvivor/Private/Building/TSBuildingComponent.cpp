@@ -4,13 +4,16 @@
 
 #include "Engine/World.h"
 #include "CollisionQueryParams.h"
+#include "Building/System/BuildingRecipeDataSubsystem.h"
 #include "GameFramework/Pawn.h"
+#include "Inventory/TSInventoryMasterComponent.h"
+#include "Item/TSInteractionActorBase.h"
 #include "Item/Data/BuildingData.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
-
+#include "System/Erosion/ErosionLightSourceSubActor.h"
 
 // Sets default values for this component's properties
 UTSBuildingComponent::UTSBuildingComponent()
@@ -24,6 +27,7 @@ void UTSBuildingComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UTSBuildingComponent, bIsBuildingMode);
+	DOREPLIFETIME(UTSBuildingComponent, CurrentRecipeID);
 	DOREPLIFETIME(UTSBuildingComponent, CurrentBuildingDataID);
 	DOREPLIFETIME(UTSBuildingComponent, bCanPlace);
 	DOREPLIFETIME(UTSBuildingComponent, RotationYaw);
@@ -55,9 +59,22 @@ void UTSBuildingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 }
 
 
-void UTSBuildingComponent::ServerStartBuildingMode_Implementation(int32 BuildingDataID)
+void UTSBuildingComponent::ServerStartBuildingMode_Implementation(int32 RecipeID)
 {
+	int32 BuildingDataID = 0;
+	// 재료 확인
+	if (!CanBuild(RecipeID, BuildingDataID))
+	{
+		return;
+	}
+	// 레시피 결과물 빌딩 ID 확인
+	if (BuildingDataID <= 0)
+	{
+		return;
+	}
+	// 빌딩 모드 시작
 	bIsBuildingMode = true;
+	CurrentRecipeID = RecipeID;
 	CurrentBuildingDataID = BuildingDataID;
 
 	// 호스트 플레이어인 경우 로컬에서도 프리뷰 메시 생성
@@ -68,16 +85,18 @@ void UTSBuildingComponent::ServerStartBuildingMode_Implementation(int32 Building
 	}
 }
 
-bool UTSBuildingComponent::ServerStartBuildingMode_Validate(int32 BuildingDataID)
+bool UTSBuildingComponent::ServerStartBuildingMode_Validate(int32 RecipeID)
 {
-	return BuildingDataID > 0;
+	return RecipeID > 0;
 }
 
 void UTSBuildingComponent::ServerEndBuildingMode_Implementation()
 {
 	bIsBuildingMode = false;
 	bCanPlace = false;
+	CurrentRecipeID = 0;
 	CurrentBuildingDataID = 0;
+	RotationYaw = 0.f;
 
 	// 호스트 플레이어인 경우 로컬에서도 프리뷰 메시 해제
 	if (GetOwner()->GetInstigatorController() && GetOwner()->GetInstigatorController()->IsLocalController())
@@ -136,7 +155,15 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 	// DynamicMaterial 생성
 	if (PreviewMaterial)
 	{
-		CachedDynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(0, PreviewMaterial);
+		int32 MaterialCount = PreviewMeshComp->GetNumMaterials();
+		for (int32 i = 0; i < MaterialCount; ++i)
+		{
+			UMaterialInstanceDynamic* DynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(
+				i, PreviewMaterial);
+			DynamicMaterial->SetVectorParameterValue(FName("Color"),
+			                                         bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+			CachedDynamicMaterials.Add(DynamicMaterial);
+		}
 	}
 }
 
@@ -174,10 +201,16 @@ void UTSBuildingComponent::UpdatePreviewMesh(float DeltaTime)
 	bCanPlace = ValidatePlacement(HitResult);
 
 	// 설치 가능 여부 변경 시 프리뷰 메시 색상 변경
-	if (bCanPlace != bLastCanPlace && CachedDynamicMaterial)
+	if (bCanPlace != bLastCanPlace && CachedDynamicMaterials.Num() > 0)
 	{
-		CachedDynamicMaterial->SetVectorParameterValue(FName("Color"),
-		                                               bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+		int32 MaterialCount = PreviewMeshComp->GetNumMaterials();
+		for (int32 i = 0; i < MaterialCount; ++i)
+		{
+			UMaterialInstanceDynamic* DynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(
+				i, PreviewMaterial);
+			DynamicMaterial->SetVectorParameterValue(FName("Color"),
+													 bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+		}
 		bLastCanPlace = bCanPlace;
 	}
 }
@@ -206,7 +239,7 @@ FHitResult UTSBuildingComponent::BuildingLineTrace()
 		return FHitResult();
 	}
 
-	FVector TraceEnd = TraceStart + Forward * 500.f;
+	FVector TraceEnd = TraceStart + Forward * BuildingRange;
 
 	// 충돌 무시 설정 (플레이어 자신 무시)
 	FCollisionQueryParams QueryParams;
@@ -247,6 +280,84 @@ bool UTSBuildingComponent::ValidatePlacement(FHitResult HitResult)
 	{
 		return false;
 	}
+
+	// LightSource 범위 체크
+	if (!IsInLightSourceRange(HitResult.Location))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool UTSBuildingComponent::CanBuild(int32 RecipeID, int32& OutResultID)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	// 레시피 데이터 조회
+	UBuildingRecipeDataSubsystem* BuildingRecipeDataSub =
+		UBuildingRecipeDataSubsystem::GetBuildingRecipeDataSubsystem(GetWorld());
+	FBuildingRecipeData RecipeData;
+	if (!BuildingRecipeDataSub->GetBuildingRecipeDataSafe(RecipeID, RecipeData))
+	{
+		return false;
+	}
+
+	// 결과물 ID 저장
+	OutResultID = RecipeData.ResultItemID;
+
+	// 플레이어 인벤토리 확인
+	UTSInventoryMasterComponent* PlayerInventoryComp = Cast<UTSInventoryMasterComponent>(
+		GetOwner()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+	if (!PlayerInventoryComp)
+	{
+		return false;
+	}
+
+	for (const FBuildingIngredientData& Ingredient : RecipeData.Ingredients)
+	{
+		// 아이템 개수 확인
+		int32 ItemCount = PlayerInventoryComp->GetItemCount(Ingredient.MaterialID);
+		if (ItemCount < Ingredient.Count)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool UTSBuildingComponent::ConsumeIngredients(int32 RecipeID)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return false;
+	}
+
+	// 레시피 데이터 조회
+	UBuildingRecipeDataSubsystem* BuildingRecipeDataSub =
+		UBuildingRecipeDataSubsystem::GetBuildingRecipeDataSubsystem(GetWorld());
+	FBuildingRecipeData RecipeData;
+	if (!BuildingRecipeDataSub->GetBuildingRecipeDataSafe(RecipeID, RecipeData))
+	{
+		return false;
+	}
+
+	// 플레이어 인벤토리 확인
+	UTSInventoryMasterComponent* PlayerInventoryComp = Cast<UTSInventoryMasterComponent>(
+		GetOwner()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+	if (!PlayerInventoryComp)
+	{
+		return false;
+	}
+
+	// 재료 아이템 소비
+	for (const FBuildingIngredientData& Ingredient : RecipeData.Ingredients)
+	{
+		PlayerInventoryComp->ConsumeItem(Ingredient.MaterialID, Ingredient.Count);
+	}
 	return true;
 }
 
@@ -281,6 +392,11 @@ bool UTSBuildingComponent::ServerRotateBuilding_Validate(float InputValue)
 
 void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingDataID, FTransform SpawnTransform)
 {
+	// 재료 소비
+	if (!ConsumeIngredients(CurrentRecipeID))
+	{
+		return;
+	}
 	// 빌딩 액터 스폰
 	FBuildingData BuildingData;
 	if (!GetBuildingData(BuildingDataID, BuildingData))
@@ -291,14 +407,25 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 	{
 		return;
 	}
+	// 액터 지연 스폰
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = GetOwner();
+	SpawnParams.Instigator = Cast<APawn>(GetOwner());
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
+
+	ATSInteractionActorBase* SpawnedActor = GetWorld()->SpawnActorDeferred<ATSInteractionActorBase>(
 		BuildingData.ActorClass,
 		SpawnTransform,
-		SpawnParams
+		SpawnParams.Owner,
+		SpawnParams.Instigator,
+		SpawnParams.SpawnCollisionHandlingOverride
 	);
+	// 액터 속성 설정
+	if (SpawnedActor)
+	{
+		SpawnedActor->ItemInstance.StaticDataID = BuildingDataID;
+		SpawnedActor->FinishSpawning(SpawnTransform);
+	}
 }
 
 bool UTSBuildingComponent::ServerSpawnBuilding_Validate(int32 BuildingDataID, FTransform SpawnTransform)
@@ -379,6 +506,45 @@ bool UTSBuildingComponent::CheckOverlap(const FVector& Location, const FVector& 
 		}
 	}
 	return true;
+}
+
+bool UTSBuildingComponent::IsInLightSourceRange(const FVector& Location) const
+{
+	// 무시할 액터 설정
+	TArray<AActor*> IgnoreActors;
+	IgnoreActors.Add(GetOwner());
+
+	// 특정 반경 내의 LightSource 찾기
+	TArray<AActor*> FoundActors;
+
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn)); // Pawn
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic)); // 동적 오브젝트 (구조물)
+	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic)); // 정적 오브젝트
+
+	UKismetSystemLibrary::SphereOverlapActors(
+		GetWorld(),
+		Location,
+		LightSourceDetectionRadius,
+		ObjectTypes,
+		nullptr,
+		IgnoreActors,
+		FoundActors);
+	for (AActor* Actor : FoundActors)
+	{
+		AErosionLightSourceSubActor* LightSource = Cast<AErosionLightSourceSubActor>(Actor);
+		if (!LightSource)
+		{
+			continue;
+		}
+
+		float LightIntensity = LightSource->GetLightscale();
+		if (LightIntensity > 0.f)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void UTSBuildingComponent::OnRep_IsBuildingMode()

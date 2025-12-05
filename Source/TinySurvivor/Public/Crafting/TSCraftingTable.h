@@ -35,8 +35,6 @@ public:
 #pragma endregion
 
 protected:
-	virtual void InitializeFromItemData() override;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UTSCraftingTableInventory> CraftingInventory;
 };

@@ -145,39 +145,3 @@ void ATSCraftingTable::StartCrafting(int32 RecipeID, ATSCharacter* InstigatorCha
 	// 제작 완료 브로드캐스트
 	PC->ClientNotifyCraftResult(SlotIndex);
 }
-
-void ATSCraftingTable::InitializeFromItemData()
-{
-	if (ItemInstance.StaticDataID == 0)
-	{
-		return;
-	}
-
-	UGameInstance* GI = GetWorld()->GetGameInstance();
-	if (!GI)
-	{
-		return;
-	}
-	
-	UItemDataSubsystem* IDS = GI->GetSubsystem<UItemDataSubsystem>();
-	if (!IDS)
-	{
-		return;
-	}
-
-	FBuildingData ItemInfo;
-	if (!IDS->GetBuildingDataSafe(ItemInstance.StaticDataID, ItemInfo))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to get ItemData for ID: %d"), ItemInstance.StaticDataID);
-		return;
-	}
-
-	if (MeshComponent && !ItemInfo.WorldMesh.IsNull())
-	{
-		UStaticMesh* Mesh = ItemInfo.WorldMesh.LoadSynchronous();
-		if (Mesh)
-		{
-			MeshComponent->SetStaticMesh(Mesh);
-		}
-	}
-}
