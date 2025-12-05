@@ -26,6 +26,13 @@ struct FEquippedArmor
 
 	UPROPERTY()
 	TObjectPtr<ATSEquippedItem> EquippedArmor = nullptr;
+	
+	/*
+		현재 장착된 방어구의 스탯 이펙트 핸들
+	*/
+	FActiveGameplayEffectHandle ArmorCommonEffectHandle;	// HealthBonus용
+	FActiveGameplayEffectHandle ArmorEffectHandle;		// EffectTag용
+	
 };
 
 // ========================================
@@ -282,7 +289,9 @@ protected:
 	int32 FindEquipmentSlot(EEquipSlot ArmorSlot) const;
 	void EquipArmor(const FItemData& ItemInfo, int32 ArmorSlotIndex);
 	void UnequipArmor(int32 ArmorSlotIndex);
-	void RemoveArmorStats(int32 ArmorSlotIndex);
+	
+	// 방어구 피격 이벤트 수신 함수
+	void OnArmorHitEvent(const FGameplayEventData* Payload);
 	
 	// 무기 관련
 	void ApplyWeaponStats(const FItemData& ItemInfo);
@@ -328,6 +337,19 @@ protected:
 	*/
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon Stats")
 	TSubclassOf<UGameplayEffect> WeaponStatEffectClass;
+#pragma endregion
+	
+#pragma region ArmorData
+protected:
+	/*
+		방어구 스탯 적용용 GameplayEffect 클래스
+		블루프린트에서 설정
+	*/
+	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
+	TSubclassOf<UGameplayEffect> ArmorCommonStatEffectClass; // GE_ArmorCommonStats_Base
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
+	TSubclassOf<UGameplayEffect> ArmorEffectStatEffectClass; // GE_ArmorEffectStats_Base
 #pragma endregion
 	
 private:

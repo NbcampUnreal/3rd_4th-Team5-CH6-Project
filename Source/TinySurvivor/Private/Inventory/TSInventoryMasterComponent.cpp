@@ -9,6 +9,7 @@
 #include "Item/Data/ItemData.h"
 #include "Item/Runtime/DecayManager.h"
 #include "GameplayTags/ItemGameplayTags.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Item/System/WorldItemPoolSubsystem.h"
 
@@ -65,7 +66,7 @@ void UTSInventoryMasterComponent::BeginPlay()
 			FGameplayTag ConsumedTag = ItemTags::TAG_Event_Item_Consumed;
 			ASC->GenericGameplayEventCallbacks.FindOrAdd(ConsumedTag)
 				.AddUObject(this, &UTSInventoryMasterComponent::OnItemConsumedEvent);
-			UE_LOG(LogInventoryComp, Log, TEXT("Registered Event.Item.Consumed listener"));
+			UE_LOG(LogInventoryComp, Log, TEXT("Registered Item Consumed listener"));
 			
 			/*
 				도구 채취 이벤트 리스닝
@@ -82,6 +83,14 @@ void UTSInventoryMasterComponent::BeginPlay()
 			ASC->GenericGameplayEventCallbacks.FindOrAdd(WeaponAttackTag)
 				.AddUObject(this, &UTSInventoryMasterComponent::OnWeaponAttackEvent);
 			UE_LOG(LogInventoryComp, Log, TEXT("Registered Weapon Attack listener"));
+			
+			/*
+				방어구 피격 이벤트 리스닝
+			*/
+			FGameplayTag ArmorHitTag = AbilityTags::TAG_Event_Armor_Hit;
+			ASC->GenericGameplayEventCallbacks.FindOrAdd(ArmorHitTag)
+				.AddUObject(this, &UTSInventoryMasterComponent::OnArmorHitEvent);
+			UE_LOG(LogInventoryComp, Log, TEXT("Registered Armor Hit listener"));
 		}
 		//[E]=====================================================================================
 		
@@ -348,11 +357,31 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	{
 		HandleActiveHotkeyIndexChanged();
 	}
-	// 방어구이면 장착 해제
+	// // 방어구이면 장착 해제
+	// if (FromInventoryType == EInventoryType::Equipment)
+	// {
+	// 	UnequipArmor(FromSlotIndex);
+	// }
+	
+	/*
+		신규: 방어구 장착 해제 보완
+	*/
+	// 방어구 탈착 여부 플래그
+	bool bArmorUnequipped = false;
+	
+	// 방어구라면 장착 해제
 	if (FromInventoryType == EInventoryType::Equipment)
 	{
 		UnequipArmor(FromSlotIndex);
+		bArmorUnequipped = true;
 	}
+	
+	// 활성화 슬롯 변경 시 또는 방어구 탈착 시 브로드캐스트
+	if (bAddedToActiveSlot || bArmorUnequipped)
+	{
+		HandleActiveHotkeyIndexChanged();
+	}
+	
 	// 소스 인벤토리의 델리게이트 브로드캐스트
 	if (SourceInventory)
 	{
@@ -481,6 +510,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	// }
 	// 원본[E]-------------------------------------------------------
 	
+	// 소모품만 Ability 사용.
 	if (ItemInfo.AbilityBP)
 	{
 		// ItemInfo.AbilityBP가 존재할 경우, 해당 Ability를 런타임으로 ASC(AbilitySystemComponent)에 추가
@@ -537,27 +567,44 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 						ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
 				}, 0.01f, false);
 			}
-			else if (ItemInfo.Category == EItemCategory::ARMOR)
-			{
-				// 방어구인 경우: 장착, 기존 코드 유지
-				UnequipCurrentItem();
-				int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
-				if (TargetSlotIndex == -1)
-				{
-					return;
-				}
-				Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
-									  EInventoryType::Equipment, TargetSlotIndex, true);
-				EquipArmor(ItemInfo, TargetSlotIndex);
-				UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
-			}
+			// else if (ItemInfo.Category == EItemCategory::ARMOR)
+			// {
+			// 	// 방어구인 경우: 장착, 기존 코드 유지
+			// 	UnequipCurrentItem();
+			// 	int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
+			// 	if (TargetSlotIndex == -1)
+			// 	{
+			// 		return;
+			// 	}
+			// 	Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
+			// 						  EInventoryType::Equipment, TargetSlotIndex, true);
+			// 	UE_LOG(LogTemp, Log, TEXT("Item equipped TRY: ID=%d"), Slot.ItemData.StaticDataID);
+			// 	EquipArmor(ItemInfo, TargetSlotIndex);
+			// 	UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
+			// }
 		}
 		else
 		{
 			UE_LOG(LogTemp, Log, TEXT("Failed to activate ability for item: ID=%d"), Slot.ItemData.StaticDataID);
 		}
 	}
-
+	
+	// 방어구는 Ability를 사용 안함.
+	if (ItemInfo.Category == EItemCategory::ARMOR)
+	{
+		// 방어구 장착 로직 (기존 방식 유지)
+		UnequipCurrentItem();
+		int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
+		if (TargetSlotIndex == -1)
+		{
+			return;
+		}
+		Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
+							  EInventoryType::Equipment, TargetSlotIndex, true);
+		UE_LOG(LogTemp, Log, TEXT("Item equipped TRY: ID=%d"), Slot.ItemData.StaticDataID);
+		EquipArmor(ItemInfo, TargetSlotIndex);
+		UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
+	}
 	
 	HandleInventoryChanged();
 	//[E]=====================================================================================
@@ -1048,9 +1095,9 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 	if (TSCharacter)
 	{
 		/*
-			캐릭터 파트 요청에 따라 도구만 왼손에 들도록 장착 소켓을 Ws_r에서 Ws_l로 변경.
-			아이템류는 기존과 동일하게 처리되고,
-			도구만 왼손 장착.
+			도구 전용 처리:
+			- 캐릭터 파트 요청에 따라 도구만 왼손(Ws_l) 소켓에 장착.
+			- 기획 파트 요청에 따라 도구만 스케일을 1.75로 확대. (도구 에셋이 작게 보여서)
 		*/
 		if (ItemInfo.Category == EItemCategory::TOOL)
 		{
@@ -1058,6 +1105,8 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 				TSCharacter->GetMesh(),
 				FAttachmentTransformRules::SnapToTargetIncludingScale,
 				TEXT("Ws_l"));
+			
+			CurrentEquippedItem->SetActorScale3D(FVector(1.75f));
 		}
 		else
 		{
@@ -1453,22 +1502,25 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 		return;
 	}
 	EEquipSlot ArmorSlot = ItemInfo.ArmorData.EquipSlot;
-
+	
+	// 기존 방어구 해제
 	UnequipArmor(ArmorSlotIndex);
-
+	
+	// 메시 생성 및 장착
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = GetOwner();
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
+	
 	ATSEquippedItem* EquippedArmor = GetWorld()->SpawnActor<ATSEquippedItem>(
 		ATSEquippedItem::StaticClass(), FVector::ZeroVector,
 		FRotator::ZeroRotator, SpawnParams);
-
+	
 	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
 	if (!TSCharacter)
 	{
 		return;
 	}
+	
 	if (UStaticMesh* LoadedMesh = ItemInfo.WorldMesh.LoadSynchronous())
 	{
 		if (ArmorSlot == EEquipSlot::LEG)
@@ -1476,15 +1528,17 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 			EquippedArmor->SetLegMesh(LoadedMesh);
 			if (EquippedArmor->LeftLegMeshComp)
 			{
-				EquippedArmor->LeftLegMeshComp->AttachToComponent(TSCharacter->GetMesh(),
-				                                                  FAttachmentTransformRules::SnapToTargetIncludingScale,
-				                                                  TEXT("LeftLegSocket"));
+				EquippedArmor->LeftLegMeshComp->AttachToComponent(
+					TSCharacter->GetMesh(),
+					FAttachmentTransformRules::SnapToTargetIncludingScale,
+					TEXT("LeftLegSocket"));
 			}
 			if (EquippedArmor->RightLegMeshComp)
 			{
-				EquippedArmor->RightLegMeshComp->AttachToComponent(TSCharacter->GetMesh(),
-				                                                   FAttachmentTransformRules::SnapToTargetIncludingScale,
-				                                                   TEXT("RightLegSocket"));
+				EquippedArmor->RightLegMeshComp->AttachToComponent(
+					TSCharacter->GetMesh(),
+					FAttachmentTransformRules::SnapToTargetIncludingScale,
+					TEXT("RightLegSocket"));
 			}
 		}
 		else
@@ -1498,13 +1552,132 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 			{
 				SocketName = TEXT("TorsoSocket");
 			}
+			
 			EquippedArmor->SetMesh(LoadedMesh);
-			EquippedArmor->AttachToComponent(TSCharacter->GetMesh(),
-			                                 FAttachmentTransformRules::SnapToTargetIncludingScale,
-			                                 SocketName);
+			EquippedArmor->AttachToComponent(
+				TSCharacter->GetMesh(),
+				FAttachmentTransformRules::SnapToTargetIncludingScale,
+				SocketName);
 		}
 	}
+	
+	/*
+		이하 로직은 신규 내용
+	*/
+	
+	// 액터 저장
 	EquippedArmors[ArmorSlotIndex].EquippedArmor = EquippedArmor;
+	
+	//=======================================================================
+	// GE 적용
+	//=======================================================================
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC)
+	{
+		UE_LOG(LogInventoryComp, Error, TEXT("ASC를 찾을 수 없습니다!"));
+		return;
+	}
+	
+	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+	ContextHandle.AddSourceObject(this);
+	
+#if WITH_EDITOR
+	//=======================================================================
+	// 적용 전 스탯 로그
+	//=======================================================================
+	const UTSAttributeSet* AttrSet = ASC->GetSet<UTSAttributeSet>();
+	if (AttrSet)
+	{
+		UE_LOG(LogInventoryComp, Display, TEXT("========== 방어구 장착 (ItemID=%d) =========="), ItemInfo.ItemID);
+		UE_LOG(LogInventoryComp, Display, TEXT(">> 적용 전 스탯"));
+		UE_LOG(LogInventoryComp, Display, TEXT("MaxHealth: %.1f"), AttrSet->GetMaxHealth());
+		UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"),
+			AttrSet->GetBaseDamageReflection() + AttrSet->GetDamageReflectionBonus());
+		UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"),
+			AttrSet->GetBaseDamageReduction() + AttrSet->GetDamageReductionBonus());
+		UE_LOG(LogInventoryComp, Display, TEXT("MoveSpeed: %.1f"), AttrSet->GetMoveSpeed());
+		UE_LOG(LogInventoryComp, Display, TEXT("MaxMoveSpeed: %.1f"), AttrSet->GetMaxMoveSpeed());
+	}
+#endif
+	
+	// 1. 공통 스탯 (HealthBonus)
+	if (ArmorCommonStatEffectClass)
+	{
+		FGameplayEffectSpecHandle CommonSpec = ASC->MakeOutgoingSpec(
+			ArmorCommonStatEffectClass, 1, ContextHandle);
+		
+		CommonSpec.Data->SetSetByCallerMagnitude(
+			FGameplayTag::RequestGameplayTag("Data.HealthBonus"),
+			ItemInfo.ArmorData.HealthBonus);
+		
+		FActiveGameplayEffectHandle CommonHandle =
+			ASC->ApplyGameplayEffectSpecToSelf(*CommonSpec.Data);
+		
+		// 핸들 저장
+		EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle = CommonHandle;
+		
+		UE_LOG(LogInventoryComp, Log, TEXT("방어구 공통 스탯 적용: HealthBonus=%.1f"),
+			ItemInfo.ArmorData.HealthBonus);
+	}
+	
+	// 2. 이펙트 스탯 (EffectTag별)
+	if (ArmorEffectStatEffectClass && ItemInfo.EffectTag_Armor.IsValid())
+	{
+		FGameplayEffectSpecHandle EffectSpec = ASC->MakeOutgoingSpec(
+			ArmorEffectStatEffectClass, 1, ContextHandle);
+		
+		// =======================================
+		// 모든 Modifier 값 초기화 (0으로)
+		// =======================================
+		EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_DamageReflection, 0.0f);
+		EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_DamageReduction, 0.0f);
+		EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_MoveSpeed, 0.0f);
+		
+		// =======================================
+		// EffectTag에 따라 실제 값 설정
+		// =======================================
+		if (ItemInfo.EffectTag_Armor.MatchesTag(AbilityTags::TAG_State_Modifier_DAMAGE_REFLECT))
+		{
+			EffectSpec.Data->SetSetByCallerMagnitude(
+				ItemTags::TAG_Data_Armor_DamageReflection, ItemInfo.EffectValue);
+		}
+		else if (ItemInfo.EffectTag_Armor.MatchesTag(AbilityTags::TAG_State_Modifier_DAMAGE_REDUCTION))
+		{
+			EffectSpec.Data->SetSetByCallerMagnitude(
+				ItemTags::TAG_Data_Armor_DamageReduction, ItemInfo.EffectValue);
+		}
+		else if (ItemInfo.EffectTag_Armor.MatchesTag(AbilityTags::TAG_State_Modifier_MOVE_SPEED))
+		{
+			EffectSpec.Data->SetSetByCallerMagnitude(
+				ItemTags::TAG_Data_Armor_MoveSpeed, ItemInfo.EffectValue);
+		}
+		
+		FActiveGameplayEffectHandle EffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*EffectSpec.Data);
+		
+		// 핸들 저장
+		EquippedArmors[ArmorSlotIndex].ArmorEffectHandle = EffectHandle;
+		
+		UE_LOG(LogInventoryComp, Log, TEXT("방어구 이펙트 스탭 적용: ItemID=%d, EffectTag=%s, EffectValue=%.1f"),
+			ItemInfo.ItemID, *ItemInfo.EffectTag_Armor.ToString(), ItemInfo.EffectValue);
+	}
+	
+#if WITH_EDITOR
+	//=======================================================================
+	// 적용 후 스탯 로그
+	//=======================================================================
+	if (AttrSet)
+	{
+		UE_LOG(LogInventoryComp, Display, TEXT(">> 적용 후 스탯"));
+		UE_LOG(LogInventoryComp, Display, TEXT("MaxHealth: %.1f"), AttrSet->GetMaxHealth());
+		UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"), 
+			AttrSet->GetBaseDamageReflection() + AttrSet->GetDamageReflectionBonus());
+		UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"), 
+			AttrSet->GetBaseDamageReduction() + AttrSet->GetDamageReductionBonus());
+		UE_LOG(LogInventoryComp, Display, TEXT("MoveSpeed: %.1f"), AttrSet->GetMoveSpeed());
+		UE_LOG(LogInventoryComp, Display, TEXT("MaxMoveSpeed: %.1f"), AttrSet->GetMaxMoveSpeed());
+		UE_LOG(LogInventoryComp, Display, TEXT("==================================="));
+	}
+#endif
 }
 
 void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
@@ -1513,33 +1686,244 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 	{
 		return;
 	}
-	if (EquippedArmors[ArmorSlotIndex].EquippedArmor)
-	{
-		EquippedArmors[ArmorSlotIndex].EquippedArmor->Destroy();
-		EquippedArmors[ArmorSlotIndex].EquippedArmor = nullptr;
-	}
-}
-
-void UTSInventoryMasterComponent::RemoveArmorStats(int32 ArmorSlotIndex)
-{
+	
 	UAbilitySystemComponent* ASC = GetASC();
 	if (!ASC)
 	{
+		UE_LOG(LogInventoryComp, Error,
+			TEXT("방어구 탈착 실패: ASC가 존재하지 않습니다! (SlotIndex=%d)"),
+			ArmorSlotIndex);
 		return;
 	}
-	FSlotStructMaster& Slot = EquipmentInventory.InventorySlotContainer[ArmorSlotIndex];
-	FItemData ItemInfo;
-	if (!GetItemData(Slot.ItemData.StaticDataID, ItemInfo))
+	
+#if WITH_EDITOR
+	//=======================================================================
+	// 제거 전 스탯 로그
+	//=======================================================================
 	{
-		return;
+		const UTSAttributeSet* AttrSet = ASC->GetSet<UTSAttributeSet>();
+		if (!AttrSet)
+		{
+			UE_LOG(LogInventoryComp, Error,
+				TEXT("방어구 탈착: AttributeSet(UTSAttributeSet)을 찾을 수 없습니다! (SlotIndex=%d)"),
+				ArmorSlotIndex);
+		}
+		else
+		{
+			UE_LOG(LogInventoryComp, Display, TEXT("========== 방어구 탈착 =========="));
+			UE_LOG(LogInventoryComp, Display, TEXT(">> 탈착 전 스탯"));
+			UE_LOG(LogInventoryComp, Display, TEXT("MaxHealth: %.1f"), AttrSet->GetMaxHealth());
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"), 
+				AttrSet->GetBaseDamageReflection() + AttrSet->GetDamageReflectionBonus());
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"), 
+				AttrSet->GetBaseDamageReduction() + AttrSet->GetDamageReductionBonus());
+			UE_LOG(LogInventoryComp, Display, TEXT("MoveSpeed: %.1f"), AttrSet->GetMoveSpeed());
+			UE_LOG(LogInventoryComp, Display, TEXT("MaxMoveSpeed: %.1f"), AttrSet->GetMaxMoveSpeed());
+		}
 	}
-	if (ItemInfo.EffectTag.IsValid())
+#endif
+	
+	//=======================================================================
+	// 1. EffectStats GE 제거
+	//=======================================================================
+	if (EquippedArmors[ArmorSlotIndex].ArmorEffectHandle.IsValid())
 	{
-		FGameplayTagContainer TagContainer;
-		TagContainer.AddTag(ItemInfo.EffectTag);
+		bool bRemoved = ASC->RemoveActiveGameplayEffect(EquippedArmors[ArmorSlotIndex].ArmorEffectHandle);
+		if (bRemoved)
+		{
+			UE_LOG(LogInventoryComp, Log, TEXT("방어구 이펙트 스탯 제거 성공: SlotIndex=%d"), ArmorSlotIndex);
+		}
+		else
+		{
+			UE_LOG(LogInventoryComp, Warning,
+				TEXT("방어구 이펙트 스탯 제거 실패: RemoveActiveGameplayEffect 반환값 FALSE (SlotIndex=%d, HandleIsValid=true)"),
+				ArmorSlotIndex);
+		}
+		
+		EquippedArmors[ArmorSlotIndex].ArmorEffectHandle.Invalidate();
+	}
+	else
+	{
+		UE_LOG(LogInventoryComp, Warning,
+			TEXT("방어구 이펙트 스탯 제거 생략: EffectHandle이 이미 무효 상태입니다. (SlotIndex=%d)"),
+			ArmorSlotIndex);
+	}
+	
+	//=======================================================================
+	// 2. CommonStats GE 제거
+	//=======================================================================
+	if (EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle.IsValid())
+	{
+		bool bRemoved = ASC->RemoveActiveGameplayEffect(EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle);
+		if (bRemoved)
+		{
+			UE_LOG(LogInventoryComp, Log, TEXT("방어구 공통 스탯 제거 성공: SlotIndex=%d"), ArmorSlotIndex);
+		}
+		else
+		{
+			UE_LOG(LogInventoryComp, Warning,
+				TEXT("방어구 공통 스탯 제거 실패: RemoveActiveGameplayEffect 반환값 FALSE (SlotIndex=%d, HandleIsValid=true)"),
+				ArmorSlotIndex);
+		}
+		
+		EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle.Invalidate();
+	}
+	else
+	{
+		UE_LOG(LogInventoryComp, Warning,
+			TEXT("방어구 공통 스탯 제거 생략: ArmorCommonEffectHandle이 이미 무효 상태입니다. (SlotIndex=%d)"),
+			ArmorSlotIndex);
+	}
+	
+#if WITH_EDITOR
+	//=======================================================================
+	// 제거 후 스탯 로그
+	//=======================================================================
+	{
+		const UTSAttributeSet* AttrSet = ASC->GetSet<UTSAttributeSet>();
+		if (!AttrSet)
+		{
+			UE_LOG(LogInventoryComp, Error,
+				TEXT("방어구 탈착 후 AttributeSet 조회 실패: UTSAttributeSet이 없습니다! (SlotIndex=%d)"),
+				ArmorSlotIndex);
+		}
+		else
+		{
+			UE_LOG(LogInventoryComp, Display, TEXT(">> 탈착 후 스탯"));
+			UE_LOG(LogInventoryComp, Display, TEXT("MaxHealth: %.1f"), AttrSet->GetMaxHealth());
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"), 
+				AttrSet->GetBaseDamageReflection() + AttrSet->GetDamageReflectionBonus());
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"), 
+				AttrSet->GetBaseDamageReduction() + AttrSet->GetDamageReductionBonus());
+			UE_LOG(LogInventoryComp, Display, TEXT("MoveSpeed: %.1f"), AttrSet->GetMoveSpeed());
+			UE_LOG(LogInventoryComp, Display, TEXT("MaxMoveSpeed: %.1f"), AttrSet->GetMaxMoveSpeed());
+			UE_LOG(LogInventoryComp, Display, TEXT("==================================="));
+		}
+	}
+#endif
+	
+	//=======================================================================
+	// 3. 메시 제거
+	//=======================================================================
+	// if (EquippedArmors[ArmorSlotIndex].EquippedArmor)
+	// {
+	// 	EquippedArmors[ArmorSlotIndex].EquippedArmor->Destroy();
+	// 	EquippedArmors[ArmorSlotIndex].EquippedArmor = nullptr;
+	// 	
+	// 	UE_LOG(LogInventoryComp, Log, TEXT("방어구 메시 제거: SlotIndex=%d"), ArmorSlotIndex);
+	// }
+	
+	AActor* ArmorMeshActor = EquippedArmors[ArmorSlotIndex].EquippedArmor;
+	
+	if (IsValid(ArmorMeshActor))
+	{// nullptr + Pending Kill 체크 포함
+		if (ArmorMeshActor->IsActorBeingDestroyed())
+		{
+			UE_LOG(LogInventoryComp, Warning,
+				TEXT("방어구 메시 제거 생략: 이미 Destroy 진행 중입니다. (SlotIndex=%d, Actor=%s)"),
+				ArmorSlotIndex, *ArmorMeshActor->GetName());
+			
+			EquippedArmors[ArmorSlotIndex].EquippedArmor = nullptr;
+			return;
+		}
+		
+		// Destroy 시도
+		const bool bDestroyed = ArmorMeshActor->Destroy();
+		if (bDestroyed)
+		{
+			UE_LOG(LogInventoryComp, Log,
+				TEXT("방어구 메시 제거 성공: SlotIndex=%d, Actor=%s"),
+				ArmorSlotIndex, *ArmorMeshActor->GetName());
+		}
+		else
+		{
+			UE_LOG(LogInventoryComp, Error,
+				TEXT("방어구 메시 제거 실패: Destroy() 반환값 FALSE! (SlotIndex=%d, Actor=%s)"),
+				ArmorSlotIndex, *ArmorMeshActor->GetName());
+		}
+		
+		EquippedArmors[ArmorSlotIndex].EquippedArmor = nullptr;
+	}
+	else
+	{
+		UE_LOG(LogInventoryComp, Warning,
+			TEXT("방어구 메시 제거 생략: EquippedArmor 포인터가 NULL 또는 유효하지 않음 (SlotIndex=%d)"),
+			ArmorSlotIndex);
+	}
+}
 
-		ASC->RemoveActiveEffectsWithTags(TagContainer);
+void UTSInventoryMasterComponent::OnArmorHitEvent(const FGameplayEventData* Payload)
+{
+	// Payload가 유효하지 않거나 서버 권한이 없는 경우 처리하지 않고 반환
+	if (!Payload || !GetOwner()->HasAuthority())
+	{
+		return;
 	}
+	
+	// 현재 장착된 모든 방어구의 내구도 감소
+	
+	for (int32 i = 0; i < EquippedArmors.Num(); ++i)
+	{
+		// 장착된 방어구가 없으면 스킵
+		if (!EquippedArmors[i].EquippedArmor)
+		{
+			continue;
+		}
+		
+		// 해당 슬롯의 장비 인벤토리 확인
+		if (!IsValidSlotIndex(EInventoryType::Equipment, i))
+		{
+			continue;
+		}
+		
+		FSlotStructMaster& Slot = EquipmentInventory.InventorySlotContainer[i];
+		
+		// 슬롯이 비어있으면 스킵
+		if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
+		{
+			continue;
+		}
+		
+		// 아이템 정보 조회
+		FItemData ItemInfo;
+		if (!GetItemData(Slot.ItemData.StaticDataID, ItemInfo))
+		{
+			continue;
+		}
+		
+		// 방어구가 아니면 스킵 (안전 체크)
+		if (ItemInfo.Category != EItemCategory::ARMOR)
+		{
+			continue;
+		}
+		
+		// 방어구 피격으로 인한 내구도 감소
+		int32 DurabilityLoss = ItemInfo.ArmorData.DurabilityLossAmount;
+		Slot.ItemData.CurrentDurability -= DurabilityLoss;
+		Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
+		
+		UE_LOG(LogInventoryComp, Log, TEXT("방어구 내구도 감소: 아이템ID=%d, 슬롯=%d, 감소량=%d, 남은 내구도=%d/%d"),
+			Slot.ItemData.StaticDataID,
+			i,
+			DurabilityLoss,
+			Slot.ItemData.CurrentDurability,
+			ItemInfo.ArmorData.MaxDurability);
+		
+		// 내구도가 0 이하가 되면 방어구 파괴
+		if (Slot.ItemData.CurrentDurability <= 0)
+		{
+			UE_LOG(LogInventoryComp, Warning, TEXT("방어구 파괴: 아이템ID=%d, 슬롯=%d"), Slot.ItemData.StaticDataID, i);
+			
+			// 방어구 탈착 (스탯 제거, 메시 제거)
+			UnequipArmor(i);
+			
+			// 슬롯 초기화
+			ClearSlot(Slot);
+		}
+	}
+	
+	// UI 업데이트
+	HandleInventoryChanged();
 }
 #pragma endregion
 
