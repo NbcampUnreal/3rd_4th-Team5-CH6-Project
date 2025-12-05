@@ -1850,6 +1850,16 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 			TEXT("방어구 메시 제거 생략: EquippedArmor 포인터가 NULL 또는 유효하지 않음 (SlotIndex=%d)"),
 			ArmorSlotIndex);
 	}
+	
+	// Health 클램핑
+	UTSAttributeSet* AttrSet = const_cast<UTSAttributeSet*>(ASC->GetSet<UTSAttributeSet>());
+	if (AttrSet && AttrSet->GetHealth() > AttrSet->GetMaxHealth())
+	{
+		AttrSet->SetHealth(AttrSet->GetMaxHealth());
+		UE_LOG(LogInventoryComp, Warning,
+			TEXT("방어구 탈착 후 Health 클램핑: %.1f → %.1f"),
+			AttrSet->GetHealth(), AttrSet->GetMaxHealth());
+	}
 }
 
 void UTSInventoryMasterComponent::OnArmorHitEvent(const FGameplayEventData* Payload)
