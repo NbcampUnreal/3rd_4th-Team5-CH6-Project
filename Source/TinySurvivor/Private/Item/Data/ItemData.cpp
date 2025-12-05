@@ -59,11 +59,8 @@ void FItemData::PrintDebugInfo() const
 			UE_LOG(LogFItemData, Display, TEXT("ArmorData:"));
 			UE_LOG(LogFItemData, Display, TEXT("  EquipSlot: %s"), *UEnum::GetValueAsString(ArmorData.EquipSlot));
 			UE_LOG(LogFItemData, Display, TEXT("  HealthBonus: %.2f"), ArmorData.HealthBonus);
-			UE_LOG(LogFItemData, Display, TEXT("  DamageReductionRate: %.2f"), ArmorData.DamageReductionRate);
-			UE_LOG(LogFItemData, Display, TEXT("  MoveSpeedBonus: %.2f"), ArmorData.MoveSpeedBonus);
-			UE_LOG(LogFItemData, Display, TEXT("  SpecialEffectID: %d"), ArmorData.SpecialEffectID);
-			UE_LOG(LogFItemData, Display, TEXT("  RequiredRarity: %d"), ArmorData.RequiredRarity);
 			UE_LOG(LogFItemData, Display, TEXT("  MaxDurability: %d"), ArmorData.MaxDurability);
+			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossAmount: %d"), ArmorData.DurabilityLossAmount);
 			break;
 	
 		case EItemCategory::MATERIAL:
@@ -73,14 +70,35 @@ void FItemData::PrintDebugInfo() const
 	
 	// Effect
 	UE_LOG(LogFItemData, Display, TEXT("\n---[Effect]"));
-	if (EffectTag.IsValid())
+	switch (Category)
 	{
-		UE_LOG(LogFItemData, Display, TEXT("EffectTag: %s"), *EffectTag.ToString());
-		UE_LOG(LogFItemData, Display, TEXT("EffectValue: %.2f"), EffectValue);
-	}
-	else
-	{
+	case EItemCategory::CONSUMABLE:
+		if (EffectTag_Consumable.IsValid())
+		{
+			UE_LOG(LogFItemData, Display, TEXT("EffectTag (Consumable): %s"), *EffectTag_Consumable.ToString());
+			UE_LOG(LogFItemData, Display, TEXT("EffectValue: %.2f"), EffectValue);
+		}
+		else
+		{
+			UE_LOG(LogFItemData, Display, TEXT("No effect (Consumable)"));
+		}
+		break;
+		
+	case EItemCategory::ARMOR:
+		if (EffectTag_Armor.IsValid())
+		{
+			UE_LOG(LogFItemData, Display, TEXT("EffectTag (Armor): %s"), *EffectTag_Armor.ToString());
+			UE_LOG(LogFItemData, Display, TEXT("EffectValue: %.2f"), EffectValue);
+		}
+		else
+		{
+			UE_LOG(LogFItemData, Display, TEXT("No effect (Armor)"));
+		}
+		break;
+		
+	default:
 		UE_LOG(LogFItemData, Display, TEXT("No effect"));
+		break;
 	}
 	
 	// Visual
