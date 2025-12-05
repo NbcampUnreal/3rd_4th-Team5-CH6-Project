@@ -36,6 +36,8 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempHot, "State.Status.TempHot"); // 더위 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempCold, "State.Status.TempCold"); // 추위 상태이상
 	
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Downed, "State.Status.Downed");
+	
 	// Poison 관련 태그
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Poison, "State.Status.Poison");					// 독 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_Poison, "State.Status.Immune.Poison");	// 독 면역
