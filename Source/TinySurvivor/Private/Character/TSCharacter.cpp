@@ -341,6 +341,42 @@ void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ATSCharacter, AnimType);
 }
+
+void ATSCharacter::BecomeDowned()
+{
+	// 기절 이펙트 (있던 태그 다 차단할 GE)
+	if (DownedEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DownedEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	// 입력 차단 (look만 가능하도록)
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->SetIgnoreMoveInput(true);
+	}
+	if (DownedMontage)
+	{
+		PlayAnimMontage(DownedMontage);	
+	}
+}
+
+bool ATSCharacter::IsDowned()
+{
+	if (ASC)
+	{
+		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed);
+	}
+	return false;
+}
+
 void ATSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
