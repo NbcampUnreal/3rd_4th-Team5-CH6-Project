@@ -634,7 +634,7 @@ void UGA_ConsumeItem_Base::ApplyRestoreEffect()
 	UE_LOG(LogConsumeAbility, Log, 
 		TEXT("Applying effect: ItemID=%d, Tag=%s, Value=%.1f, Duration=%.1f"), 
 		ItemID,
-		*CachedItemData.EffectTag.ToString(),
+		*CachedItemData.EffectTag_Consumable.ToString(),
 		CachedItemData.EffectValue,
 		EffectDuration);
 	
@@ -727,7 +727,7 @@ void UGA_ConsumeItem_Base::LogItemInfo() const
 	UE_LOG(LogConsumeAbility, Display, TEXT("Consume Item Info:"));
 	UE_LOG(LogConsumeAbility, Display, TEXT("  ItemID: %d"), ItemID);
 	UE_LOG(LogConsumeAbility, Display, TEXT("  Name: %s"), *CachedItemData.Name_EN.ToString());
-	UE_LOG(LogConsumeAbility, Display, TEXT("  EffectTag: %s"), *CachedItemData.EffectTag.ToString());
+	UE_LOG(LogConsumeAbility, Display, TEXT("  EffectTag: %s"), *CachedItemData.EffectTag_Consumable.ToString());
 	UE_LOG(LogConsumeAbility, Display, TEXT("  EffectValue: %.1f"), CachedItemData.EffectValue);
 	UE_LOG(LogConsumeAbility, Display, TEXT("  ConsumptionTime: %.1f"), CachedItemData.ConsumableData.ConsumptionTime);
 	UE_LOG(LogConsumeAbility, Display, TEXT("  EffectDuration: %.1f"), CachedItemData.ConsumableData.EffectDuration);

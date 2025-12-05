@@ -56,6 +56,15 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Item_Consuming); // 아이템 사용 중
 	
 	//================================
+	// State Modifier (방어구 효과)
+	//================================
+	// 스탯/효과 증가 계열
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Modifier); // 스탯/효과 변경 계열 상위 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Modifier_DAMAGE_REFLECT);		// 피해 반사율 증가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Modifier_DAMAGE_REDUCTION);	// 피해 감소율 증가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Modifier_MOVE_SPEED);			// 이동 속도 증가
+	
+	//================================
 	// Input 관련 태그
 	//================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Input_HotKey);
@@ -69,5 +78,6 @@ namespace AbilityTags
 	// Event 관련 태그 (몽타주 노티파이 등)
 	//================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Montage_HitCheck);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Armor_Hit);
 }
 

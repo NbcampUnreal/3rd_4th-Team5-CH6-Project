@@ -673,7 +673,7 @@ void UGA_ConsumeItem_DualEffect_Base::ApplyEffect()
 		
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - ItemID: %d"), ItemID);
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - GE Class: %s"), *AddTagEffectClass->GetName());
-		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - EffectTag: %s"), *CachedItemData.EffectTag.ToString());
+		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - EffectTag: %s"), *CachedItemData.EffectTag_Consumable.ToString());
 		
 		// GE 적용
 		FActiveGameplayEffectHandle AddHandle = 
@@ -746,7 +746,7 @@ void UGA_ConsumeItem_DualEffect_Base::LogItemInfo() const
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("Consume Item Info:"));
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  ItemID: %d"), ItemID);
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  Name: %s"), *CachedItemData.Name_EN.ToString());
-	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  EffectTag: %s"), *CachedItemData.EffectTag.ToString());
+	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  EffectTag: %s"), *CachedItemData.EffectTag_Consumable.ToString());
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  EffectValue: %.1f"), CachedItemData.EffectValue);
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  ConsumptionTime: %.1f"), CachedItemData.ConsumableData.ConsumptionTime);
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  EffectDuration: %.1f"), CachedItemData.ConsumableData.EffectDuration);

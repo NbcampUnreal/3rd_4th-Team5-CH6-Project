@@ -177,7 +177,7 @@ public:
 	// 부패 속도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
 		meta = (EditCondition="bDecayEnabled", EditConditionHides,
-			DisplayName="DecayRate (부패 속도)", ToolTip="부패가 진행되는 속도"))
+			DisplayName="Decay Duration (부패까지 걸리는 시간)", ToolTip="아이템이 부패하기까지 걸리는 시간"))
 	float DecayRate;
 	
 	//========================================
@@ -201,13 +201,10 @@ struct FArmorData
 
 public:
 	FArmorData()
-	: EquipSlot(EEquipSlot::TORSO) // 기본값 예시
+	: EquipSlot(EEquipSlot::TORSO)
 	, HealthBonus(0.0f)
-	, DamageReductionRate(0.0f)
-	, MoveSpeedBonus(0.0f)
-	, SpecialEffectID(0)
-	, RequiredRarity(1)
 	, MaxDurability(100)
+	, DurabilityLossAmount(1)
 	{}
 	
 	// 장착 가능 부위
@@ -221,33 +218,15 @@ public:
 		AdvancedDisplay)
 	float HealthBonus;
 	
-	// 피해 감소율 (0.0 ~ 1.0)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="DamageReductionRate (피해 감소율)", ToolTip="해당 방어구가 제공하는 피해 감소율 (0.0 ~ 1.0)"), 
-		AdvancedDisplay)
-	float DamageReductionRate;
-	
-	// 이동 속도 증가 보너스 (다리 부위 전용)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="MoveSpeedBonus (이동 속도 증가 보너스)", ToolTip="해당 방어구가 제공하는 이동 속도 증가 보너스 (다리 부위 전용)"), 
-		AdvancedDisplay)
-	float MoveSpeedBonus;
-	
-	// 고유 효과 ID (Effect Tag 테이블 참조)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="SpecialEffectID (고유 효과 ID)", ToolTip="피해 반사 등 고유 효과가 있는 경우 참조하는 ID"), 
-		AdvancedDisplay)
-	int32 SpecialEffectID;
-	
-	// 제작에 필요한 기술 레벨
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,
-		meta = (DisplayName="RequiredRarity (제작에 필요한 기술 레벨)", ToolTip="해당 방어구를 제작하는데 필요한 기술 레벨"))
-	int32 RequiredRarity;
-
 	// 최대 내구도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite,
 		meta = (DisplayName="MaxDurability (최대 내구도)", ToolTip="방어구의 최대 내구도"))
 	int32 MaxDurability;
+	
+	// 내구도 소모량
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,
+		meta = (DisplayName="DurabilityLossAmount (내구도 소모량)", ToolTip="피격 시 감소하는 내구도 수치 (고정값)"))
+	int32 DurabilityLossAmount;
 };
 #pragma endregion
 
@@ -295,7 +274,9 @@ public:
 		, ArmorData()                                      // 방어구 데이터 구조체 기본 생성자 호출
 		, Rarity(EItemRarity::NONE)                        // 아이템 등급 초기화 (기본값: NONE)
 		, MaxStack(1)                                      // 최대 스택 수 초기화 (기본: 1)
-		, EffectTag()                                      // 단일 효과 태그 초기화 (빈 상태)
+		//, EffectTag()                                    // 단일 효과 태그 초기화 (빈 상태)
+		, EffectTag_Consumable()                           // 소모품용 단일 효과 태그 초기화 (빈 상태)
+		, EffectTag_Armor()                                // 방어구용 단일 효과 태그 초기화 (빈 상태)
 		, EffectValue(0.f)                                 // 단일 효과 수치 초기화 (0.0f)
 		// , ItemEffects()                                 // TArray 기본 생성자 호출 (배열 초기화)
 		, Icon(nullptr)                                    // UI 아이콘 초기화 (nullptr)
@@ -386,13 +367,34 @@ public:
 	//==================================
 	
 	// 아이템 효과 태그
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Effect",
+	// 	meta = (Categories="Item.Effect", DisplayName="EffectTag", ToolTip="아이템이 가진 단일 효과 태그"))
+	// FGameplayTag EffectTag;
+	
+	// 소모품 전용 효과 태그
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Effect",
-		meta = (Categories="Item.Effect", DisplayName="EffectTag", ToolTip="아이템이 가진 단일 효과 태그"))
-	FGameplayTag EffectTag;
+		meta=(Categories="Item.Effect", DisplayName="EffectTag (Consumable)",
+			ToolTip="소모품 아이템이 가진 단일 효과 태그",
+			EditCondition="Category==EItemCategory::CONSUMABLE", EditConditionHides))
+	FGameplayTag EffectTag_Consumable;
+	
+	// 방어구 전용 효과 태그
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Effect",
+		meta=(Categories="State.Modifier", DisplayName="EffectTag (Armor)",
+			ToolTip="방어구 아이템이 가진 단일 효과 태그",
+			EditCondition="Category==EItemCategory::ARMOR", EditConditionHides))
+	FGameplayTag EffectTag_Armor;
+	
+	// 태그별 효과 수치
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Effect",
+	// 	meta = (DisplayName="EffectValue", ToolTip="효과 수치"))
+	// float EffectValue;
 	
 	// 태그별 효과 수치
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Effect",
-		meta = (DisplayName="EffectValue", ToolTip="효과 수치"))
+		meta = (DisplayName="EffectValue", ToolTip="효과 수치",
+				EditCondition="Category==EItemCategory::CONSUMABLE || Category==EItemCategory::ARMOR",
+				EditConditionHides))
 	float EffectValue;
 
 	// // 복합 효과 - 여러 효과를 가질 수 있도록
@@ -502,8 +504,15 @@ public:
 	*/
 	bool HasEffect() const
 	{
-		return EffectTag.IsValid();
-
+		switch (Category)
+		{
+		case EItemCategory::CONSUMABLE:
+			return EffectTag_Consumable.IsValid();
+		case EItemCategory::ARMOR:
+			return EffectTag_Armor.IsValid();
+		default:
+			return false;
+		}
 		// 복합 효과
 		// return EffectTag.IsValid() || ItemEffects.Num() > 0;
 	}
@@ -600,24 +609,9 @@ public:
 			
 		case EItemCategory::ARMOR:
 		{
-			// 피해 감소율은 0~1 사이여야 함
-			const bool bValidDamageReduction =
-				ArmorData.DamageReductionRate >= 0.0f &&
-				ArmorData.DamageReductionRate <= 1.0f;
-			
 			// 내구도는 1 이상이어야 장비 의미가 있음
 			const bool bValidDurability = ArmorData.MaxDurability > 0;
-			
-			// 이동 속도 증가 보너스는 음수만 아니면 OK
-			const bool bValidMoveSpeed = ArmorData.MoveSpeedBonus >= 0.0f;
-			
-			// // RequiredRarity는 1 이상
-			// const bool bValidRequiredRarity = ArmorData.RequiredRarity >= 1;
-			
-			return bValidDamageReduction
-				&& bValidDurability
-				&& bValidMoveSpeed;
-				//&& bValidRequiredRarity;
+			return bValidDurability;
 		}
 			
 		case EItemCategory::MATERIAL:
