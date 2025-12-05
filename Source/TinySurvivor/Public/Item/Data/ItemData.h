@@ -281,6 +281,8 @@ public:
 		// , ItemEffects()                                 // TArray 기본 생성자 호출 (배열 초기화)
 		, Icon(nullptr)                                    // UI 아이콘 초기화 (nullptr)
 		, WorldMesh(nullptr)                               // 월드에 표시될 메시 초기화 (nullptr)
+		, Desc_KR(FText::FromString(TEXT("")))             // 아이템에 대한 한국어 설명 텍스트 초기화 (빈 문자열)
+		, Desc_EN(FText::FromString(TEXT("")))             // 아이템에 대한 영어 설명 텍스트 초기화 (빈 문자열)
 		, bSpawnAsActor(false)                             // 월드 스폰 여부 초기화 (false)
 		, ActorClass(nullptr)                         // 스폰될 액터 클래스 초기화 (nullptr)
 		, AbilityBP(nullptr)                          // 관련 어빌리티 블루프린트 초기화 (nullptr)
@@ -416,6 +418,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Visual",
 		meta = (DisplayName="WorldMesh (3D 메시)", ToolTip="월드 드롭 및 프리뷰용 메시"))
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
+	
+	// 한국어 설명
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Visual",
+		meta = (DisplayName="Description_KR (한글 설명)", ToolTip="아이템에 대한 한국어 설명 텍스트", MultiLine=true))
+	FText Desc_KR;
+	
+	// 영어 설명
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Base-Visual",
+		meta = (DisplayName="Description_EN (영문 설명)", ToolTip="아이템에 대한 영어 설명 텍스트", MultiLine=true))
+	FText Desc_EN;
 #pragma endregion
 
 #pragma region Spawn
