@@ -2,6 +2,7 @@
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
+#include "Character/TSCharacter.h"
 #include "GameplayTags/AbilityGameplayTags.h"
 
 //***********************************************
@@ -187,7 +188,12 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 			/////////////////////////
 			//내 캐릭터 죽는 함수 구현//
 			////////////////////////
-			UE_LOG(LogTemp, Log, TEXT("캐릭터 사망 로직 구현 전 -> 체력 0 이 되어 죽었음 !! 로그만 찍기"));
+			ATSCharacter* Character = Cast<ATSCharacter>(GetOwningActor());
+			if (Character && !Character -> IsDowned()) //다운 상태가 아니라면 
+			{
+				// 다운하도록
+				Character -> BecomeDowned();
+			}
 		}
 	}
 }
