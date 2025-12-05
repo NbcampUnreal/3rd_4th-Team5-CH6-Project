@@ -1,56 +1,36 @@
 // TSAIController.cpp
 
 #include "AI/Common/TSAIController.h"
-#include "GameplayTagContainer.h"
-#include "StateTreeEvents.h"
-#include "Perception/AIPerceptionComponent.h"
-#include "Perception/AISenseConfig_Sight.h"
+
+#include "BehaviorTree/BlackboardComponent.h"
 
 ATSAIController::ATSAIController()
 {
-	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
-	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComponent"));
+	AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
 	
-	// 시각 설정
-	UAISenseConfig_Sight* SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
-	SightConfig->SightRadius = 2000.0f;
-	SightConfig->LoseSightRadius = 2500.0f;
-	SightConfig->PeripheralVisionAngleDegrees = 90.0f;
+	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight Config"));
+	SightConfig->SightRadius = 1000.0f;
+	SightConfig->LoseSightRadius = 1200.0f;
+	SightConfig->PeripheralVisionAngleDegrees = 60.0f;
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
 	
-	PerceptionComponent->ConfigureSense(*SightConfig);
-	PerceptionComponent->SetDominantSense(SightConfig->GetSenseImplementation());
+	AIPerception->ConfigureSense(*SightConfig);
+	AIPerception->SetDominantSense(SightConfig->GetSenseImplementation());
+	
+	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ATSAIController::OnTargetDetected);
 }
 
 void ATSAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-	
-	if (HasAuthority())
-	{
-		PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ATSAIController::OnTargetPerceptionUpdated);
-		
-		StateTreeComponent->StartLogic();
-	}
 }
 
-void ATSAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
+void ATSAIController::OnTargetDetected(AActor* Actor, FAIStimulus Stimulus)
 {
-	if (!HasAuthority())
-		return;
-	
-	if (Stimulus.WasSuccessfullySensed() && Actor->ActorHasTag(TEXT("Player")))
+	if (Actor->ActorHasTag("Player") && Stimulus.WasSuccessfullySensed())
 	{
-		TargetActor = Actor;
-		
-		FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName("AI.Event.PlayerSpotted"));
-		
-		if (EventTag.IsValid())
-		{
-			FStateTreeEvent Event(EventTag);
-			StateTreeComponent->SendStateTreeEvent(Event);
-		}
+		GetBlackboardComponent()->SetValueAsObject("TargetActor", Actor);
 	}
 }

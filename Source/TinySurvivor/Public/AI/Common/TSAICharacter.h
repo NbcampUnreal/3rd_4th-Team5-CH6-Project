@@ -6,78 +6,36 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "AbilitySystemComponent.h"
-#include "AttributeSet.h"
-#include "Item/LootComponent.h"
-#include "AbilitySystemInterface.h"
+#include "AI/Common/MonsterAttributeSet.h"
+#include "Components/StateTreeComponent.h"
 #include "TSAICharacter.generated.h"
 
 class UMonsterAttributeSet;
-
-UENUM(Blueprintable)
-enum class EChaserState : uint8
-{
-	Idle,
-	Patrol,
-	Chase,
-	Attack, 
-	Dead
-};
 
 UCLASS(Abstract)
 class TINYSURVIVOR_API ATSAICharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
-
+	
 public:
 	ATSAICharacter();
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-
+	// 사망 처리
+	virtual void OnDeath(AActor* Killer);
+	
+	// 풀에서 꺼낼 때 초기화하는 함수
+	void ResetMonster();
+	
 protected:
-	// ASC 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
-	
-	// 스탯 관리자
-	UPROPERTY()
-	TObjectPtr<const UMonsterAttributeSet> AttributeSetBase;
-	
 	virtual void BeginPlay() override;
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-
-public:	
-	// 아이템 루팅을 위한 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	ULootComponent* LootComponent;
-	// 서버에서 상태를 바꾸면 클라도 알 수 있게 RepNotify 사용
-	UPROPERTY(ReplicatedUsing = OnRep_ChaserState, BlueprintReadOnly, Category = "AI")
-	EChaserState CurrentState;
 	
-	// 설정값
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-	UAnimMontage* AttackMontage;
-	UPROPERTY(EditDefaultsOnly, Category = "Combat")
-	UAnimMontage* RoarMontage;
-	UPROPERTY(EditDefaultsOnly, Category = "Stats")
-	float MaxHealth = 100.0f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
+	TObjectPtr<UAbilitySystemComponent> ASC;
 	
-	float CurrentHealth;
+	UPROPERTY()
+	TObjectPtr<UMonsterAttributeSet> AttributeSet;
 	
-	UFUNCTION()
-	void OnRep_ChaserState();
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayerAttackMontage();
-	
-	// 데미지 받음
-	virtual float TakeDamage(
-		float DamageAmount, 
-		struct FDamageEvent const& DamageEvent, 
-		class AController* EventInstigator, 
-		AActor* DamageCauser
-	) override; 
-	
-	// [공격] 서버가 호출 -> 클라에서 몽타주 재생
-	void PerformAttack();
-	// 사망
-	void Die();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	TObjectPtr<UStateTreeComponent> StateTreeComponent;
 };

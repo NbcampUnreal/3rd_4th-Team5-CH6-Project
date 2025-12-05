@@ -1,64 +1,56 @@
 // TSAISpawner.cpp
 
 #include "AI/Common/TSAISpawner.h"
-#include "AI/Common/TSAICharacter.h"
-#include "AI/Common/TSAIController.h"
+#include "AI/Common/MonsterSpawnSubsystem.h"
+#include "AI/Common/AMonsterRegionVolume.h"
+#include "Kismet/KismetMathLibrary.h"
 
-// Sets default values
 ATSAISpawner::ATSAISpawner()
 {
-	bReplicates = false;
 	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = false;
+	NetUpdateFrequency = 1.0f;
+	
+	SpawnVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("SpawnVolume"));
+	RootComponent = SpawnVolume;
+	
+	// 스포너 자체 충돌은 끄되, 볼륨 갑지를 위해 Query는 킴
+	SpawnVolume->SetSimulatePhysics(false);
+	SpawnVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
 void ATSAISpawner::BeginPlay()
 {
+	// [자동 감지 로직] 내 위치에 RegionVolume이 있는지 검사
+	TArray<AActor*> OverlappingActors;
+	SpawnVolume->GetOverlappingActors(OverlappingActors, AAMonsterRegionVolume::StaticClass());
+	
+	for (AActor* Actor : OverlappingActors)
+	{
+		if (AAMonsterRegionVolume* RegionVolume = Cast<AAMonsterRegionVolume>(Actor))
+		{
+			// 봄륨을 찾으면 그 키를 내 키로 덮어씌움
+			this->RegionKey = RegionVolume->Regionkey;
+			break;
+		}
+	}
+	
 	Super::BeginPlay();
 	
+	// 서브시스템에 등록
 	if (HasAuthority())
 	{
-		SpawnMonster();
-	}
-}
-
-void ATSAISpawner::OnMonsterDestroyed(AActor* DestroyedActor)
-{
-	if (!MonsterClass)
-		return;
-	
-	UWorld* World = GetWorld();
-	if (!World)
-		return;
-	
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	
-	// 몬스터 스폰
-	ATSAICharacter* NewMonster = World->SpawnActor<ATSAICharacter>(MonsterClass, GetActorLocation(), GetActorRotation(), SpawnParams);
-	
-	if (NewMonster)
-	{
-		// 컨트롤러 가져오기
-		NewMonster->SpawnDefaultController();
-		
-		if (ATSAIController* AICon = Cast<ATSAIController>(NewMonster->GetController()))
+		if (UWorld* World = GetWorld())
 		{
-			// 구역 정보 주입
-			AICon->HomeLocation = GetActorLocation();
-			AICon->PatrolRadius = PatrolRadius;
+			if (auto* SpawnSys = GetWorld()->GetSubsystem<UMonsterSpawnSubsystem>())
+			{
+				SpawnSys->RegisterSpawner(this);
+			}
 		}
-		
-		// 리스폰 관리를 위해 사망 이벤트 구독
-		NewMonster->OnDestroyed.AddDynamic(this, &ATSAISpawner::OnMonsterDestroyed);
 	}
 }
 
-void ATSAISpawner::SpawnMonster()
+FVector ATSAISpawner::GetRandomPointInVolume() const
 {
-	// 리스폰 타이머
-	if (RespawnTime > 0.0f)
-	{
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ATSAISpawner::SpawnMonster, RespawnTime, false);
-	}
+	return UKismetMathLibrary::RandomPointInBoundingBox(SpawnVolume->GetComponentLocation(), SpawnVolume->GetScaledBoxExtent());
 }

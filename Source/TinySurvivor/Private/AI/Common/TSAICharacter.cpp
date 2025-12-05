@@ -1,26 +1,92 @@
 // TSAICharacter.cpp
 
 #include "AI/Common/TSAICharacter.h"
-#include "Net/UnrealNetwork.h"
+#include "AI/Common/MonsterSpawnSubsystem.h"
+#include "AI/Common/TSAIController.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "Item/LootComponent.h"
-#include "AbilitySystemComponent.h"
+#include "System/Erosion/TSErosionSubSystem.h"
 
 ATSAICharacter::ATSAICharacter()
 {
-	bReplicates = true;
+	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+	ASC->SetIsReplicated(true);
+	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+	AttributeSet = CreateDefaultSubobject<UMonsterAttributeSet>("AttributeSet");
 	
-	LootComponent = CreateDefaultSubobject<ULootComponent>("LootComponent");
+	AIControllerClass = ATSAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	
+	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 }
 
 UAbilitySystemComponent* ATSAICharacter::GetAbilitySystemComponent() const
 {
-	return AbilitySystemComponent;
+	return ASC;
+}
+
+void ATSAICharacter::OnDeath(AActor* Killer)
+{
+	if (!HasAuthority())
+		return;
+	
+	// 처치 시 침식도 감소
+	if (UTSErosionSubSystem* ErosionSys = UTSErosionSubSystem::GetErosionSubSystem(this))
+	{
+		float ErosionReward = AttributeSet->GetErosionReward();
+		
+		ErosionSys->AddOrSubtractErosion(-ErosionReward);
+	}
+	
+	// State Tree 정지
+	if (StateTreeComponent)
+	{
+		StateTreeComponent->StopLogic("Dead");
+	}
+	
+	// 스폰 매니저에게 반납 요청
+	if (UWorld* World = GetWorld())
+	{
+		if (auto* SpawnSys = World->GetSubsystem<UMonsterSpawnSubsystem>())
+		{
+			// 사망 모션 등을 위해 3초 뒤 반납
+			FTimerHandle TimerHandle;
+			
+			World->GetTimerManager().SetTimer(TimerHandle, [this, SpawnSys]()
+			{
+				SpawnSys->ReturnMonsterInPool(this);
+			}, 3.0f, false);
+		}
+	}
+	
+	// 콜리전 끄기
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ATSAICharacter::ResetMonster()
+{
+	SetActorHiddenInGame(false);
+	SetActorEnableCollision(true);
+	SetActorTickEnabled(true);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	
+	if (AttributeSet)
+	{
+		AttributeSet->SetHealth(AttributeSet->GetMaxHealth());
+	}
+	
+	if (StateTreeComponent)
+	{
+		StateTreeComponent->StartLogic();
+	}
+	
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	{
+		if (UAIPerceptionComponent* Perception = AIC->GetPerceptionComponent())
+		{
+			Perception->ForgetAll();
+		}
+	}
 }
 
 void ATSAICharacter::BeginPlay()
@@ -28,75 +94,5 @@ void ATSAICharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	if (HasAuthority())
-	{
-		CurrentHealth = MaxHealth;	
-	}
-}
-
-void ATSAICharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ATSAICharacter, CurrentState);
-}
-
-void ATSAICharacter::OnRep_ChaserState()
-{
-	if (CurrentState == EChaserState::Chase)
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 600.0f;	// 뜀
-	}
-	else
-	{
-		GetCharacterMovement()->MaxWalkSpeed = 300.0f;	// 걷기
-	}
-}
-
-void ATSAICharacter::PerformAttack()
-{
-	if (!HasAuthority())
-		return;
-	
-	// 데미지 판정 로직
-	
-	// 몽타주 재생 명령 (모든 클라에게 전송)
-	Multicast_PlayerAttackMontage();
-}
-
-void ATSAICharacter::Multicast_PlayerAttackMontage_Implementation()
-{
-	if (AttackMontage)
-	{
-		PlayAnimMontage(AttackMontage);
-	}
-}
-
-float ATSAICharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
-	class AController* EventInstigator, AActor* DamageCauser)
-{
-	if (!HasAuthority() || CurrentState == EChaserState::Dead)
-		return 0.0f;
-	
-	CurrentHealth -= DamageAmount;
-	if (CurrentHealth <= 0.0f)
-	{
-		Die();
-	}
-	
-	return DamageAmount;
-}
-
-void ATSAICharacter::Die()
-{
-	CurrentState = EChaserState::Dead;
-	
-	if (LootComponent)
-	{
-		LootComponent->SpawnLoot();
-	}
-	
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetMesh()->SetSimulatePhysics(true);
-	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
-	
-	SetLifeSpan(5.0f);
+		StateTreeComponent->StartLogic();
 }
