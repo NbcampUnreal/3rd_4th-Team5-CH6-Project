@@ -97,6 +97,16 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 	
+#pragma region Downed
+	void BecomeDowned();
+	bool IsDowned();
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	TSubclassOf<UGameplayEffect> DownedEffectClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	UAnimMontage* DownedMontage;
+#pragma endregion
 protected:
 	virtual void BeginPlay() override;
 

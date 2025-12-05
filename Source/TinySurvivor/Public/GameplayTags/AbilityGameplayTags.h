@@ -47,6 +47,8 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempHot); // 더위 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempCold); // 추위 상태이상
 	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Downed); // 내 캐릭터 기절
+	
 	// Poison 관련 태그
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_Poison); // 독 면역 (해독제)
