@@ -46,10 +46,14 @@ void ATSInteractionActorBase::BeginPlay()
 
 	InitializeFromItemData();
 
+	// 상호작용 위젯 설정
 	if (InteractionWidget && InteractionWidgetClass)
 	{
 		InteractionWidget->SetWidgetClass(InteractionWidgetClass);
 	}
+	float WidgetHeight = MeshComponent->Bounds.GetBox().GetExtent().Z;
+	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, WidgetHeight));
+	
 }
 
 void ATSInteractionActorBase::PostInitializeComponents()
@@ -159,21 +163,21 @@ void ATSInteractionActorBase::InitializeFromItemData()
 	{
 		return;
 	}
-
+	
 	UItemDataSubsystem* IDS = GI->GetSubsystem<UItemDataSubsystem>();
 	if (!IDS)
 	{
 		return;
 	}
 
-	FItemData ItemInfo;
-	if (!IDS->GetItemDataSafe(ItemInstance.StaticDataID, ItemInfo))
+	FBuildingData ItemInfo;
+	if (!IDS->GetBuildingDataSafe(ItemInstance.StaticDataID, ItemInfo))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to get ItemData for ID: %d"), ItemInstance.StaticDataID);
 		return;
 	}
 
-	if (MeshComponent && ItemInfo.IsWorldMeshValid())
+	if (MeshComponent && !ItemInfo.WorldMesh.IsNull())
 	{
 		UStaticMesh* Mesh = ItemInfo.WorldMesh.LoadSynchronous();
 		if (Mesh)
