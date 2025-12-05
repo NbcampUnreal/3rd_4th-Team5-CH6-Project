@@ -12,12 +12,48 @@ UGA_LeftClick::UGA_LeftClick()
 {
 }
 
+bool UGA_LeftClick::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags))
+	{
+		return false;
+	}
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC)
+	{
+		return false;
+	}
+	const float CurrentStamina = ASC->GetNumericAttribute(UTSAttributeSet::GetStaminaAttribute());
+	return CurrentStamina >= 10.0f;
+}
+
 void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	
+	//Attack, block 태그 알림
+	if (AttackTag.IsValid())
+	{
+		ASC->AddLooseGameplayTag(AttackTag);
+	}
+	if (StaminaBlockTag.IsValid())
+	{
+		ASC->AddLooseGameplayTag(StaminaBlockTag);
+	}
+	if (AttackCostEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = MakeEffectContext(Handle, ActorInfo);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(AttackCostEffectClass, GetAbilityLevel(), ContextHandle);
+		
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
 	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
 	EItemAnimType Type = EItemAnimType::NONE;
-	
 	//================================
 	// AnimType에 따른 몽타주 선택
 	//================================
@@ -53,8 +89,6 @@ void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 	
 	if (FirstMontage)
 	{
-		UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();		
-		
 		//================================
 		// AnimType에 따른 공격 속도 계산
 		//================================
@@ -72,10 +106,10 @@ void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 		WaitTask->EventReceived.AddDynamic(this, &UGA_LeftClick::ReceivedNotify);
 		
 		// Task 종료 처리는 베이스에 이미 있는 함수 재사용
-		MontageTask->OnBlendOut.AddDynamic(this, &UTSGameplayAbilityBase::OnMontageBlendOut);
-		MontageTask->OnCompleted.AddDynamic(this, &UTSGameplayAbilityBase::OnMontageCompleted);
-		MontageTask->OnInterrupted.AddDynamic(this, &UTSGameplayAbilityBase::OnMontageInterrupted);
-		MontageTask->OnCancelled.AddDynamic(this, &UTSGameplayAbilityBase::OnMontageCancelled);
+		MontageTask->OnBlendOut.AddDynamic(this, &UGA_LeftClick::OnAttackMontageFinished);
+		MontageTask->OnCompleted.AddDynamic(this, &UGA_LeftClick::OnAttackMontageFinished);
+		MontageTask->OnInterrupted.AddDynamic(this, &UGA_LeftClick::OnAttackMontageFinished);
+		MontageTask->OnCancelled.AddDynamic(this, &UGA_LeftClick::OnAttackMontageFinished);
 		
 		// 태스크 활성화
 		MontageTask->ReadyForActivation();
@@ -85,6 +119,38 @@ void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 	}
+}
+
+void UGA_LeftClick::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	// 태그 없애기
+	if (AttackTag.IsValid())
+	{
+		ASC->RemoveLooseGameplayTag(AttackTag);
+	}
+	if (StaminaBlockTag.IsValid())
+	{
+		ASC->RemoveLooseGameplayTag(StaminaBlockTag);
+	}
+	// attack 끝나고 1초 동안 딜레이
+	if (StaminaDelayEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = MakeEffectContext(CurrentSpecHandle, CurrentActorInfo);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(StaminaDelayEffectClass, GetAbilityLevel(), ContextHandle);
+			
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+void UGA_LeftClick::OnAttackMontageFinished()
+{
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }
 
 void UGA_LeftClick::ReceivedNotify(FGameplayEventData EventData)
