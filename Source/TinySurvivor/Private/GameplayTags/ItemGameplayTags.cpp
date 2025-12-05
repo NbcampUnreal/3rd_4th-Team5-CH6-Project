@@ -53,6 +53,12 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_AttackDamage, "Data.AttackDamage");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_AttackSpeed, "Data.AttackSpeed");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_AttackRange, "Data.AttackRange");
+	
+	// 방어구 스탯 전달용 태그 정의
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_HealthBonus, "Data.HealthBonus");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Armor_DamageReflection, "Data.Armor.DamageReflection");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Armor_DamageReduction, "Data.Armor.DamageReduction");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Armor_MoveSpeed, "Data.Armor.MoveSpeed");
 #pragma endregion
 	
 #pragma region Ability

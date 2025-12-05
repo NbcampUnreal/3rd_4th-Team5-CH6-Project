@@ -64,6 +64,12 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackDamage);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackSpeed);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackRange);
+	
+	// 방어구 스탯 전달용 태그 추가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_HealthBonus);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_DamageReflection);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_DamageReduction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_MoveSpeed);
 #pragma endregion
 	
 #pragma region Ability
