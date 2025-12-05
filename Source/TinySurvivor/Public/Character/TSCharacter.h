@@ -135,6 +135,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> FallDamageEffectClass; // 낙하데미지 GE
 	
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> FullRecoverHealthEffectClass; // Full 시 health recover 하는 GE
+protected:
 	// test -> 체온 상태이상에 따라 GE 적용 되는지 보기 위한 GE 적용 테스트 코드
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> TempTESTClass;
