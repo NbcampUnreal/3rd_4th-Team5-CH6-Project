@@ -7,6 +7,7 @@
 #include "Building/System/BuildingRecipeDataSubsystem.h"
 #include "GameFramework/Pawn.h"
 #include "Inventory/TSInventoryMasterComponent.h"
+#include "Item/TSInteractionActorBase.h"
 #include "Item/Data/BuildingData.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -154,9 +155,15 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 	// DynamicMaterial 생성
 	if (PreviewMaterial)
 	{
-		CachedDynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(0, PreviewMaterial);
-		CachedDynamicMaterial->SetVectorParameterValue(FName("Color"),
-		                                               bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+		int32 MaterialCount = PreviewMeshComp->GetNumMaterials();
+		for (int32 i = 0; i < MaterialCount; ++i)
+		{
+			UMaterialInstanceDynamic* DynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(
+				i, PreviewMaterial);
+			DynamicMaterial->SetVectorParameterValue(FName("Color"),
+			                                         bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+			CachedDynamicMaterials.Add(DynamicMaterial);
+		}
 	}
 }
 
@@ -194,10 +201,16 @@ void UTSBuildingComponent::UpdatePreviewMesh(float DeltaTime)
 	bCanPlace = ValidatePlacement(HitResult);
 
 	// 설치 가능 여부 변경 시 프리뷰 메시 색상 변경
-	if (bCanPlace != bLastCanPlace && CachedDynamicMaterial)
+	if (bCanPlace != bLastCanPlace && CachedDynamicMaterials.Num() > 0)
 	{
-		CachedDynamicMaterial->SetVectorParameterValue(FName("Color"),
-		                                               bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+		int32 MaterialCount = PreviewMeshComp->GetNumMaterials();
+		for (int32 i = 0; i < MaterialCount; ++i)
+		{
+			UMaterialInstanceDynamic* DynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(
+				i, PreviewMaterial);
+			DynamicMaterial->SetVectorParameterValue(FName("Color"),
+													 bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+		}
 		bLastCanPlace = bCanPlace;
 	}
 }
@@ -394,14 +407,25 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 	{
 		return;
 	}
+	// 액터 지연 스폰
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = GetOwner();
+	SpawnParams.Instigator = Cast<APawn>(GetOwner());
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
+
+	ATSInteractionActorBase* SpawnedActor = GetWorld()->SpawnActorDeferred<ATSInteractionActorBase>(
 		BuildingData.ActorClass,
 		SpawnTransform,
-		SpawnParams
+		SpawnParams.Owner,
+		SpawnParams.Instigator,
+		SpawnParams.SpawnCollisionHandlingOverride
 	);
+	// 액터 속성 설정
+	if (SpawnedActor)
+	{
+		SpawnedActor->ItemInstance.StaticDataID = BuildingDataID;
+		SpawnedActor->FinishSpawning(SpawnTransform);
+	}
 }
 
 bool UTSBuildingComponent::ServerSpawnBuilding_Validate(int32 BuildingDataID, FTransform SpawnTransform)

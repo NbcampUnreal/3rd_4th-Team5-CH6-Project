@@ -95,7 +95,7 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	UMaterialInterface* PreviewMaterial;
 	UPROPERTY()
-	TObjectPtr<UMaterialInstanceDynamic> CachedDynamicMaterial = nullptr;
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> CachedDynamicMaterials;
     
 	bool bLastCanPlace = false; 
 
