@@ -1,8 +1,8 @@
+// TSAttributeSet.cpp
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
 #include "GameplayTags/AbilityGameplayTags.h"
-
 
 //***********************************************
 // 생성자 초기화
@@ -33,12 +33,18 @@ UTSAttributeSet::UTSAttributeSet()
 	
 	InitBaseDamage(10.0f);		// 기본 공격력
 	InitDamageBonus(0.0f);		// 무기 추가 공격력 (초기값 0)
-
+	
 	InitBaseAttackSpeed(1.0f);	// 기본 공격속도
 	InitAttackSpeedBonus(1.0f);	// 무기 추가 속도, 적용 전 기본 배율 1
-
+	
 	InitBaseAttackRange(100.0f);	// 기본 공격반경
 	InitAttackRangeBonus(1.0f);	// 무기 추가 반경, 적용 전 기본 배율 1
+	
+	InitBaseDamageReduction(0.0f);	// 0% 기본
+	InitDamageReductionBonus(0.0f);	// 장비/버프 추가
+	
+	InitBaseDamageReflection(0.0f);	// 0% 기본
+	InitDamageReflectionBonus(0.0f);	// 장비/버프 추가
 }
 //***********************************************
 //복제 설정
@@ -68,6 +74,10 @@ void UTSAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AttackSpeedBonus, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseAttackRange, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AttackRangeBonus, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseDamageReduction, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DamageReductionBonus, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseDamageReflection, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DamageReflectionBonus, COND_None, REPNOTIFY_Always);
 }
 //***********************************************
 //값 변경 전 Clamp
@@ -234,6 +244,14 @@ void UTSAttributeSet::ClampBeforeChange(const FGameplayAttribute& Attribute, flo
 		NewValue = FMath::Max(1.0f, NewValue);
 	}
 	// Bonus는 음수 허용 (디버프 가능)
+	else if (Attribute == GetBaseDamageReductionAttribute() ||
+		 Attribute == GetDamageReductionBonusAttribute() ||
+		 Attribute == GetBaseDamageReflectionAttribute() ||
+		 Attribute == GetDamageReflectionBonusAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, -1.0f, 1.0f); 
+		// 또는 필요 시 0~1만 허용
+	}
 }
 void UTSAttributeSet::ClampAfterEffect(const struct FGameplayEffectModCallbackData& Data)
 {
@@ -270,46 +288,57 @@ void UTSAttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Health, OldHealth);
 }
+
 void UTSAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldMaxHealth)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxHealth, OldMaxHealth);
 }
+
 void UTSAttributeSet::OnRep_Stamina(const FGameplayAttributeData& OldStamina)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Stamina, OldStamina);
 }
+
 void UTSAttributeSet::OnRep_MaxStamina(const FGameplayAttributeData& OldMaxStamina)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxStamina, OldMaxStamina);
 }
+
 void UTSAttributeSet::OnRep_Hunger(const FGameplayAttributeData& OldHunger)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Hunger, OldHunger);
 }
+
 void UTSAttributeSet::OnRep_MaxHunger(const FGameplayAttributeData& OldMaxHunger)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxHunger, OldMaxHunger);
 }
+
 void UTSAttributeSet::OnRep_Thirst(const FGameplayAttributeData& OldThirst)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Thirst, OldThirst);
 }
+
 void UTSAttributeSet::OnRep_MaxThirst(const FGameplayAttributeData& OldMaxThirst)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxThirst, OldMaxThirst);
 }
+
 void UTSAttributeSet::OnRep_Sanity(const FGameplayAttributeData& OldSanity)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Sanity, OldSanity);
 }
+
 void UTSAttributeSet::OnRep_MaxSanity(const FGameplayAttributeData& OldMaxSanity)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxSanity, OldMaxSanity);
 }
+
 void UTSAttributeSet::OnRep_Temperature(const FGameplayAttributeData& OldTemperature)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Temperature, OldTemperature);
 }
+
 void UTSAttributeSet::OnRep_MaxTemperature(const FGameplayAttributeData& OldMaxTemperature)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxTemperature, OldMaxTemperature);
@@ -353,4 +382,24 @@ void UTSAttributeSet::OnRep_BaseAttackRange(const FGameplayAttributeData& OldBas
 void UTSAttributeSet::OnRep_AttackRangeBonus(const FGameplayAttributeData& OldAttackRangeBonus)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, AttackRangeBonus, OldAttackRangeBonus);
+}
+
+void UTSAttributeSet::OnRep_BaseDamageReduction(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, BaseDamageReduction, OldValue);
+}
+
+void UTSAttributeSet::OnRep_DamageReductionBonus(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DamageReductionBonus, OldValue);
+}
+
+void UTSAttributeSet::OnRep_BaseDamageReflection(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, BaseDamageReflection, OldValue);
+}
+
+void UTSAttributeSet::OnRep_DamageReflectionBonus(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DamageReflectionBonus, OldValue);
 }

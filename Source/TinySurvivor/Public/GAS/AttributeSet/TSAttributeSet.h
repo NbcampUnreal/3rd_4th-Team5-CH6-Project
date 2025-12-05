@@ -1,3 +1,4 @@
+// TSAttributeSet.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -84,23 +85,37 @@ public:
 	// 8. Damage (공격력)
 	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_BaseDamage)
 	FGameplayAttributeData BaseDamage;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_DamageBonus)
 	FGameplayAttributeData DamageBonus;
-
+	
 	// 9. AttackSpeed (공격속도)
 	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_BaseAttackSpeed)
 	FGameplayAttributeData BaseAttackSpeed;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_AttackSpeedBonus)
 	FGameplayAttributeData AttackSpeedBonus;
-
+	
 	// 10. AttackRange (공격반경)
 	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_BaseAttackRange)
 	FGameplayAttributeData BaseAttackRange;
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_AttackRangeBonus)
 	FGameplayAttributeData AttackRangeBonus;
+	
+	// 11. Damage Reduction (피해 감소율)
+	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_BaseDamageReduction)
+	FGameplayAttributeData BaseDamageReduction;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_DamageReductionBonus)
+	FGameplayAttributeData DamageReductionBonus;
+	
+	// 12. Damage Reflection (피해 반사율)
+	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_BaseDamageReflection)
+	FGameplayAttributeData BaseDamageReflection;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_DamageReflectionBonus)
+	FGameplayAttributeData DamageReflectionBonus;
 	
 	// 매크로
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, Health)
@@ -123,6 +138,10 @@ public:
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, AttackSpeedBonus)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, BaseAttackRange)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, AttackRangeBonus)
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, BaseDamageReduction)
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, DamageReductionBonus)
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, BaseDamageReflection)
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, DamageReflectionBonus)
 	
 protected:
 	//OnRep 클라 반영
@@ -166,4 +185,12 @@ protected:
 	void OnRep_BaseAttackRange(const FGameplayAttributeData& OldBaseAttackRange);
 	UFUNCTION()
 	void OnRep_AttackRangeBonus(const FGameplayAttributeData& OldAttackRangeBonus);
+	UFUNCTION()
+	void OnRep_BaseDamageReduction(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_DamageReductionBonus(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_BaseDamageReflection(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_DamageReflectionBonus(const FGameplayAttributeData& OldValue);
 };
