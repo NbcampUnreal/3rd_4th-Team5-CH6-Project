@@ -138,6 +138,36 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 				ASC->RemoveLooseGameplayTag(HungerStatusTag);
 			}
 		}
+		
+		AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
+		ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
+		// Full 상태 처리
+		FGameplayTag FullStatusTag = AbilityTags::TAG_State_Status_Full;
+		if (GetHunger() >= 100.0f)
+		{
+			// 배부름 태그 부착
+			if (!ASC->HasMatchingGameplayTag(FullStatusTag))
+			{
+				ASC->AddLooseGameplayTag(FullStatusTag);
+			}
+			if (Char  && Char->FullRecoverHealthEffectClass)
+			{
+				FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+				ContextHandle.AddSourceObject(this);
+				FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->FullRecoverHealthEffectClass, 1, ContextHandle);
+            
+				if (SpecHandle.IsValid())
+				{
+					ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+				}
+			}
+		} else
+		{
+			if (ASC->HasMatchingGameplayTag(FullStatusTag))
+			{
+				ASC->RemoveLooseGameplayTag(FullStatusTag);
+			}
+		}
 	}
 	if (Data.EvaluatedData.Attribute == GetTemperatureAttribute())
 	{

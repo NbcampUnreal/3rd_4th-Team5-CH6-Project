@@ -46,7 +46,9 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Hunger); // 배고픔 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempHot); // 더위 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempCold); // 추위 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Full); // 배부름
 	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Attack);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Downed); // 내 캐릭터 기절
 	
 	// Poison 관련 태그
