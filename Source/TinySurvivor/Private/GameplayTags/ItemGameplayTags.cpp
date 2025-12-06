@@ -138,4 +138,32 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Acquisition_Interaction, "Item.Acquisition.Interaction");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Acquisition_Install, "Item.Acquisition.Install");
 #pragma endregion
+	
+#pragma region DisplayStat
+	//========================================
+	// 아이템 상세페이지 - 스탯 (DisplayStat) 정의
+	//========================================
+	
+	// 아이템 스탯
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_HarvestTarget, "Display.Stat.HarvestTarget");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_AttackDamage, "Display.Stat.AttackDamage");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_Durability, "Display.Stat.Durability");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_AttackRange, "Display.Stat.AttackRange");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_EquipSlot, "Display.Stat.EquipSlot");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_Head, "Display.Stat.Head");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_Torso, "Display.Stat.Torso");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_Leg, "Display.Stat.Leg");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_EffectDuration, "Display.Stat.EffectDuration");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_MaxStack, "Display.Stat.MaxStack");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_DecayRate, "Display.Stat.DecayRate");
+	
+	// 빌딩 스탯
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_LightRadius, "Display.Stat.LightRadius");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_ErosionReduction, "Display.Stat.ErosionReduction");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_MaxMaintenance, "Display.Stat.MaxMaintenance");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_MaintenanceInterval, "Display.Stat.MaintenanceInterval");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_Rarity, "Display.Stat.Rarity");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_StorageSlots, "Display.Stat.StorageSlots");
+
+#pragma endregion
 }

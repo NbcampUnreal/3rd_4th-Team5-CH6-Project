@@ -149,4 +149,32 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Interaction);  // 상호작용 (필드 내 오브젝트)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Install);      // 설치 (건축물)
 #pragma endregion
+	
+#pragma region DisplayStat
+	//========================================
+	// 아이템 상세페이지 - 스탯 (DisplayStat)
+	//========================================
+	
+	// 아이템 스탯
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_HarvestTarget);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_AttackDamage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Durability);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_AttackRange);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_EquipSlot);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Head);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Torso);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Leg);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_EffectDuration);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaxStack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_DecayRate);
+	
+	// 빌딩 스탯
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_LightRadius);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_ErosionReduction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaxMaintenance);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaintenanceInterval);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Rarity);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_StorageSlots);
+
+#pragma endregion
 }
