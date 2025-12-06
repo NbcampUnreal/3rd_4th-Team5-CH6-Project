@@ -23,9 +23,30 @@ void FBuildingData::PrintDebugInfo() const
 	UE_LOG(LogFBuildingData, Display, TEXT("RequiredTier: %d"), static_cast<uint8>(RequiredTier));
 	UE_LOG(LogFBuildingData, Display, TEXT("MaxDurability: %d"), MaxDurability);
 	UE_LOG(LogFBuildingData, Display, TEXT("IsErosionController: %s"), IsErosionController ? TEXT("True") : TEXT("False"));
-	UE_LOG(LogFBuildingData, Display, TEXT("MaintenanceCostID: %d"), MaintenanceCostID);
-	UE_LOG(LogFBuildingData, Display, TEXT("MaintenanceInterval: %d"), MaintenanceInterval);
-	UE_LOG(LogFBuildingData, Display, TEXT("MaintenanceCostQty: %d"), MaintenanceCostQty);
+	
+	//======================================
+	// LIGHT SYSTEM DATA
+	//======================================
+	if (BuildingType == EBuildingType::LIGHT)
+	{
+		UE_LOG(LogFBuildingData, Display, TEXT("---[Light System]"));
+		UE_LOG(LogFBuildingData, Display, TEXT("MaintenanceCostID: %d"), MaintenanceCostID);
+		UE_LOG(LogFBuildingData, Display, TEXT("MaintenanceInterval: %.2f"), MaintenanceInterval);
+		UE_LOG(LogFBuildingData, Display, TEXT("MaintenanceCostQty: %d"), MaintenanceCostQty);
+		UE_LOG(LogFBuildingData, Display, TEXT("LightRadius_Units: %.2f"), LightRadius_Units);
+		UE_LOG(LogFBuildingData, Display, TEXT("ErosionReduction: %.2f"), ErosionReduction);
+		UE_LOG(LogFBuildingData, Display, TEXT("SanityRecoveryPerSec: %.2f"), SanityRecoveryPerSec);
+		UE_LOG(LogFBuildingData, Display, TEXT("MaxMaintenance: %d"), MaxMaintenance);
+	}
+	
+	//======================================
+	// STORAGE SYSTEM DATA
+	//======================================
+	if (BuildingType == EBuildingType::STORAGE)
+	{
+		UE_LOG(LogFBuildingData, Display, TEXT("---[Storage System]"));
+		UE_LOG(LogFBuildingData, Display, TEXT("StorageSlots: %d"), StorageSlots);
+	}
 	
 	// Visual
 	UE_LOG(LogFBuildingData, Display, TEXT("---[Visual]"));
