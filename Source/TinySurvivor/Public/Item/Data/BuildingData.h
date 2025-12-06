@@ -130,35 +130,83 @@ struct FBuildingData : public FTableRowBase
 	int32 MaxDurability;
 	
 	// 침식도 관리 여부
+	// 광원 건축물만 True
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Erosion Controller", ToolTip="침식도 관리 여부"))
+	meta=(DisplayName="Erosion Controller", ToolTip="침식도 관리 여부"))
 	bool IsErosionController;
-
+#pragma endregion
+	
+#pragma region LightSystem
+	/*
+		광원 건축물 전용 데이터
+	*/
 	// // 유지비 소모 주기 (초 단위, 0이면 소모 없음)
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System", ClampMin="0.0"))
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="LIGHT-System", ClampMin="0.0"))
 	// float MaintenancePeriod;
-
+	
 	// // 유지비 목록 (복수 고려)
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System")
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="LIGHT-System")
 	// TArray<FResourceAmount> MaintenanceCost;
 	
-	// 유지비 재료 ID (침식도 관리 기능과 연동, 단일 ID)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Maintenance Cost ID", ToolTip="유지비 재료 ID (0이면 없음)",
-			EditCondition="IsErosionController"))
+	// 광원 작동에 필요한 연료 아이템
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="LIGHT-System",
+		meta=(EditCondition="BuildingType==EBuildingType::LIGHT", EditConditionHides,
+			DisplayName="MaintenanceCostID (광원 작동에 필요한 연료 아이템)", ToolTip="광원 작동에 필요한 연료 아이템"))
 	int32 MaintenanceCostID;
 	
-	// 유지비 소모 간격 (초 단위)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Maintenance Interval", ToolTip="유지비 소모 간격 (초)",
-			ClampMin=0, EditCondition="IsErosionController"))
-	int32 MaintenanceInterval;
+	// 초당 연료 소모량 (단위: 1.0 = 1개 소모)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="LIGHT-System",
+		meta=(EditCondition="BuildingType==EBuildingType::LIGHT", EditConditionHides, ClampMin=0,
+			DisplayName="MaintenanceInterval (초당 연료 소모량)", ToolTip="초당 연료 소모량 (단위: 1.0 = 1개 소모)"))
+	float MaintenanceInterval;
 	
-	// 유지비 재료 수량
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Maintenance Cost Quantity", ToolTip="유지비 재료 수량",
-			ClampMin=0, EditCondition="IsErosionController"))
+	// 광원 건축물에 한 번에 보관 가능한 최대 연료량
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="LIGHT-System",
+		meta=(EditCondition="BuildingType==EBuildingType::LIGHT", EditConditionHides, ClampMin=0,
+			DisplayName="MaintenanceCostQty (광원 건축물에 한 번에 보관 가능한 최대 연료량)",
+			ToolTip="광원 건축물에 한 번에 보관 가능한 최대 연료량"))
 	int32 MaintenanceCostQty;
+	
+	// 광원이 생성하는 빛 구역의 유효 반경 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="LIGHT-System",
+		meta=(EditCondition="BuildingType==EBuildingType::LIGHT", EditConditionHides,
+			DisplayName="LightRadius_Units (광원이 생성하는 빛 구역의 유효 반경)",
+			ToolTip="광원이 생성하는 빛 구역의 유효 반경 (엔진 유닛)"))
+	float LightRadius_Units;
+	
+	// 침식도 감소량
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="LIGHT-System",
+		meta=(EditCondition="BuildingType==EBuildingType::LIGHT", EditConditionHides,
+			DisplayName="ErosionReduction (침식도 감소량)",
+			ToolTip="침식도 감소량, 조명을 설치 시, 즉시 감소"))
+	float ErosionReduction;
+	
+	// 정신력 회복
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="LIGHT-System",
+		meta=(EditCondition="BuildingType==EBuildingType::LIGHT", EditConditionHides,
+			DisplayName="SanityRecoveryPerSec (정신력 회복)",
+			ToolTip="정신력 회복, 빛 영역(LightRadius_Units) 범위 내 있는 플레이어이 초당 회복하는 정신력 수치"))
+	float SanityRecoveryPerSec;
+	
+	// 최대 동작 시간
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="LIGHT-System",
+		meta=(EditCondition="BuildingType==EBuildingType::LIGHT", EditConditionHides,
+			DisplayName="MaxMaintenance (최대 동작 시간)",
+			ToolTip="최대 동작 시간, 연료를 최대치까지 넣은 경우, 가능한 최대 동작 시간"))
+	int32 MaxMaintenance;
+#pragma endregion
+	
+#pragma region StorageSystem
+	/*
+		창고 건축물 전용 데이터
+	*/
+	
+	// 창고 인벤토리 슬롯 용량
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="STORAGE-System",
+		meta=(EditCondition="BuildingType==EBuildingType::STORAGE", EditConditionHides,
+			DisplayName="StorageSlots",
+			ToolTip="창고 인벤토리 슬롯 용량"))
+	int32 StorageSlots;
 #pragma endregion
 	
 #pragma region Visual
