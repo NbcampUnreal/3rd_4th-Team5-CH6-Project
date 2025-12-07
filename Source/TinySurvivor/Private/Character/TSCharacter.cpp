@@ -359,8 +359,6 @@ void ATSCharacter::BecomeDowned()
 	// 1. 기존 행동 취소 및 Downed 태그 부착
 	if (ASC)
 	{
-		ASC->CancelAllAbilities();
-		ASC->CancelAbilities();
 		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
 	}
 
