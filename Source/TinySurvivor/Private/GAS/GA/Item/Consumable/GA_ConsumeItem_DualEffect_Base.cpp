@@ -3,12 +3,12 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
-#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "GameFramework/Character.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "GameplayTags/AbilityGameplayTags.h"
 #include "GameplayTags/ItemGameplayTags.h"
+#include "Character/TSCharacter.h"
 
 // 로그 카테고리 정의
 DEFINE_LOG_CATEGORY_STATIC(LogConsumeAbilityDureEffect, Log, All);
@@ -29,11 +29,20 @@ UGA_ConsumeItem_DualEffect_Base::UGA_ConsumeItem_DualEffect_Base()
 	/*
 		Ability 실행 권한 설정
 		- ServerInitiated:
-			Ability 활성화 요청은 서버에서 처리되며,
-			클라이언트 입력은 서버로 전달되어 서버가 Ability를 시작함.
-			(치트 방지 및 권한 제어가 필요한 Ability에 적합)
+			ServerInitiated = 클라 입력은 가능하지만 실행은 서버.
+			클라이언트 입력 → 서버로 RPC 전송 → 서버가 Ability를 Activate.
+			ActivateAbility()는 서버만 호출하지만,
+			Ability 시작 자체는 "클라이언트 입력 기반"으로 트리거됨.
+			(치트 방지 및 입력 권한 제어가 필요한 Ability에 적합)
+		- ServerOnly:
+			ActivateAbility는 서버만 실행, 클라는 절대 진입 불가.
+			Ability ActivateAbility()는 오직 서버에서만 실행됨.
+			클라이언트는 ActivateAbility() 블록에 절대 진입하지 않음.
+			즉, Ability 활성화 요청을 클라이언트가 직접 발생시키지 않고,
+			서버 내부 로직 또는 서버 이벤트로만 Ability가 시작됨.
+			(완전한 서버 권한 기반 Ability — 아이템 소비, 인벤토리 처리, 서버 계산 전용 Ability에 적합)
 	*/
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	
 	// Ability 실행 중 입력이 다시 들어와도 재실행(재트리거)되지 않도록 설정
 	bRetriggerInstancedAbility = false;
@@ -67,11 +76,12 @@ void UGA_ConsumeItem_DualEffect_Base::ActivateAbility(
 	const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
-{
+{// 서버 전용 Ability -> 여기 들어왔다 = 무조건 서버
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	
-	if (!ActorInfo)
+	if (!ActorInfo || !ActorInfo->AvatarActor.IsValid())
 	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
 	
@@ -82,18 +92,18 @@ void UGA_ConsumeItem_DualEffect_Base::ActivateAbility(
 		return;
 	}
 	
-	// 서버에서만 실행
-	if (!ActorInfo->IsNetAuthority())
-	{
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
-		return;
-	}
-	
-	// EventData에서 슬롯 인덱스 수신
+	// 슬롯 인덱스 입력 처리: EventData에서 슬롯 인덱스 수신
 	if (TriggerEventData)
 	{
 		ConsumedSlotIndex = static_cast<int32>(TriggerEventData->EventMagnitude);
+		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("받은 슬롯 인덱스: %d"), ConsumedSlotIndex);
+#endif
+	}
+	else
+	{
+		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("TriggerEventData 없음 — 슬롯 인덱스를 수신하지 못함."));
 	}
 	
 	//=======================================================================
@@ -131,7 +141,9 @@ void UGA_ConsumeItem_DualEffect_Base::ActivateAbility(
 	}
 	
 	// 디버그 로그
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	LogItemInfo();
+#endif
 	
 	//=======================================================================
 	// 3단계: ConsumptionTime 대기
@@ -153,22 +165,36 @@ void UGA_ConsumeItem_DualEffect_Base::EndAbility(
 	// Task 종료 (서버에서만)
 	if (GetCurrentActorInfo()->IsNetAuthority())
 	{
-		if (ActiveMontageTask.IsValid())
-		{
-			ActiveMontageTask->EndTask();
-			ActiveMontageTask = nullptr;
-		}
 		if (ActiveDelayTask.IsValid())
 		{
 			ActiveDelayTask->EndTask();
 			ActiveDelayTask = nullptr;
 		}
 		
-		// 모든 클라이언트의 몽타주 정지
-		Multicast_StopConsumeMontage();
+		// 몽타주 정지 (Multicast)
+		if (CachedItemData.ConsumableData.ConsumptionMontage.IsValid())
+		{
+			UAnimMontage* Montage = CachedItemData.ConsumableData.ConsumptionMontage.LoadSynchronous();
+			if (Montage)
+			{
+				ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+				if (Character)
+				{
+					ATSCharacter* TSCharacter = Cast<ATSCharacter>(Character);
+					if (TSCharacter)
+					{
+						TSCharacter->Multicast_StopConsumeMontage(Montage);
+						
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+						UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Server] 몽타주 정지 Multicast 호출"));
+#endif
+					}
+				}
+			}
+		}
 	}
 	
-	// Tag 이벤트를 해제
+	// Tag 이벤트 해제
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	if (ASC)
 	{
@@ -176,35 +202,6 @@ void UGA_ConsumeItem_DualEffect_Base::EndAbility(
 		{
 			ASC->RegisterGameplayTagEvent(Tag, EGameplayTagEventType::NewOrRemoved)
 				.RemoveAll(this);
-		}
-	}
-	
-	// 캐릭터 가져오기
-	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
-	if (!Character)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("캐릭터를 가져오지 못했습니다."));
-		Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-		return;
-	}
-	
-	// 애니메이션 인스턴스 가져오기
-	UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
-	if (!AnimInstance)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("애니메이션 인스턴스를 가져오지 못했습니다."));
-		Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
-		return;
-	}
-	
-	// Consume 몽타주 즉시 정지
-	if (CachedItemData.ConsumableData.ConsumptionMontage.IsValid())
-	{
-		UAnimMontage* Montage = CachedItemData.ConsumableData.ConsumptionMontage.LoadSynchronous();
-		if (Montage && AnimInstance->Montage_IsPlaying(Montage))
-		{
-			AnimInstance->Montage_Stop(0.2f, Montage); // 0.2초 블렌드 아웃
-			UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("아이템 ID %d의 몽타주를 정지했습니다."), ItemID);
 		}
 	}
 	
@@ -224,123 +221,13 @@ void UGA_ConsumeItem_DualEffect_Base::EndAbility(
 }
 #pragma endregion
 
-#pragma region Multicast
-void UGA_ConsumeItem_DualEffect_Base::Multicast_PlayConsumeMontage_Implementation(UAnimMontage* Montage, float ServerStartTime)
-{
-	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Multicast] PlayConsumeMontage 호출 시작"));
-	
-	if (GetAvatarActorFromActorInfo()->HasAuthority())
-	{// 서버는 재생하지 않음 (중복 재생 방지)
-		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Server] Multicast 스킵 (Task가 이미 실행 중)"));
-		return;
-	}
-	
-	// 클라이언트만 여기서 몽타주 재생
-	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Client] Multicast로 몽타주 재생"));
-	
-	if (!Montage)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("[Multicast] Montage가 nullptr입니다! 함수 종료"));
-		return;
-	}
-	
-	AActor* AvatarActor = GetAvatarActorFromActorInfo();
-	if (!AvatarActor)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("[Multicast] AvatarActor가 nullptr입니다! 함수 종료"));
-		return;
-	}
-	
-	ACharacter* Character = Cast<ACharacter>(AvatarActor);
-	if (!Character)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("[Multicast] AvatarActor를 ACharacter로 캐스트 실패: %s"), *AvatarActor->GetName());
-		return;
-	}
-	
-	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Multicast] 캐릭터 찾음: %s"), *Character->GetName());
-	
-	USkeletalMeshComponent* MeshComp = Character->GetMesh();
-	if (!MeshComp)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("[Multicast] 캐릭터의 Mesh가 nullptr입니다!"));
-		return;
-	}
-	
-	UAnimInstance* AnimInstance = MeshComp->GetAnimInstance();
-	if (!AnimInstance)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("[Multicast] AnimInstance가 nullptr입니다!"));
-		return;
-	}
-	
-	//=======================================================================
-	// 실제 몽타주 재생
-	// 서버 시작 시간과 현재 시간 차이만큼 건너뛰고 재생
-	//=======================================================================
-	
-	// 1. 현재 클라이언트 시간
-	float LocalTime = GetWorld()->GetTimeSeconds();
-	
-	// 2. 서버가 시작한 시점부터 얼마나 지났는지 계산
-	float Elapsed = FMath::Max(LocalTime - ServerStartTime, 0.0f); // 음수 방지 (FMath::Max 적용)
-	
-	// 3. 몽타주 길이 초과 방지
-	float MontageLength = Montage->GetPlayLength();
-	if (Elapsed >= MontageLength)
-	{
-		// 옵션 1: 그냥 스킵
-		// 이미 몽타주가 끝난 시점이면 재생하지 않음
-		UE_LOG(LogConsumeAbilityDureEffect, Warning,
-			TEXT("몽타주가 이미 끝났습니다 (경과 시간=%.2f, 길이=%.2f)"), Elapsed, MontageLength);
-		return;
-		
-		// 옵션 2: 즉시 완료 처리 (필요시 활성화)
-		// 극단적 지연 상황이 생기면 활성화 예정
-		// 몽타주를 재생하지 않고 즉시 완료 처리
-		//OnConsumptionCompleted();
-		//return;
-	}
-	
-	// 4. 몽타주 재생 (이미 지난 시간만큼 건너뛰고 재생)
-	float PlayedLength = AnimInstance->Montage_Play(Montage, 1.0f, EMontagePlayReturnType::MontageLength, Elapsed);
-	if (PlayedLength <= 0.f)
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("[Multicast] Montage_Play 실패: %s"), *Montage->GetName());
-	}
-	else
-	{
-		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[Multicast] 몽타주 재생 성공: %s, 길이: %.2f초, 시작 위치: %.2f초"), 
-			*Montage->GetName(), MontageLength, Elapsed);
-	}
-}
-
-void UGA_ConsumeItem_DualEffect_Base::Multicast_StopConsumeMontage_Implementation()
-{
-	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
-	if (!Character) return;
-	
-	UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
-	if (!AnimInstance) return;
-	
-	if (CachedItemData.ConsumableData.ConsumptionMontage.IsValid())
-	{
-		UAnimMontage* Montage = CachedItemData.ConsumableData.ConsumptionMontage.LoadSynchronous();
-		if (Montage && AnimInstance->Montage_IsPlaying(Montage))
-		{
-			AnimInstance->Montage_Stop(0.2f, Montage);
-		}
-	}
-}
-#pragma endregion
-
 #pragma region LoadItemData
 bool UGA_ConsumeItem_DualEffect_Base::LoadItemData()
 {
 	// ItemID 유효성 검사
 	if (ItemID <= 0)
 	{
-		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("Invalid ItemID: %d (Must be > 0)"), ItemID);
+		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("유효하지 않은 ItemID: %d (0보다 커야 함)"), ItemID);
 		return false;
 	}
 	
@@ -348,14 +235,14 @@ bool UGA_ConsumeItem_DualEffect_Base::LoadItemData()
 	UItemDataSubsystem* ItemDataSys = UItemDataSubsystem::GetItemDataSubsystem(this);
 	if (!ItemDataSys)
 	{
-		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("ItemDataSubsystem not found!"));
+		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("ItemDataSubsystem을 찾을 수 없습니다!"));
 		return false;
 	}
 	
 	// 아이템 데이터 조회
 	if (!ItemDataSys->GetItemDataSafe(ItemID, CachedItemData))
 	{
-		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("Item data not found for ItemID: %d"), ItemID);
+		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("ItemID %d에 대한 아이템 데이터를 찾을 수 없습니다"), ItemID);
 		return false;
 	}
 	
@@ -363,7 +250,7 @@ bool UGA_ConsumeItem_DualEffect_Base::LoadItemData()
 	if (CachedItemData.Category != EItemCategory::CONSUMABLE)
 	{
 		UE_LOG(LogConsumeAbilityDureEffect, Error, 
-			TEXT("ItemID %d is not a consumable! Category: %d"),
+			TEXT("ItemID %d는 소모품이 아닙니다! 카테고리: %d"),
 			ItemID, static_cast<int32>(CachedItemData.Category));
 		return false;
 	}
@@ -371,7 +258,7 @@ bool UGA_ConsumeItem_DualEffect_Base::LoadItemData()
 	// 효과 태그 검증
 	if (!CachedItemData.HasEffect())
 	{
-		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("ItemID %d has no effect tag!"), ItemID);
+		UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("ItemID %d에는 효과 태그가 없습니다!"), ItemID);
 		return false;
 	}
 	
@@ -406,58 +293,26 @@ void UGA_ConsumeItem_DualEffect_Base::WaitForConsumption()
 	//=======================================================================
 	if (!ConsumeMontage || ConsumptionTime <= 0.0f)
 	{
-		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("아이템 ID %d는 소비 시간이나 몽타주가 없어 즉시 효과를 적용합니다."), ItemID);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogConsumeAbilityDureEffect, Log,
+			TEXT("아이템 ID %d는 소비 시간이나 몽타주가 없어 즉시 효과를 적용합니다."), ItemID);
+#endif
 		OnConsumptionCompleted();
 		return;
 	}
 	
-	if (ConsumeMontage)
+	//=======================================================================
+	// 몽타주는 이미 Multicast로 재생되었으므로, 여기서는 Delay만 사용
+	//=======================================================================
+	if (ConsumptionTime > 0.0f)
 	{
-		//=======================================================================
-		// Montage가 있으면 Montage Task 사용
-		//=======================================================================
-		
-		// Task 생성 (서버에서만)
-		ActiveMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-			this, NAME_None, ConsumeMontage);
-		
-		// 콜백 바인딩 - 소비 완료 시 호출
-		ActiveMontageTask->OnCompleted.AddDynamic(this, &UGA_ConsumeItem_DualEffect_Base::OnConsumptionCompleted);
-		
-		// 콜백 바인딩 - 소비 취소 시 호출
-		ActiveMontageTask->OnInterrupted.AddDynamic(this, &UGA_ConsumeItem_DualEffect_Base::OnConsumptionCancelled);
-		ActiveMontageTask->OnCancelled.AddDynamic(this, &UGA_ConsumeItem_DualEffect_Base::OnConsumptionCancelled);
-		
-		// Task를 활성화하고 대기 시작
-		// Task가 만들어졌다고 바로 실행되는 것은 아니므로 ReadyForActivation() 필수
-		ActiveMontageTask->ReadyForActivation();
-		
-		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("아이템 ID %d의 몽타주를 재생합니다."), ItemID);
-		UE_LOG(LogConsumeAbilityDureEffect, Log,
-			TEXT("Montage Name: %s, Length: %.2f, Ability Owner: %s"),
-			*ConsumeMontage->GetName(),
-			ConsumeMontage->GetPlayLength(),
-			*GetAvatarActorFromActorInfo()->GetName());
-		
-		// 서버 시작 시간 기록
-		float ServerStartTime = GetWorld()->GetTimeSeconds();
-		
-		// Multicast 호출 (모든 클라이언트 + 서버에 전달)
-		Multicast_PlayConsumeMontage(ConsumeMontage, ServerStartTime);
-	}
-	else
-	{
-		//=======================================================================
-		// Montage가 없으면 ConsumptionTime 만큼 WaitDelay fallback
-		//=======================================================================
-		
 		// Task 생성
 		// 지정된 시간 동안 대기 후 이벤트를 호출하는 Unreal Ability Task
 		ActiveDelayTask = UAbilityTask_WaitDelay::WaitDelay(this, ConsumptionTime);
 		if (!ActiveDelayTask.IsValid())
 		{
 			UE_LOG(LogConsumeAbilityDureEffect, Error, TEXT("WaitDelay Task 생성에 실패했습니다!"));
-			
+		
 			// Ability 강제 종료
 			EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 			return;
@@ -469,9 +324,10 @@ void UGA_ConsumeItem_DualEffect_Base::WaitForConsumption()
 		// Task 활성화
 		ActiveDelayTask->ReadyForActivation();
 		
-		UE_LOG(LogConsumeAbilityDureEffect, Log,
-			TEXT("소비 대기 중: %.1f 초 (ItemID: %d)"),
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("소비 대기 중: %.1f 초 (ItemID: %d)"),
 			ConsumptionTime, ItemID);
+#endif
 	}
 	
 	//=======================================================================
@@ -493,13 +349,12 @@ void UGA_ConsumeItem_DualEffect_Base::OnConsumptionCompleted()
 		return;
 	}
 	
-	// GameplayEffect 적용
-	ApplyEffect();
+	ApplyEffect(); // GameplayEffect 적용
+	NotifyItemConsumed(); // 인벤토리에 아이템 소비 알림
 	
-	// 인벤토리에 아이템 소비 알림
-	NotifyItemConsumed();
-	
-	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("아이템 ID %d의 소비가 완료되었습니다."), ItemID);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("아이템 소비가 완료되었습니다. ItemID: %d"), ItemID);
+#endif
 	
 	// Ability 종료
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
@@ -507,7 +362,9 @@ void UGA_ConsumeItem_DualEffect_Base::OnConsumptionCompleted()
 
 void UGA_ConsumeItem_DualEffect_Base::OnConsumptionCancelled()
 {
-	UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("Consumption cancelled for ItemID: %d"), ItemID);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogConsumeAbilityDureEffect, Warning, TEXT("아이템 소비가 취소되었습니다. ItemID: %d"), ItemID);
+#endif
 	
 	// Ability 취소 종료
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
@@ -584,15 +441,19 @@ void UGA_ConsumeItem_DualEffect_Base::ApplyEffect()
 		return;
 	}
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("========================================"));
 	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("아이템 ID %d 이중 효과 적용 시작"), ItemID);
 	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("========================================"));
+#endif
 	
 	//=======================================================================
 	// 3. 첫 번째 GE 적용: RemoveTag Effect (Instant)
 	//=======================================================================
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[1/2] RemoveTag Effect 적용 시작"));
+#endif
 		
 		// Context 생성
 		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
@@ -615,8 +476,10 @@ void UGA_ConsumeItem_DualEffect_Base::ApplyEffect()
 		FGameplayTag ItemIDTag = ItemTags::TAG_Data_ItemID;
 		SpecHandle.Data->SetSetByCallerMagnitude(ItemIDTag, static_cast<float>(ItemID));
 		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - ItemID: %d"), ItemID);
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - GE Class: %s"), *RemoveTagEffectClass->GetName());
+#endif
 		
 		// GE 적용
 		FActiveGameplayEffectHandle RemoveHandle = 
@@ -628,14 +491,18 @@ void UGA_ConsumeItem_DualEffect_Base::ApplyEffect()
 			return;
 		}
 		
-		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[1/2] RemoveTag Effect 적용 완료 ✓"));
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[1/2] RemoveTag Effect 적용 완료"));
+#endif
 	}
 	
 	//=======================================================================
 	// 4. 두 번째 GE 적용: AddTag Effect (Duration)
 	//=======================================================================
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[2/2] AddTag Effect 적용 시작"));
+#endif
 		
 		// Context 생성
 		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
@@ -667,13 +534,18 @@ void UGA_ConsumeItem_DualEffect_Base::ApplyEffect()
 			if (GECDO && GECDO->DurationPolicy == EGameplayEffectDurationType::HasDuration)
 			{
 				SpecHandle.Data->SetDuration(EffectDuration, false);
+				
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 				UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - Duration: %.1f초"), EffectDuration);
+#endif
 			}
 		}
 		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - ItemID: %d"), ItemID);
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - GE Class: %s"), *AddTagEffectClass->GetName());
 		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  - EffectTag: %s"), *CachedItemData.EffectTag_Consumable.ToString());
+#endif
 		
 		// GE 적용
 		FActiveGameplayEffectHandle AddHandle = 
@@ -685,9 +557,12 @@ void UGA_ConsumeItem_DualEffect_Base::ApplyEffect()
 			return;
 		}
 		
-		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[2/2] AddTag Effect 적용 완료 ✓"));
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("[2/2] AddTag Effect 적용 완료"));
+#endif
 	}
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	//=======================================================================
 	// 5. 완료 로그
 	//=======================================================================
@@ -697,6 +572,7 @@ void UGA_ConsumeItem_DualEffect_Base::ApplyEffect()
 	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("  2. AddTag: %s (Duration: %.1fs)"), 
 			*AddTagEffectClass->GetName(), CachedItemData.ConsumableData.EffectDuration);
 	UE_LOG(LogConsumeAbilityDureEffect, Log, TEXT("========================================"));
+#endif
 }
 #pragma endregion
 
@@ -733,15 +609,18 @@ void UGA_ConsumeItem_DualEffect_Base::NotifyItemConsumed()
 		EventData
 	);
 	
-	UE_LOG(LogConsumeAbilityDureEffect, Log, 
-		TEXT("Item.Consumed 이벤트 발송됨: 슬롯 인덱스=%d, 아이템 ID=%d"),  
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogConsumeAbilityDureEffect, Log,
+		TEXT("Item.Consumed 이벤트 발송됨: 슬롯 인덱스=%d, 아이템 ID=%d"),
 		ConsumedSlotIndex, ItemID);
+#endif
 }
 #pragma endregion
 
 #pragma region Debug
 void UGA_ConsumeItem_DualEffect_Base::LogItemInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("======================================================================="));
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("Consume Item Info:"));
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  ItemID: %d"), ItemID);
@@ -751,5 +630,6 @@ void UGA_ConsumeItem_DualEffect_Base::LogItemInfo() const
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  ConsumptionTime: %.1f"), CachedItemData.ConsumableData.ConsumptionTime);
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("  EffectDuration: %.1f"), CachedItemData.ConsumableData.EffectDuration);
 	UE_LOG(LogConsumeAbilityDureEffect, Display, TEXT("======================================================================="));
+#endif
 }
 #pragma endregion

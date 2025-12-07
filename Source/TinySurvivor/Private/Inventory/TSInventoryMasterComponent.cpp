@@ -16,12 +16,15 @@
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogInventoryComp, Log, All);
 
+#pragma region UTSInventoryMasterComponent
 UTSInventoryMasterComponent::UTSInventoryMasterComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 }
+#pragma endregion
 
+#pragma region GetLifetimeReplicatedProps
 void UTSInventoryMasterComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -33,7 +36,9 @@ void UTSInventoryMasterComponent::GetLifetimeReplicatedProps(TArray<FLifetimePro
 	DOREPLIFETIME(UTSInventoryMasterComponent, CurrentEquippedItem);
 	DOREPLIFETIME(UTSInventoryMasterComponent, EquippedArmors);
 }
+#pragma endregion
 
+#pragma region BeginPlay
 void UTSInventoryMasterComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -51,49 +56,12 @@ void UTSInventoryMasterComponent::BeginPlay()
 	{
 		UE_LOG(LogInventoryComp, Warning, TEXT("WeaponStatEffectClass가 설정되지 않았습니다! 무기 스탯이 적용되지 않습니다."));
 	}
-
+	
+	// ■ 이벤트 리스너 등록 시도 (ASC가 준비될 때까지 재시도)
+	TryRegisterEventListeners();
+	
 	if (GetOwner()->HasAuthority())
 	{
-		// ■ ItemConsumed & Harvest & Attack 태그 리스닝
-		//[S]=====================================================================================
-		UAbilitySystemComponent* ASC = GetASC();
-		if (ASC)
-		{
-			/*
-				소모품 사용 이벤트 리스닝
-			*/
-			//FGameplayTag ConsumedTag = FGameplayTag::RequestGameplayTag(FName("Event.Item.Consumed"));
-			FGameplayTag ConsumedTag = ItemTags::TAG_Event_Item_Consumed;
-			ASC->GenericGameplayEventCallbacks.FindOrAdd(ConsumedTag)
-				.AddUObject(this, &UTSInventoryMasterComponent::OnItemConsumedEvent);
-			UE_LOG(LogInventoryComp, Log, TEXT("Registered Item Consumed listener"));
-			
-			/*
-				도구 채취 이벤트 리스닝
-			*/
-			FGameplayTag HarvestTag = ItemTags::TAG_Event_Item_Tool_Harvest;
-			ASC->GenericGameplayEventCallbacks.FindOrAdd(HarvestTag)
-				.AddUObject(this, &UTSInventoryMasterComponent::OnToolHarvestEvent);
-			UE_LOG(LogInventoryComp, Log, TEXT("Registered Tool Harvest listener"));
-			
-			/*
-				무기 공격 이벤트 추가
-			*/
-			FGameplayTag WeaponAttackTag = FGameplayTag::RequestGameplayTag("Event.Item.Weapon.Attack");
-			ASC->GenericGameplayEventCallbacks.FindOrAdd(WeaponAttackTag)
-				.AddUObject(this, &UTSInventoryMasterComponent::OnWeaponAttackEvent);
-			UE_LOG(LogInventoryComp, Log, TEXT("Registered Weapon Attack listener"));
-			
-			/*
-				방어구 피격 이벤트 리스닝
-			*/
-			FGameplayTag ArmorHitTag = AbilityTags::TAG_Event_Armor_Hit;
-			ASC->GenericGameplayEventCallbacks.FindOrAdd(ArmorHitTag)
-				.AddUObject(this, &UTSInventoryMasterComponent::OnArmorHitEvent);
-			UE_LOG(LogInventoryComp, Log, TEXT("Registered Armor Hit listener"));
-		}
-		//[E]=====================================================================================
-		
 		// 부패도 매니저 OnDecayTick 바인딩
 		UDecayManager* DecayMgr = GetWorld()->GetSubsystem<UDecayManager>();
 		if (DecayMgr)
@@ -146,8 +114,9 @@ void UTSInventoryMasterComponent::BeginPlay()
 		OnInventoryInitialized.Broadcast();
 	}
 }
+#pragma endregion
 
-#pragma region Replication Callback
+#pragma region ReplicationCallback
 void UTSInventoryMasterComponent::OnRep_HotkeyInventory()
 {
 	HandleInventoryChanged();
@@ -169,7 +138,7 @@ void UTSInventoryMasterComponent::OnRep_ActiveHotkeyIndex()
 }
 #pragma endregion
 
-#pragma region Server RPC
+#pragma region ServerRPC
 void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
@@ -253,7 +222,7 @@ bool UTSInventoryMasterComponent::ServerUseItem_Validate(int32 SlotIndex)
 }
 #pragma endregion
 
-#pragma region Internal function
+#pragma region Internal_TransferItem
 void UTSInventoryMasterComponent::Internal_TransferItem(
 	UTSInventoryMasterComponent* SourceInventory,
 	UTSInventoryMasterComponent* TargetInventory,
@@ -393,9 +362,12 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		TargetInventory->HandleInventoryChanged();
 	}
 }
+#pragma endregion
 
+#pragma region Internal_UseItem
 void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 {
+	// 서버 권한 체크: 서버에서만 실행
 	if (!GetOwner()->HasAuthority())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Internal_UseItem called on client!"));
@@ -443,9 +415,9 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		return;
 	}
 
-	// ========================================
-	// 일반 소비 아이템인 경우
-	// ========================================
+	//========================================
+	// 아이템 - 소모품 / 방어구
+	//========================================
 	// 아이템 사용 어빌리티 활성화
 	UAbilitySystemComponent* ASC = GetASC();
 	if (!ASC)
@@ -510,15 +482,52 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	// }
 	// 원본[E]-------------------------------------------------------
 	
-	// 소모품만 Ability 사용.
-	if (ItemInfo.AbilityBP)
+	//============================================================
+	// 소모품
+	//============================================================
+	if (ItemInfo.Category == EItemCategory::CONSUMABLE)
 	{
-		// ItemInfo.AbilityBP가 존재할 경우, 해당 Ability를 런타임으로 ASC(AbilitySystemComponent)에 추가
-		FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
-		FGameplayAbilitySpecHandle SpecHandle = ASC->GiveAbility(Spec);
-		if (SpecHandle.IsValid())
+		bool bMontageStarted = false;
+		
+		// 몽타주 재생 (Multicast)
+		if (ItemInfo.ConsumableData.ConsumptionMontage.IsValid())
 		{
-			if (ItemInfo.Category == EItemCategory::CONSUMABLE)
+			UAnimMontage* Montage = ItemInfo.ConsumableData.ConsumptionMontage.LoadSynchronous();
+			if (Montage)
+			{
+				ATSCharacter* Character = Cast<ATSCharacter>(GetOwner());
+				if (Character)
+				{
+					// 서버 시작 시간 기록
+					float ServerStartTime = GetWorld()->GetTimeSeconds();
+					
+					// 서버 시간을 함께 전달
+					Character->Multicast_PlayConsumeMontage(Montage, 1.0f, ServerStartTime);
+					bMontageStarted = true;
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+					UE_LOG(LogInventoryComp, Log, TEXT("[Server] 소모품 몽타주 Multicast 호출: %s (StartTime=%.2f)"),
+						*Montage->GetName(), ServerStartTime);
+#endif
+				}
+			}
+		}
+		
+		// 몽타주가 있는데 재생 실패하면 Ability 발동 중단
+		if (ItemInfo.ConsumableData.ConsumptionMontage.IsValid() && !bMontageStarted)
+		{
+			UE_LOG(LogTemp, Error,
+				TEXT("몽타주 재생 실패로 아이템 사용 취소: ItemID=%d"),
+				Slot.ItemData.StaticDataID);
+			return;
+		}
+		
+		// 어빌리티 발동 (서버에서만)
+		if (ItemInfo.AbilityBP)
+		{
+			FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
+			FGameplayAbilitySpecHandle SpecHandle = ASC->GiveAbility(Spec);
+			
+			if (SpecHandle.IsValid())
 			{
 				/*
 					여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
@@ -540,56 +549,42 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 					
 					따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
 				*/
-				// EventData를 전달하며 활성화
-				// if (!ASC->TriggerAbilityFromGameplayEvent(
-				// 	SpecHandle,
-				// 	ASC->AbilityActorInfo.Get(),
-				// 	ItemTags::TAG_Ability_Item_Consume,
-				// 	&EventData,
-				// 	*ASC))
-				// {
-				// 	UE_LOG(LogTemp, Warning, TEXT("Failed to trigger ability for ItemID: %d"), Slot.ItemData.StaticDataID);
-				// }
-			
+				
+				// EventData 전달
+				FGameplayEventData EventData;
+				EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
+				EventData.EventMagnitude = static_cast<float>(SlotIndex);
+				EventData.Instigator = ASC->GetOwner();
+				EventData.Target = ASC->GetOwner();
+				
 				// 다음 틱에서 트리거
 				FTimerHandle TimerHandle;
-				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ASC, SpecHandle, SlotIndex]()
+				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ASC, SpecHandle, EventData]()
 				{
-					// EventData로 슬롯 인덱스 전달
-					FGameplayEventData EventData;
-					EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
-					EventData.EventMagnitude = static_cast<float>(SlotIndex);
-					EventData.Instigator = ASC->GetOwner();
-					EventData.Target = ASC->GetOwner();
-				
 					ASC->TriggerAbilityFromGameplayEvent(
 						SpecHandle, ASC->AbilityActorInfo.Get(),
 						ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
 				}, 0.01f, false);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogTemp, Log, TEXT("[Server] 소모품 어빌리티 발동: ID=%d"), Slot.ItemData.StaticDataID);
+#endif
 			}
-			// else if (ItemInfo.Category == EItemCategory::ARMOR)
-			// {
-			// 	// 방어구인 경우: 장착, 기존 코드 유지
-			// 	UnequipCurrentItem();
-			// 	int32 TargetSlotIndex = FindEquipmentSlot(ItemInfo.ArmorData.EquipSlot);
-			// 	if (TargetSlotIndex == -1)
-			// 	{
-			// 		return;
-			// 	}
-			// 	Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
-			// 						  EInventoryType::Equipment, TargetSlotIndex, true);
-			// 	UE_LOG(LogTemp, Log, TEXT("Item equipped TRY: ID=%d"), Slot.ItemData.StaticDataID);
-			// 	EquipArmor(ItemInfo, TargetSlotIndex);
-			// 	UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
-			// }
+			else
+			{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogTemp, Log, TEXT("아이템 어빌리티 활성화 실패: ID=%d"), Slot.ItemData.StaticDataID);
+#endif
+			}
 		}
-		else
-		{
-			UE_LOG(LogTemp, Log, TEXT("Failed to activate ability for item: ID=%d"), Slot.ItemData.StaticDataID);
-		}
+		
+		// 여기서 return (아이템 소비는 어빌리티에서 처리)
+		return;
 	}
 	
+	//============================================================
+	// 방어구
 	// 방어구는 Ability를 사용 안함.
+	//============================================================
 	if (ItemInfo.Category == EItemCategory::ARMOR)
 	{
 		// 방어구 장착 로직 (기존 방식 유지)
@@ -601,9 +596,10 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		}
 		Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
 							  EInventoryType::Equipment, TargetSlotIndex, true);
-		UE_LOG(LogTemp, Log, TEXT("Item equipped TRY: ID=%d"), Slot.ItemData.StaticDataID);
 		EquipArmor(ItemInfo, TargetSlotIndex);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
+#endif
 	}
 	
 	HandleInventoryChanged();
@@ -611,7 +607,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 }
 #pragma endregion
 
-#pragma region Add/Remove Item
+#pragma region AddItem
 bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Quantity, int32& OutRemainingQuantity)
 {
 	if (!GetOwner()->HasAuthority() || ItemData.StaticDataID == 0 || Quantity <= 0)
@@ -837,7 +833,9 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 
 	return OutRemainingQuantity == 0;
 }
+#pragma endregion
 
+#pragma region RemoveItem
 bool UTSInventoryMasterComponent::RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
 	if (!GetOwner()->HasAuthority() || !IsValidSlotIndex(InventoryType, SlotIndex))
@@ -921,7 +919,6 @@ int32 UTSInventoryMasterComponent::FindEmptySlot(EInventoryType InventoryType) c
 #pragma endregion
 
 #pragma region CheckSlotType
-
 bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 	int32 StaticDataID,
 	EInventoryType InventoryType,
@@ -963,7 +960,6 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 #pragma endregion
 
 #pragma region BagInventory
-
 bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 {
 	if (!GetOwner()->HasAuthority())
@@ -1001,8 +997,7 @@ bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 }
 #pragma endregion
 
-#pragma region Hotkey / EquipItem
-
+#pragma region HotkeyEquipItem
 FSlotStructMaster UTSInventoryMasterComponent::GetActiveHotkeySlot() const
 {
 	if (ActiveHotkeyIndex >= 0 && ActiveHotkeyIndex < HotkeyInventory.InventorySlotContainer.Num())
@@ -1172,9 +1167,9 @@ void UTSInventoryMasterComponent::UnequipCurrentItem()
 		TSCharacter->SetAnimType(EItemAnimType::NONE);
 	}
 }
-
 #pragma endregion
-#pragma region Helper - Search/Consumer Item
+
+#pragma region SearchItem
 int32 UTSInventoryMasterComponent::GetItemCount(int32 StaticDataID) const
 {
 	int32 ResultCount = 0;
@@ -1243,7 +1238,8 @@ void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity
 	HandleInventoryChanged();
 }
 #pragma endregion
-#pragma region Helper - Decay
+
+#pragma region Decay
 void UTSInventoryMasterComponent::OnDecayTick()
 {
 	ConvertToDecayedItem(EInventoryType::HotKey);
@@ -1293,8 +1289,8 @@ void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryT
 	}
 }
 #pragma endregion
-#pragma region Helper - Slot
 
+#pragma region Slot
 void UTSInventoryMasterComponent::ClearSlot(FSlotStructMaster& Slot)
 {
 	ESlotType PreservedSlotType = Slot.SlotType; // 백업
@@ -1390,8 +1386,7 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 }
 #pragma endregion
 
-#pragma region Helper - Inventory
-
+#pragma region Inventory
 FInventoryStructMaster* UTSInventoryMasterComponent::GetInventoryByType(EInventoryType InventoryType)
 {
 	switch (InventoryType)
@@ -1432,7 +1427,7 @@ bool UTSInventoryMasterComponent::IsValidSlotIndex(EInventoryType InventoryType,
 }
 #pragma endregion
 
-#pragma region Helper - ItemInfo
+#pragma region ItemInfo
 UItemDataSubsystem* UTSInventoryMasterComponent::GetItemDataSubsystem() const
 {
 	if (UGameInstance* GI = GetWorld()->GetGameInstance())
@@ -1482,7 +1477,7 @@ float UTSInventoryMasterComponent::UpdateDecayPercent(double CurrentExpirationTi
 }
 #pragma endregion
 
-#pragma region Helper - EquipArmor
+#pragma region FindEquipmentSlot
 int32 UTSInventoryMasterComponent::FindEquipmentSlot(EEquipSlot ArmorSlot) const
 {
 	for (int32 i = 0; i < EquipmentInventory.InventorySlotContainer.Num(); ++i)
@@ -1494,7 +1489,9 @@ int32 UTSInventoryMasterComponent::FindEquipmentSlot(EEquipSlot ArmorSlot) const
 	}
 	return -1;
 }
+#pragma endregion
 
+#pragma region EquipArmor
 void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 ArmorSlotIndex)
 {
 	if (!GetOwner()->HasAuthority())
@@ -1679,7 +1676,9 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 	}
 #endif
 }
+#pragma endregion
 
+#pragma region UnequipArmor
 void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 {
 	if (!GetOwner()->HasAuthority())
@@ -1861,7 +1860,9 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 			AttrSet->GetHealth(), AttrSet->GetMaxHealth());
 	}
 }
+#pragma endregion
 
+#pragma region OnArmorHitEvent
 void UTSInventoryMasterComponent::OnArmorHitEvent(const FGameplayEventData* Payload)
 {
 	// Payload가 유효하지 않거나 서버 권한이 없는 경우 처리하지 않고 반환
@@ -1937,7 +1938,7 @@ void UTSInventoryMasterComponent::OnArmorHitEvent(const FGameplayEventData* Payl
 }
 #pragma endregion
 
-#pragma region Helper - EquipWeapon
+#pragma region ApplyWeaponStats
 void UTSInventoryMasterComponent::ApplyWeaponStats(const FItemData& ItemInfo)
 {
 	UAbilitySystemComponent* ASC = GetASC();
@@ -2058,7 +2059,9 @@ void UTSInventoryMasterComponent::ApplyWeaponStats(const FItemData& ItemInfo)
 		}
 	}
 }
+#pragma endregion
 
+#pragma region RemoveWeaponStats
 void UTSInventoryMasterComponent:: RemoveWeaponStats()
 {
 	// Authority 체크
@@ -2158,7 +2161,9 @@ void UTSInventoryMasterComponent:: RemoveWeaponStats()
 	UE_LOG(LogInventoryComp, Log, TEXT("스탯 이펙트 제거 완료"));
 #endif
 }
+#pragma endregion
 
+#pragma region OnWeaponAttackEvent
 void UTSInventoryMasterComponent::OnWeaponAttackEvent(const FGameplayEventData* Payload)
 {
 	// Payload가 유효하지 않거나 서버 권한이 없는 경우 처리하지 않고 반환
@@ -2218,7 +2223,8 @@ void UTSInventoryMasterComponent::OnWeaponAttackEvent(const FGameplayEventData* 
 	HandleInventoryChanged();
 }
 #pragma endregion
-#pragma region Helper - EquipTool
+
+#pragma region ApplyToolTags
 void UTSInventoryMasterComponent::ApplyToolTags(const FItemData& ItemInfo)
 {
 	UAbilitySystemComponent* ASC = GetASC();
@@ -2260,7 +2266,9 @@ void UTSInventoryMasterComponent::ApplyToolTags(const FItemData& ItemInfo)
 	}
 #endif
 }
+#pragma endregion
 
+#pragma region RemoveToolTags
 void UTSInventoryMasterComponent::RemoveToolTags()
 {
 	// Authority 체크
@@ -2330,7 +2338,9 @@ void UTSInventoryMasterComponent::RemoveToolTags()
 	}
 #endif
 }
+#pragma endregion
 
+#pragma region OnToolHarvestEvent
 void UTSInventoryMasterComponent::OnToolHarvestEvent(const FGameplayEventData* Payload)
 {
 	// Payload가 유효하지 않거나 서버 권한이 없는 경우 처리하지 않고 반환
@@ -2392,7 +2402,7 @@ void UTSInventoryMasterComponent::OnToolHarvestEvent(const FGameplayEventData* P
 }
 #pragma endregion
 
-#pragma region Helper - ASC
+#pragma region GetASC
 UAbilitySystemComponent* UTSInventoryMasterComponent::GetASC()
 {
 	ATSCharacter* PC = Cast<ATSCharacter>(GetOwner());
@@ -2409,12 +2419,14 @@ UAbilitySystemComponent* UTSInventoryMasterComponent::GetASC()
 }
 #pragma endregion
 
-#pragma region Helper - Delegate
+#pragma region HandleInventoryChanged
 void UTSInventoryMasterComponent::HandleInventoryChanged()
 {
 	OnInventoryUpdated.Broadcast(HotkeyInventory, EquipmentInventory, BagInventory);
 }
+#pragma endregion
 
+#pragma region HandleActiveHotkeyIndexChanged
 void UTSInventoryMasterComponent::HandleActiveHotkeyIndexChanged()
 {
 	if (ActiveHotkeyIndex >= 0 && ActiveHotkeyIndex < HotkeyInventory.InventorySlotContainer.Num())
@@ -2430,12 +2442,25 @@ void UTSInventoryMasterComponent::HandleActiveHotkeyIndexChanged()
 #pragma endregion
 
 #pragma region OnItemConsumedEvent
-// ■ ItemConsumed
-//[S]=====================================================================================
 void UTSInventoryMasterComponent::OnItemConsumedEvent(const FGameplayEventData* Payload)
 {
 	if (!Payload)
 	{
+		UE_LOG(LogInventoryComp, Error, TEXT("OnItemConsumedEvent: Payload is NULL!"));
+		return;
+	}
+	
+	// 권한 체크 강화: 서버에서만 실행
+	if (!GetOwner()->HasAuthority())
+	{
+		UE_LOG(LogInventoryComp, Warning, TEXT("OnItemConsumedEvent: 클라이언트에서 호출됨 - 무시"));
+		return;
+	}
+	
+	// 추가 체크: 로컬 Role이 Authority인지 확인
+	if (GetOwner()->GetLocalRole() != ROLE_Authority)
+	{
+		UE_LOG(LogInventoryComp, Warning, TEXT("OnItemConsumedEvent: LocalRole이 Authority가 아님 - 무시"));
 		return;
 	}
 	
@@ -2469,8 +2494,103 @@ void UTSInventoryMasterComponent::OnItemConsumedEvent(const FGameplayEventData* 
 		HandleActiveHotkeyIndexChanged();
 	}
 	
-	UE_LOG(LogInventoryComp, Log, TEXT("Item consumed: SlotIndex=%d, ItemID=%d"), 
+	UE_LOG(LogInventoryComp, Log, TEXT("Item consumed: SlotIndex=%d, ItemID=%d"),
 		SlotIndex, Slot.ItemData.StaticDataID);
 }
-//[E]=====================================================================================
+#pragma endregion
+
+#pragma region TryRegisterEventListeners
+void UTSInventoryMasterComponent::TryRegisterEventListeners()
+{
+	// 이미 등록되었으면 리턴
+	if (bEventListenersRegistered)
+	{
+		return;
+	}
+	
+	UAbilitySystemComponent* ASC = GetASC();
+	
+	if (!ASC)
+	{
+		ENetRole LocalRole = GetOwner()->GetLocalRole();
+		UE_LOG(LogInventoryComp, Warning,
+			TEXT("ASC가 아직 준비되지 않음 (LocalRole=%s), 재시도 중..."),
+			*UEnum::GetValueAsString(LocalRole));
+		
+		// 0.1초 후 재시도
+		if (GetWorld())
+		{
+			GetWorld()->GetTimerManager().SetTimer(
+				ASCCheckTimerHandle,
+				this,
+				&UTSInventoryMasterComponent::TryRegisterEventListeners,
+				0.1f,
+				false
+			);
+		}
+		return;
+	}
+	
+	// ASC를 찾았으므로 이벤트 리스너 등록
+	ENetRole LocalRole = GetOwner()->GetLocalRole();
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogInventoryComp, Log, TEXT("ASC 준비 완료! 이벤트 리스너를 등록합니다. (LocalRole=%s)"),
+		*UEnum::GetValueAsString(LocalRole));
+#endif
+	
+	/*
+		리스너는 모든 머신에서 등록하지만,
+		실제 처리는 내부에서 서버 권한 체크
+	*/
+	
+	/*
+		소모품 사용 이벤트 리스닝
+	*/
+	//FGameplayTag ConsumedTag = FGameplayTag::RequestGameplayTag(FName("Event.Item.Consumed"));
+	FGameplayTag ConsumedTag = ItemTags::TAG_Event_Item_Consumed;
+	ASC->GenericGameplayEventCallbacks.FindOrAdd(ConsumedTag)
+		.AddUObject(this, &UTSInventoryMasterComponent::OnItemConsumedEvent);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogInventoryComp, Warning, TEXT("소모품 사용 이벤트 리스너 등록 완료 (LocalRole=%s)"),
+		*UEnum::GetValueAsString(LocalRole));
+#endif
+	
+	/*
+		도구 채취 이벤트 리스닝
+	*/
+	FGameplayTag HarvestTag = ItemTags::TAG_Event_Item_Tool_Harvest;
+	ASC->GenericGameplayEventCallbacks.FindOrAdd(HarvestTag)
+		.AddUObject(this, &UTSInventoryMasterComponent::OnToolHarvestEvent);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogInventoryComp, Log, TEXT("도구 채취 이벤트 리스너 등록 완료"));
+#endif
+	
+	/*
+		무기 공격 이벤트 추가
+	*/
+	FGameplayTag WeaponAttackTag = FGameplayTag::RequestGameplayTag("Event.Item.Weapon.Attack");
+	ASC->GenericGameplayEventCallbacks.FindOrAdd(WeaponAttackTag)
+		.AddUObject(this, &UTSInventoryMasterComponent::OnWeaponAttackEvent);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogInventoryComp, Log, TEXT("무기 공격 이벤트 리스너 등록 완료"));
+#endif
+	/*
+		방어구 피격 이벤트 리스닝
+	*/
+	FGameplayTag ArmorHitTag = AbilityTags::TAG_Event_Armor_Hit;
+	ASC->GenericGameplayEventCallbacks.FindOrAdd(ArmorHitTag)
+		.AddUObject(this, &UTSInventoryMasterComponent::OnArmorHitEvent);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogInventoryComp, Log, TEXT("방어구 피격 이벤트 리스너 등록 완료"));
+#endif
+	
+	// 등록 완료 플래그
+	bEventListenersRegistered = true;
+	
+	// 타이머 정리
+	if (ASCCheckTimerHandle.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(ASCCheckTimerHandle);
+	}
+}
 #pragma endregion
