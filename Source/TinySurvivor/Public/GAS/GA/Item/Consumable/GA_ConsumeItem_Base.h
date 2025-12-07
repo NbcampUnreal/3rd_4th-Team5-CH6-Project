@@ -127,14 +127,6 @@ protected:
 	TArray<FGameplayTag> CancelTags;
 #pragma endregion
 	
-#pragma region Multicast
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayConsumeMontage(UAnimMontage* Montage, float ServerStartTime);
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_StopConsumeMontage();
-#pragma endregion
-	
 #pragma region LoadItemData
 protected:
 	
