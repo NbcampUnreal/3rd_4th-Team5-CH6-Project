@@ -1,3 +1,4 @@
+// TSCharacter.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -238,4 +239,15 @@ private:
 public:	
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+#pragma region Multicast_ConsumeMontage
+public:
+	// 소모품 사용 몽타주 재생 (Multicast)
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayConsumeMontage(UAnimMontage* Montage, float PlayRate, float ServerStartTime);
+	
+	// 소모품 사용 몽타주 정지 (Multicast)
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_StopConsumeMontage(UAnimMontage* Montage);
+#pragma endregion
 };

@@ -1,3 +1,4 @@
+// TSCharacter.cpp
 #include "Character/TSCharacter.h"
 
 #include "Camera/CameraComponent.h"
@@ -26,6 +27,8 @@
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "System/ResourceControl/TSResourceItemInterface.h"
 
+// 로그 카테고리 정의 (이 파일 내에서만 사용)
+DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
 
 ATSCharacter::ATSCharacter()
 {
@@ -210,7 +213,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Hunger 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Hunger 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -221,7 +224,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Thirst 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Thirst 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -232,7 +235,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Health 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Health 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -243,7 +246,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Sanity 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Sanity 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -254,7 +257,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Temperature 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Temperature 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -268,11 +271,11 @@ void ATSCharacter::InitAbilitySystem()
 			// NewCount == 0 : 태그가 제거됨
 			if (NewCount > 0)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
 			}
 		});
 		
@@ -284,11 +287,11 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (NewCount > 0)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
 			}
 		});
 #endif
@@ -1148,3 +1151,128 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 										   &ATSCharacter::OnTogglelinetrace);
 	}
 }
+
+#pragma region Multicast_ConsumeMontage
+void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
+	UAnimMontage* Montage, float PlayRate, float ServerStartTime)
+{
+	if (!Montage)
+	{
+		return;
+	}
+	
+	// 몽타주 재생 전 유효성 체크 강화
+	if (!Montage->IsValidLowLevel())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Multicast] 유효하지 않은 몽타주!"));
+		return;
+	}
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		return;
+	}
+	
+	// 애니메이션 인스턴스 상태 확인
+	if (!AnimInstance->IsValidLowLevel())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Multicast] AnimInstance 상태 이상!"));
+		return;
+	}
+	
+	// 이미 재생 중이면 스킵
+	// if (AnimInstance->Montage_IsPlaying(Montage))
+	// {
+	// 	return;
+	// }
+	// 이미 재생 중이면 정지 후 재시작
+	if (AnimInstance->Montage_IsPlaying(Montage))
+	{
+		AnimInstance->Montage_Stop(0.0f, Montage);
+	}
+	
+	//=======================================================================
+	// 네트워크 지연 보정 로직 추가
+	//=======================================================================
+	float StartPosition = 0.0f;
+	
+	// 서버가 아닌 경우에만 시간 차이 계산
+	if (!HasAuthority())
+	{
+		// 1. 현재 클라이언트 로컬 시간
+		float LocalTime = GetWorld()->GetTimeSeconds();
+		
+		// 2. 서버가 시작한 시점부터 얼마나 지났는지 계산
+		float Elapsed = FMath::Max(LocalTime - ServerStartTime, 0.0f);
+		
+		// 3. 몽타주 길이 확인
+		float MontageLength = Montage->GetPlayLength();
+		
+		// 4. 이미 몽타주가 끝난 시점이라면 재생하지 않음
+		if (Elapsed >= MontageLength)
+		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			UE_LOG(LogTSCharacter, Warning, TEXT("[Client] 몽타주 시작 지연 과다 (경과=%.2fs, 길이=%.2fs) - 재생 스킵"),
+				Elapsed, MontageLength);
+			return; // 재생 스킵
+#endif
+		}
+		
+		// 5. 지연된 시간만큼 건너뛰기
+		StartPosition = Elapsed;
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTSCharacter, Log, TEXT("[Client] 네트워크 지연 보정: %.2f초 건너뛰고 재생 (전체 %.2fs)"),
+			StartPosition, MontageLength);
+#endif
+	}
+	
+	//=======================================================================
+	// 몽타주 재생 (시작 위치 적용)
+	//=======================================================================
+	float PlayedLength = AnimInstance->Montage_Play(
+		Montage,
+		PlayRate,
+		EMontagePlayReturnType::MontageLength,
+		StartPosition // 지연된 시간만큼 건너뜀
+	);
+	
+	if (PlayedLength > 0.f)
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTemp, Log, TEXT("[Multicast] 몽타주 재생: %s (Role: %s, StartPos: %.2fs)"),
+			*Montage->GetName(),
+			HasAuthority() ? TEXT("Server") : TEXT("Client"),
+			StartPosition);
+#endif
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Multicast] 몽타주 재생 실패: %s"), *Montage->GetName());
+	}
+}
+
+void ATSCharacter::Multicast_StopConsumeMontage_Implementation(UAnimMontage* Montage)
+{
+	if (!Montage)
+	{
+		return;
+	}
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		return;
+	}
+	
+	if (AnimInstance->Montage_IsPlaying(Montage))
+	{
+		AnimInstance->Montage_Stop(0.2f, Montage);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTSCharacter, Log, TEXT("[Multicast] 몽타주 정지: %s (Role: %s)"),
+			*Montage->GetName(), HasAuthority() ? TEXT("Server") : TEXT("Client"));
+#endif
+	}
+}
+#pragma endregion
