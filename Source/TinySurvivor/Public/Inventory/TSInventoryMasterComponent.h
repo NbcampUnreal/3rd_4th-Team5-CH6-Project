@@ -353,5 +353,15 @@ protected:
 #pragma endregion
 	
 private:
-	int32 CachedEquippedItemID = 0; // 현재 장착된 아이템 ID
+	// 현재 장착된 아이템 ID
+	int32 CachedEquippedItemID = 0;
+	
+	// ASC 초기화 대기 중 플래그
+	bool bEventListenersRegistered = false;
+	
+	// 타이머 핸들
+	FTimerHandle ASCCheckTimerHandle;
+	
+	// ASC 준비되면 이벤트 리스너 등록
+	void TryRegisterEventListeners();
 };
