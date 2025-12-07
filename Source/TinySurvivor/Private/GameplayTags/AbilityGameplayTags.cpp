@@ -38,7 +38,10 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Full, "State.Status.Full")
 	
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Attack, "State.Status.Attack");
+	
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Downed, "State.Status.Downed");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Dead, "State.Status.Dead");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Rescuing, "State.Status.Rescuing");
 	
 	// Poison 관련 태그
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Poison, "State.Status.Poison");					// 독 상태이상

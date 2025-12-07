@@ -26,6 +26,7 @@
 #include "GAS/InteractTag.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "System/ResourceControl/TSResourceItemInterface.h"
+#include "Components/CapsuleComponent.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -343,11 +344,38 @@ void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ATSCharacter, AnimType);
+	DOREPLIFETIME(ATSCharacter, ReviveTargetCharacter);
+	DOREPLIFETIME(ATSCharacter, bIsRescuing);
+	DOREPLIFETIME(ATSCharacter, bIsDownedState);
+	DOREPLIFETIME(ATSCharacter, bIsDeadState);
 }
 
 void ATSCharacter::BecomeDowned()
 {
-	// 기절 이펙트 (있던 태그 다 차단할 GE)
+	if (!ASC)
+	{
+		return;
+	}
+	// 1. 기존 행동 취소 및 Downed 태그 부착
+	if (ASC)
+	{
+		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+	}
+
+	// 2. 이동속도 감소 GE 적용
+	if (ProneMoveSpeedEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(ProneMoveSpeedEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	// 3. DownedHealth 감소 GE 적용
 	if (DownedEffectClass)
 	{
 		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
@@ -359,25 +387,290 @@ void ATSCharacter::BecomeDowned()
 			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
-	
-	// 입력 차단 (look만 가능하도록)
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		PC->SetIgnoreMoveInput(true);
-	}
-	if (DownedMontage)
-	{
-		PlayAnimMontage(DownedMontage);	
-	}
+	// 4. 클라이언트 애니메이션 동기화
+	bIsDownedState = true;
 }
 
-bool ATSCharacter::IsDowned()
+bool ATSCharacter::IsDowned() const
 {
 	if (ASC)
 	{
 		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed);
 	}
 	return false;
+}
+
+void ATSCharacter::Die()
+{
+	if (bIsDeadState)
+	{
+		return; // 이미 죽었으면 return
+	}
+
+	// 1. 태그 Downed -> Dead 교체
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Dead);
+	}
+	// 2. 상태 변수 업데이트 
+	bIsDownedState = false;
+	bIsDeadState = true;
+	// 3. 입력 차단
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+	// 4. 서버에서도 Ragdoll 물리 적용
+	OnRep_IsDeadState();
+}
+
+bool ATSCharacter::IsDead() const
+{
+	if (ASC)
+	{
+		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Dead);
+	}
+	return false;
+}
+
+void ATSCharacter::OnRep_IsDeadState()
+{
+	if (bIsDeadState)
+	{
+		// 1. 캡슐 콜리전 끄기 (시체 통과 가능하게)
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// 2. 메쉬 물리 켜기 (철퍼덕)
+		GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+		GetMesh()->SetSimulatePhysics(true);
+		// 3. 이동 컴포넌트 정지
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->StopMovementImmediately();
+			GetCharacterMovement()->DisableMovement();
+		}
+	}
+}
+
+ATSCharacter* ATSCharacter::DetectReviveTarget()
+{
+	// ---------------Downed Character 탐지용 트레이스---------------
+	
+	// 오직 로컬 플레이어 컨트롤러에서만 실행
+	APlayerController* PC = Cast<APlayerController>(Controller);
+	if (!IsValid(PC) || !PC->IsLocalController()) return nullptr;
+	
+	// 화면 중앙 위치 가져오기
+	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return nullptr;
+	
+	// 화면 중앙 좌표 계산
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport) GEngine->GameViewport->GetViewportSize(ViewportSize);
+	FVector2D Center = ViewportSize / 2.f;
+	
+	FVector TraceStart, Forward;
+	UGameplayStatics::DeprojectScreenToWorld(PC, Center, TraceStart, Forward);
+    
+	FVector TraceEnd = TraceStart + Forward * 300.0f;
+	FCollisionShape Shape = FCollisionShape::MakeSphere(40.0f);
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_Pawn); 
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	FHitResult HitResult;
+	bool bHit = GetWorld()->SweepSingleByObjectType(HitResult, TraceStart, TraceEnd, FQuat::Identity, ObjectParams, Shape, Params);
+    
+	// 디버그
+	if (bLineTraceDebugDraw && bHit)
+	{
+		DrawDebugCapsule(GetWorld(), HitResult.Location, 50.0f, 40.0f, FQuat::Identity, FColor::Red, false, 1.0f);
+	}
+
+	if (bHit)
+	{
+		return Cast<ATSCharacter>(HitResult.GetActor());
+	}
+	return nullptr;
+	
+}
+
+void ATSCharacter::Revive() // Downed된 친구가 부활하는 함수
+{
+	if (IsDead())
+	{
+		return;
+	}
+	// 1. Downed 태그 제거
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+	}
+	// 2. Health 50 회복, DownedHealth 100 초기화
+	if (UTSAttributeSet* AS = GetAttributeSet())
+	{
+		AS->SetHealth(50.0f);
+		AS->SetDownedHealth(AS->GetMaxDownedHealth());
+	}
+	// 3. 변수 초기화
+	bIsDownedState = false;
+}
+
+bool ATSCharacter::IsRescueCharacter() const
+{
+	// 구조 중 상태 확인
+	if (ASC)
+	{
+		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	return false;
+}
+
+void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
+{
+	// 1. 구조자 상태, 타겟 상태, 거리 확인, 대상 탐지
+	if (IsDowned() || IsDead())
+	{
+		return;
+	}
+	if (!IsValid(Target)) 
+	{
+		return;
+	}
+	float Distance = FVector::Dist(GetActorLocation(), Target->GetActorLocation());
+	if (Distance > MaxReviveDistance)
+	{
+		return;
+	}
+	bool bTargetDown = Target->IsDowned();
+	bool bTargetDead = Target->IsDead();
+
+	if (!bTargetDown || bTargetDead)
+	{
+		return;
+	}
+	// 2. 타이머 중복 방지 (정리)
+	if (GetWorldTimerManager().IsTimerActive(ReviveTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
+	}
+	
+	// 3. 소생 상태 설정
+	ReviveTargetCharacter = Target; // 소생 대상을 변수에 저장
+	CurrentReviveTime = 0.f;
+	bIsRescuing = true;
+	
+	// 4. Rescue 태그 부착
+	if (ASC)
+	{
+		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	
+	// 5. 내 움직임 봉인 // 구조 중 이동 불가
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(MOVE_None);
+	}
+    
+	// 6. 타이머 시작 (5초)
+	GetWorldTimerManager().SetTimer(ReviveTimerHandle, this, &ATSCharacter::OnReviveFinished, ReviveDuration, false);
+}
+
+void ATSCharacter::ServerStopRevive_Implementation()
+{
+	// 1. 타이머 정리
+	GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
+	CurrentReviveTime = 0.f;
+	
+	// 2. 변수 초기화
+	ReviveTargetCharacter = nullptr;
+	bIsRescuing = false;
+	
+	// 2. Rescue 태그 제거
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	
+	// 4. 이동상태 복구
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	
+	// 5. 클라이언트 동기화
+	ClientForceStopRevive();
+}
+
+void ATSCharacter::ClientForceStopRevive_Implementation()
+{
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking); // 소생 강제 해제 -> 움직임 복구
+}
+
+void ATSCharacter::OnReviveFinished()
+{
+	// 1. 타이머 정리
+	GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
+	CurrentReviveTime = 0.f;
+	// 2. 타겟 정리 및 변수 초기화
+	ATSCharacter* Target = ReviveTargetCharacter;
+	ReviveTargetCharacter = nullptr;
+	// 3. 태그 제거
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	// 4. 이동상태 복구
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	bIsRescuing = false;
+	// 5. 살려주기 + 안전성 검사
+	if (!IsValid(Target))
+	{
+		return;
+	}
+	if (!Target->IsDowned() || Target->IsDead())
+	{
+		return;
+	}
+	Target->Revive();
+}
+
+void ATSCharacter::TickReviveValidation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	// 1. 대상이 사라짐 -> 취소
+	if (!IsValid(ReviveTargetCharacter))
+	{
+		ServerStopRevive();
+		return;
+	}
+
+	// 2. 대상이 그 사이에 죽어버렸거나, 이미 일어남 -> 취소
+	if (ReviveTargetCharacter->IsDead() || !ReviveTargetCharacter->IsDowned())
+	{
+		ServerStopRevive();
+		return;
+	}
+
+	// 3. 거리 계산 (기어가서 멀어짐 방지)
+	float DistSq = FVector::DistSquared(GetActorLocation(), ReviveTargetCharacter->GetActorLocation());
+	float MaxDistSq = MaxReviveDistance * MaxReviveDistance; // sqrt 말고 곱셈으로..
+	if (DistSq > MaxDistSq)
+	{
+		ServerStopRevive();
+	}
+}
+
+void ATSCharacter::OnRep_IsRescuing()
+{
+	if (bIsRescuing )
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_None);
+	} else
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
 }
 
 void ATSCharacter::BeginPlay()
@@ -636,10 +929,34 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 	{
 		return;
 	}
-	if (!IsValid(CurrentHitActor.Get()))
+	
+	// 1. 내가 다운 || 죽음이면 못함
+	UE_LOG(LogTemp, Warning, TEXT("[@@@@OnInteract] >>> E Pressed | Owner: %s | HasAuthority: %d"),
+		*GetName(),
+		HasAuthority());
+	if (IsDowned() || IsDead())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[@@@@OnInteract] EarlyExit: I am Downed or Dead."));
 		return;
 	}
+	ATSCharacter* ReviveTarget = DetectReviveTarget();
+    
+	if (ReviveTarget)
+	{
+		// 친구를 찾았고 + 기절 상태라면?
+	
+		UE_LOG(LogTemp, Warning, TEXT("Priority 1: Reviving Friend!"));
+		ServerStartRevive(ReviveTarget);
+		return; // [중요] 여기서 함수 종료! (아래 아이템 로직 실행 X)
+		
+	}
+	LineTrace();
+	if (!IsValid(CurrentHitActor.Get()))
+	{
+		// UE_LOG(LogTemp, Warning, TEXT("Nothing Hit."));
+		return;
+	}
+	// 우선 순위 2: 아이템 상호작용, 자원 채집
 	if (CurrentHitActor->Implements<UIInteraction>())
 	{
 		IIInteraction* InteractionInterface = Cast<IIInteraction>(CurrentHitActor);
@@ -665,6 +982,7 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 
 void ATSCharacter::OnStopInteract(const struct FInputActionValue& Value)
 {
+	ServerStopRevive();
 	ServerSendStopInteractEvent();
 }
 
@@ -1019,6 +1337,10 @@ void ATSCharacter::Tick(float DeltaTime)
 		}
 	}
 	
+	if (HasAuthority() && bIsRescuing)
+	{
+		TickReviveValidation(); // 구조 중이면 -? 매 프레임 거리와 상태 체크
+	}
 	// ■ WASD 태그 관리
 	//[S]=====================================================================================
 	if (ASC && GetCharacterMovement())
