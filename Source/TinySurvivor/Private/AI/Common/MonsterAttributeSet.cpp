@@ -45,7 +45,12 @@ void UMonsterAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 			
 			if (Monster)
 			{
-				Monster->OnDeath(Data.EffectSpec.GetEffectContext().GetInstigator());
+				AActor* Attacker = Data.EffectSpec.GetEffectContext().GetInstigator();
+				
+				FGameplayTagContainer AssetTags;
+				Data.EffectSpec.GetAllAssetTags(AssetTags);
+				
+				Monster->OnDamaged(FMath::Abs(DamageTaken), AssetTags, Attacker);
 			}
 		}
 		
@@ -74,15 +79,15 @@ void UMonsterAttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
 
 void UMonsterAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldMaxHealth)
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(UMonsterAttributeSet, Health, OldMaxHealth);
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMonsterAttributeSet, MaxHealth, OldMaxHealth);
 }
 
 void UMonsterAttributeSet::OnRep_AttackDamage(const FGameplayAttributeData& OldAttackDamage)
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(UMonsterAttributeSet, Health, OldAttackDamage);
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMonsterAttributeSet, AttackDamage, OldAttackDamage);
 }
 
 void UMonsterAttributeSet::OnRep_ErosionReward(const FGameplayAttributeData& OldErosionReward)
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(UMonsterAttributeSet, Health, OldErosionReward);
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UMonsterAttributeSet, ErosionReward, OldErosionReward);
 }
