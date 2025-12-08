@@ -75,9 +75,11 @@ void UGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 	case EItemAnimType::AXE: // 도끼 타입 도구
 		FirstMontage = AxeMontage;
 		break;
+	case EItemAnimType::HAMMER: // 도끼 타입 도구
+		FirstMontage = HammerMontage;
+		break;
 		
-		
-	// ------------도구------------
+	// ------------무기------------
 	case EItemAnimType::WEAPON_MELEE: // 근거리 전투용 무기
 		FirstMontage = WeaponMeleeMontage;
 		break;
@@ -203,6 +205,13 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 				continue;
 			}
 			
+			if (ItemAnimType == EItemAnimType::HAMMER)
+			{
+				// 빌딩 뿌셔!
+				
+				UE_LOG(LogTemp, Log, TEXT("Hammer Hit "));
+			}
+			
 			ITSResourceItemInterface* ResourceInterface = Cast<ITSResourceItemInterface>(HitActor);
 			if (ResourceInterface) //만약 자원원천이면 
 			{
@@ -216,7 +225,7 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 				}
 				return;
 			}
-			
+
 			else if (HitActor->ActorHasTag(FName("Enemy")))
 			{
 				if (EnemyDamageEffectClass) 
