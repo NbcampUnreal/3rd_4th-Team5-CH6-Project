@@ -1,8 +1,8 @@
 // TSAISpawner.cpp
 
-#include "AI/Common/TSAISpawner.h"
-#include "AI/Common/MonsterSpawnSubsystem.h"
-#include "AI/Common/AMonsterRegionVolume.h"
+#include "AI/Common/Spawn/TSAISpawner.h"
+#include "AI/Common/Spawn/MonsterSpawnSubsystem.h"
+#include "AI/Common/Spawn/AMonsterRegionVolume.h"
 #include "Kismet/KismetMathLibrary.h"
 
 ATSAISpawner::ATSAISpawner()
