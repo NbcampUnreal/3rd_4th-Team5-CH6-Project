@@ -143,6 +143,10 @@ protected:
 	// 버킷 확인용 디버깅 함수
 	void DebugPrintAllBuckets();
 	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
+	
 	// 리스폰 요청 모음
 	UPROPERTY()
 	TArray<FRespawnRequest> PendingRespawns;
