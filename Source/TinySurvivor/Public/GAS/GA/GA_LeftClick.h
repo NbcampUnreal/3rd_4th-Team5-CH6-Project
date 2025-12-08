@@ -37,6 +37,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
 	TObjectPtr<UAnimMontage> AxeMontage; // 도끼 타입 도구
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
+	TObjectPtr<UAnimMontage> HammerMontage; // 망치 타입 도구
+	
 	//무기
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
 	TObjectPtr<UAnimMontage> WeaponMeleeMontage; // 근거리 전투용 무기

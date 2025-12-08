@@ -58,6 +58,7 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Downed); // 내 캐릭터 기절
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Dead); // 내 캐릭터 사망
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Rescuing); // 친구를 살려주고 있는가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_PickUpItem);
 	
 	// Poison 관련 태그
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상

@@ -96,6 +96,7 @@ public:
 		this->AnimType = ItemAnimType;
 	}
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
 #pragma endregion
 	
 #pragma region Downed & Dead & Revive
@@ -318,4 +319,11 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_StopConsumeMontage(UAnimMontage* Montage);
 #pragma endregion
+	
+	// 줍는 몽타주 하나 추가
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
+	TObjectPtr<UAnimMontage> PickUpMontage;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayPickUpMontage();
 };
