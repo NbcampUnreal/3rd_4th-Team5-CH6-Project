@@ -54,10 +54,11 @@ void UTSInventoryMasterComponent::BeginPlay()
 	// 이 클래스가 없으면 무기 장착 시 캐릭터 스탯을 적용할 수 없음
 	if (!WeaponStatEffectClass)
 	{
-		UE_LOG(LogInventoryComp, Warning, TEXT("WeaponStatEffectClass가 설정되지 않았습니다! 무기 스탯이 적용되지 않습니다."));
+		UE_LOG(LogInventoryComp, Warning,
+			TEXT("WeaponStatEffectClass가 설정되지 않았습니다! 무기 스탯이 적용되지 않습니다."));
 	}
 	
-	// ■ 이벤트 리스너 등록 시도 (ASC가 준비될 때까지 재시도)
+	// 이벤트 리스너 등록 시도 (ASC가 준비될 때까지 재시도)
 	TryRegisterEventListeners();
 	
 	if (GetOwner()->HasAuthority())
@@ -333,8 +334,11 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	// }
 	
 	/*
-		신규: 방어구 장착 해제 보완
+		신규: 방어구 처리 내용 보완
 	*/
+	//========================================
+	// 방어구 장착 해제 로직
+	//========================================
 	// 방어구 탈착 여부 플래그
 	bool bArmorUnequipped = false;
 	
@@ -345,8 +349,33 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		bArmorUnequipped = true;
 	}
 	
+	//========================================
+	// 방어구 장착 로직
+	//========================================
+	bool bArmorEquipped = false;
+	
+	// Equipment 슬롯으로 아이템이 이동된 경우 장착 처리
+	if (ToInventoryType == EInventoryType::Equipment && ToSlot.ItemData.StaticDataID != 0)
+	{
+		FItemData ItemInfo;
+		if (TargetInventory->GetItemData(ToSlot.ItemData.StaticDataID, ItemInfo))
+		{
+			// 방어구인 경우에만 장착
+			if (ItemInfo.Category == EItemCategory::ARMOR)
+			{
+				TargetInventory->EquipArmor(ItemInfo, ToSlotIndex);
+				bArmorEquipped = true;
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogInventoryComp, Log,
+					TEXT("드래그 앤 드롭으로 방어구 장착: ItemID=%d, SlotIndex=%d"),
+					ItemInfo.ItemID, ToSlotIndex);
+#endif
+			}
+		}
+	}
+	
 	// 활성화 슬롯 변경 시 또는 방어구 탈착 시 브로드캐스트
-	if (bAddedToActiveSlot || bArmorUnequipped)
+	if (bAddedToActiveSlot || bArmorUnequipped || bArmorEquipped)
 	{
 		HandleActiveHotkeyIndexChanged();
 	}
@@ -404,8 +433,10 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 
 			HandleInventoryChanged();
 
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			UE_LOG(LogTemp, Log, TEXT("Bag item used: Expanded bag by %d slots (Total: %d/%d)"),
-			       BagSlotIncrement, BagInventory.InventorySlotContainer.Num(), MaxBagSlotCount);
+				BagSlotIncrement, BagInventory.InventorySlotContainer.Num(), MaxBagSlotCount);
+#endif
 		}
 		else
 		{
@@ -505,7 +536,8 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 					Character->Multicast_PlayConsumeMontage(Montage, 1.0f, ServerStartTime);
 					bMontageStarted = true;
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-					UE_LOG(LogInventoryComp, Log, TEXT("[Server] 소모품 몽타주 Multicast 호출: %s (StartTime=%.2f)"),
+					UE_LOG(LogInventoryComp, Log,
+						TEXT("[Server] 소모품 몽타주 Multicast 호출: %s (StartTime=%.2f)"),
 						*Montage->GetName(), ServerStartTime);
 #endif
 				}
@@ -644,8 +676,10 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	if (ProcessedItemData.NeedsDurabilityInit() && ItemInfo.HasDurability())
 	{
 		ProcessedItemData.CurrentDurability = ItemInfo.GetMaxDurability();
-		UE_LOG(LogTemp, Log, TEXT("AddItem: 내구도 초기화 - ItemID=%d, Durability=%d"), 
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTemp, Log, TEXT("AddItem: 내구도 초기화 - ItemID=%d, Durability=%d"),
 			ItemInfo.ItemID, ProcessedItemData.CurrentDurability);
+#endif
 	}
 	
 	// ========================================
@@ -1083,7 +1117,8 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 	}
 	else
 	{
-		UE_LOG(LogInventoryComp, Warning, TEXT("아이템 메시를 찾을 수 없습니다. ID=%d"), ActiveSlot.ItemData.StaticDataID);
+		UE_LOG(LogInventoryComp, Warning, TEXT("아이템 메시를 찾을 수 없습니다. ID=%d"),
+			ActiveSlot.ItemData.StaticDataID);
 	}
 	
 	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
@@ -1114,10 +1149,12 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 		TSCharacter->SetAnimType(ItemInfo.AnimType);
 	}
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("Equipped: ID=%d (Slot %d, Category=%s)"),
-		ActiveSlot.ItemData.StaticDataID, 
+		ActiveSlot.ItemData.StaticDataID,
 		ActiveHotkeyIndex,
 		*UEnum::GetValueAsString(ItemInfo.Category));
+#endif
 }
 
 void UTSInventoryMasterComponent::UnequipCurrentItem()
@@ -1578,7 +1615,7 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 	FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
 	ContextHandle.AddSourceObject(this);
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	//=======================================================================
 	// 적용 전 스탯 로그
 	//=======================================================================
@@ -1613,8 +1650,10 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 		// 핸들 저장
 		EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle = CommonHandle;
 		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Log, TEXT("방어구 공통 스탯 적용: HealthBonus=%.1f"),
 			ItemInfo.ArmorData.HealthBonus);
+#endif
 	}
 	
 	// 2. 이펙트 스탯 (EffectTag별)
@@ -1654,11 +1693,14 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 		// 핸들 저장
 		EquippedArmors[ArmorSlotIndex].ArmorEffectHandle = EffectHandle;
 		
-		UE_LOG(LogInventoryComp, Log, TEXT("방어구 이펙트 스탭 적용: ItemID=%d, EffectTag=%s, EffectValue=%.1f"),
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogInventoryComp, Log,
+			TEXT("방어구 이펙트 스탭 적용: ItemID=%d, EffectTag=%s, EffectValue=%.1f"),
 			ItemInfo.ItemID, *ItemInfo.EffectTag_Armor.ToString(), ItemInfo.EffectValue);
+#endif
 	}
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	//=======================================================================
 	// 적용 후 스탯 로그
 	//=======================================================================
@@ -1666,9 +1708,9 @@ void UTSInventoryMasterComponent::EquipArmor(const FItemData& ItemInfo, int32 Ar
 	{
 		UE_LOG(LogInventoryComp, Display, TEXT(">> 적용 후 스탯"));
 		UE_LOG(LogInventoryComp, Display, TEXT("MaxHealth: %.1f"), AttrSet->GetMaxHealth());
-		UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"), 
+		UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"),
 			AttrSet->GetBaseDamageReflection() + AttrSet->GetDamageReflectionBonus());
-		UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"), 
+		UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"),
 			AttrSet->GetBaseDamageReduction() + AttrSet->GetDamageReductionBonus());
 		UE_LOG(LogInventoryComp, Display, TEXT("MoveSpeed: %.1f"), AttrSet->GetMoveSpeed());
 		UE_LOG(LogInventoryComp, Display, TEXT("MaxMoveSpeed: %.1f"), AttrSet->GetMaxMoveSpeed());
@@ -1695,7 +1737,6 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 		return;
 	}
 	
-#if WITH_EDITOR
 	//=======================================================================
 	// 제거 전 스탯 로그
 	//=======================================================================
@@ -1707,20 +1748,21 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 				TEXT("방어구 탈착: AttributeSet(UTSAttributeSet)을 찾을 수 없습니다! (SlotIndex=%d)"),
 				ArmorSlotIndex);
 		}
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		else
 		{
 			UE_LOG(LogInventoryComp, Display, TEXT("========== 방어구 탈착 =========="));
 			UE_LOG(LogInventoryComp, Display, TEXT(">> 탈착 전 스탯"));
 			UE_LOG(LogInventoryComp, Display, TEXT("MaxHealth: %.1f"), AttrSet->GetMaxHealth());
-			UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"), 
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"),
 				AttrSet->GetBaseDamageReflection() + AttrSet->GetDamageReflectionBonus());
-			UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"), 
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"),
 				AttrSet->GetBaseDamageReduction() + AttrSet->GetDamageReductionBonus());
 			UE_LOG(LogInventoryComp, Display, TEXT("MoveSpeed: %.1f"), AttrSet->GetMoveSpeed());
 			UE_LOG(LogInventoryComp, Display, TEXT("MaxMoveSpeed: %.1f"), AttrSet->GetMaxMoveSpeed());
 		}
-	}
 #endif
+	}
 	
 	//=======================================================================
 	// 1. EffectStats GE 제거
@@ -1730,7 +1772,9 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 		bool bRemoved = ASC->RemoveActiveGameplayEffect(EquippedArmors[ArmorSlotIndex].ArmorEffectHandle);
 		if (bRemoved)
 		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			UE_LOG(LogInventoryComp, Log, TEXT("방어구 이펙트 스탯 제거 성공: SlotIndex=%d"), ArmorSlotIndex);
+#endif
 		}
 		else
 		{
@@ -1743,9 +1787,11 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 	}
 	else
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Warning,
 			TEXT("방어구 이펙트 스탯 제거 생략: EffectHandle이 이미 무효 상태입니다. (SlotIndex=%d)"),
 			ArmorSlotIndex);
+#endif
 	}
 	
 	//=======================================================================
@@ -1756,7 +1802,9 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 		bool bRemoved = ASC->RemoveActiveGameplayEffect(EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle);
 		if (bRemoved)
 		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			UE_LOG(LogInventoryComp, Log, TEXT("방어구 공통 스탯 제거 성공: SlotIndex=%d"), ArmorSlotIndex);
+#endif
 		}
 		else
 		{
@@ -1769,12 +1817,13 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 	}
 	else
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Warning,
 			TEXT("방어구 공통 스탯 제거 생략: ArmorCommonEffectHandle이 이미 무효 상태입니다. (SlotIndex=%d)"),
 			ArmorSlotIndex);
+#endif
 	}
 	
-#if WITH_EDITOR
 	//=======================================================================
 	// 제거 후 스탯 로그
 	//=======================================================================
@@ -1788,18 +1837,19 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 		}
 		else
 		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			UE_LOG(LogInventoryComp, Display, TEXT(">> 탈착 후 스탯"));
 			UE_LOG(LogInventoryComp, Display, TEXT("MaxHealth: %.1f"), AttrSet->GetMaxHealth());
-			UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"), 
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReflection: %.2f"),
 				AttrSet->GetBaseDamageReflection() + AttrSet->GetDamageReflectionBonus());
-			UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"), 
+			UE_LOG(LogInventoryComp, Display, TEXT("DamageReduction: %.2f"),
 				AttrSet->GetBaseDamageReduction() + AttrSet->GetDamageReductionBonus());
 			UE_LOG(LogInventoryComp, Display, TEXT("MoveSpeed: %.1f"), AttrSet->GetMoveSpeed());
 			UE_LOG(LogInventoryComp, Display, TEXT("MaxMoveSpeed: %.1f"), AttrSet->GetMaxMoveSpeed());
 			UE_LOG(LogInventoryComp, Display, TEXT("==================================="));
+#endif
 		}
 	}
-#endif
 	
 	//=======================================================================
 	// 3. 메시 제거
@@ -1830,9 +1880,11 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 		const bool bDestroyed = ArmorMeshActor->Destroy();
 		if (bDestroyed)
 		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			UE_LOG(LogInventoryComp, Log,
 				TEXT("방어구 메시 제거 성공: SlotIndex=%d, Actor=%s"),
 				ArmorSlotIndex, *ArmorMeshActor->GetName());
+#endif
 		}
 		else
 		{
@@ -1845,9 +1897,11 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 	}
 	else
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Warning,
 			TEXT("방어구 메시 제거 생략: EquippedArmor 포인터가 NULL 또는 유효하지 않음 (SlotIndex=%d)"),
 			ArmorSlotIndex);
+#endif
 	}
 	
 	// Health 클램핑
@@ -1855,9 +1909,11 @@ void UTSInventoryMasterComponent::UnequipArmor(int32 ArmorSlotIndex)
 	if (AttrSet && AttrSet->GetHealth() > AttrSet->GetMaxHealth())
 	{
 		AttrSet->SetHealth(AttrSet->GetMaxHealth());
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Warning,
 			TEXT("방어구 탈착 후 Health 클램핑: %.1f → %.1f"),
 			AttrSet->GetHealth(), AttrSet->GetMaxHealth());
+#endif
 	}
 }
 #pragma endregion
@@ -1913,18 +1969,21 @@ void UTSInventoryMasterComponent::OnArmorHitEvent(const FGameplayEventData* Payl
 		Slot.ItemData.CurrentDurability -= DurabilityLoss;
 		Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
 		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Log, TEXT("방어구 내구도 감소: 아이템ID=%d, 슬롯=%d, 감소량=%d, 남은 내구도=%d/%d"),
 			Slot.ItemData.StaticDataID,
 			i,
 			DurabilityLoss,
 			Slot.ItemData.CurrentDurability,
 			ItemInfo.ArmorData.MaxDurability);
+#endif
 		
 		// 내구도가 0 이하가 되면 방어구 파괴
 		if (Slot.ItemData.CurrentDurability <= 0)
 		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			UE_LOG(LogInventoryComp, Warning, TEXT("방어구 파괴: 아이템ID=%d, 슬롯=%d"), Slot.ItemData.StaticDataID, i);
-			
+#endif
 			// 방어구 탈착 (스탯 제거, 메시 제거)
 			UnequipArmor(i);
 			
@@ -1974,7 +2033,7 @@ void UTSInventoryMasterComponent::ApplyWeaponStats(const FItemData& ItemInfo)
 	float CurrentAttackSpeedBonus = AttrSet->GetAttackSpeedBonus();
 	float CurrentAttackRangeBonus = AttrSet->GetAttackRangeBonus();
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	auto PrintStatLine = [](const FString& Name, float Base, float Bonus, float Total, const FString& Extra = TEXT(""))
 	{
 		UE_LOG(LogInventoryComp, Display, TEXT("%-15s | Base: %6.1f | Bonus: %6.2f | Total: %6.2f %s"),
@@ -1983,9 +2042,12 @@ void UTSInventoryMasterComponent::ApplyWeaponStats(const FItemData& ItemInfo)
 	
 	UE_LOG(LogInventoryComp, Display, TEXT("========== 스탯 적용 =========="));
 	UE_LOG(LogInventoryComp, Display, TEXT(">> 적용 전 스탯"));
-	PrintStatLine(TEXT("Damage"), CurrentBaseDamage, CurrentDamageBonus, CurrentBaseDamage + CurrentDamageBonus);
-	PrintStatLine(TEXT("AttackSpeed"), CurrentBaseAttackSpeed, CurrentAttackSpeedBonus, CurrentBaseAttackSpeed * CurrentAttackSpeedBonus);
-	PrintStatLine(TEXT("AttackRange"), CurrentBaseAttackRange, CurrentAttackRangeBonus, CurrentBaseAttackRange * CurrentAttackRangeBonus);
+	PrintStatLine(TEXT("Damage"),
+		CurrentBaseDamage, CurrentDamageBonus, CurrentBaseDamage + CurrentDamageBonus);
+	PrintStatLine(TEXT("AttackSpeed"),
+		CurrentBaseAttackSpeed, CurrentAttackSpeedBonus, CurrentBaseAttackSpeed * CurrentAttackSpeedBonus);
+	PrintStatLine(TEXT("AttackRange"),
+		CurrentBaseAttackRange, CurrentAttackRangeBonus, CurrentBaseAttackRange * CurrentAttackRangeBonus);
 	
 	UE_LOG(LogInventoryComp, Display, TEXT(">> 무기/도구 스탯"));
 	UE_LOG(LogInventoryComp, Display, TEXT("Damage: %.1f, AttackSpeed: %.1f, AttackRange: %.1f"),
@@ -2033,7 +2095,7 @@ void UTSInventoryMasterComponent::ApplyWeaponStats(const FItemData& ItemInfo)
 		
 		if (CurrentWeaponEffectHandle.IsValid())
 		{
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 			//=======================================================================
 			// 적용 후 스탯 조회
 			//=======================================================================
@@ -2042,11 +2104,14 @@ void UTSInventoryMasterComponent::ApplyWeaponStats(const FItemData& ItemInfo)
 			float NewAttackRangeBonus = AttrSet->GetAttackRangeBonus();
 			
 			UE_LOG(LogInventoryComp, Display, TEXT(">> 적용 후 스탯"));
-			PrintStatLine(TEXT("Damage"), CurrentBaseDamage, NewDamageBonus, CurrentBaseDamage + NewDamageBonus,
+			PrintStatLine(TEXT("Damage"),
+				CurrentBaseDamage, NewDamageBonus, CurrentBaseDamage + NewDamageBonus,
 				FString::Printf(TEXT("(+%.2f)"), NewDamageBonus - CurrentDamageBonus));
-			PrintStatLine(TEXT("AttackSpeed"), CurrentBaseAttackSpeed, NewAttackSpeedBonus, CurrentBaseAttackSpeed * NewAttackSpeedBonus,
+			PrintStatLine(TEXT("AttackSpeed"),
+				CurrentBaseAttackSpeed, NewAttackSpeedBonus, CurrentBaseAttackSpeed * NewAttackSpeedBonus,
 				FString::Printf(TEXT("(×%.2f)"), NewAttackSpeedBonus / CurrentAttackSpeedBonus));
-			PrintStatLine(TEXT("AttackRange"), CurrentBaseAttackRange, NewAttackRangeBonus, CurrentBaseAttackRange * NewAttackRangeBonus,
+			PrintStatLine(TEXT("AttackRange"),
+				CurrentBaseAttackRange, NewAttackRangeBonus, CurrentBaseAttackRange * NewAttackRangeBonus,
 				FString::Printf(TEXT("(×%.2f)"), NewAttackRangeBonus / CurrentAttackRangeBonus));
 			
 			UE_LOG(LogInventoryComp, Display, TEXT("==================================="));
@@ -2106,7 +2171,7 @@ void UTSInventoryMasterComponent:: RemoveWeaponStats()
 	float CurrentAttackSpeedBonus = AttrSet->GetAttackSpeedBonus();
 	float CurrentAttackRangeBonus = AttrSet->GetAttackRangeBonus();
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	auto PrintStatLine = [](const FString& Name, float Base, float Bonus, float Total, const FString& Extra = TEXT(""))
 	{
 		UE_LOG(LogInventoryComp, Display, TEXT("%-15s | Base: %6.1f | Bonus: %6.2f | Total: %6.2f %s"),
@@ -2138,11 +2203,11 @@ void UTSInventoryMasterComponent:: RemoveWeaponStats()
 	//=======================================================================
 	// 제거 후 스탯 조회
 	//=======================================================================
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	float NewDamageBonus = AttrSet->GetDamageBonus();
 	float NewAttackSpeedBonus = AttrSet->GetAttackSpeedBonus();
 	float NewAttackRangeBonus = AttrSet->GetAttackRangeBonus();
-			
-#if WITH_EDITOR
+	
 	UE_LOG(LogInventoryComp, Display, TEXT(">> 제거 후 스탯"));
 	PrintStatLine(TEXT("Damage"), CurrentBaseDamage, NewDamageBonus,
 		CurrentBaseDamage + NewDamageBonus,
@@ -2205,16 +2270,20 @@ void UTSInventoryMasterComponent::OnWeaponAttackEvent(const FGameplayEventData* 
 	Slot.ItemData.CurrentDurability -= DurabilityLoss;
 	Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
 
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("무기 내구도 감소: 아이템ID=%d, 감소량=%d, 남은 내구도=%d/%d"),
 		Slot.ItemData.StaticDataID,
 		DurabilityLoss,
 		Slot.ItemData.CurrentDurability,
 		ItemInfo.WeaponData.MaxDurability);
+#endif
 	
 	// 내구도가 0 이하가 되면 아이템 파괴
 	if (Slot.ItemData.CurrentDurability <= 0)
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Warning, TEXT("무기 파괴: 아이템ID=%d"), Slot.ItemData.StaticDataID);
+#endif
 		ClearSlot(Slot); // 슬롯 초기화
 		HandleActiveHotkeyIndexChanged(); // 장착 해제
 	}
@@ -2230,7 +2299,7 @@ void UTSInventoryMasterComponent::ApplyToolTags(const FItemData& ItemInfo)
 	UAbilitySystemComponent* ASC = GetASC();
 	if (!ASC) return;
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("도구 채취 태그 추가 전: ID=%d"), ItemInfo.ItemID);
 	for (const FGameplayTag& Tag : ItemInfo.ToolData.HarvestTargetTag)
 	{
@@ -2251,7 +2320,7 @@ void UTSInventoryMasterComponent::ApplyToolTags(const FItemData& ItemInfo)
 		ASC->AddLooseGameplayTag(Tag);
 	}
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("도구 채취 태그 추가 후: ID=%d"), ItemInfo.ItemID);
 	for (const FGameplayTag& Tag : ItemInfo.ToolData.HarvestTargetTag)
 	{
@@ -2301,7 +2370,7 @@ void UTSInventoryMasterComponent::RemoveToolTags()
 		return;
 	}
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("도구 채취 태그 제거 전: ID=%d"), CachedEquippedItemID);
 	for (const FGameplayTag& Tag : ItemInfo.ToolData.HarvestTargetTag)
 	{
@@ -2323,7 +2392,7 @@ void UTSInventoryMasterComponent::RemoveToolTags()
 		ASC->RemoveLooseGameplayTag(Tag);
 	}
 	
-#if WITH_EDITOR
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("도구 채취 태그 제거 후: ID=%d"), CachedEquippedItemID);
 	for (const FGameplayTag& Tag : ItemInfo.ToolData.HarvestTargetTag)
 	{
@@ -2383,16 +2452,20 @@ void UTSInventoryMasterComponent::OnToolHarvestEvent(const FGameplayEventData* P
 	Slot.ItemData.CurrentDurability -= DurabilityLoss;
 	Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("도구 내구도 감소: 아이템ID=%d, 감소량=%d, 남은 내구도=%d/%d"),
 		Slot.ItemData.StaticDataID,
 		DurabilityLoss,
 		Slot.ItemData.CurrentDurability,
 		ItemInfo.ToolData.MaxDurability);
+#endif
 	
 	// 내구도가 0 이하가 되면 아이템 파괴
 	if (Slot.ItemData.CurrentDurability <= 0)
 	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		UE_LOG(LogInventoryComp, Warning, TEXT("도구 파괴: 아이템ID=%d"), Slot.ItemData.StaticDataID);
+#endif
 		ClearSlot(Slot); // 슬롯 초기화
 		HandleActiveHotkeyIndexChanged(); // 장착 해제
 	}
@@ -2468,7 +2541,7 @@ void UTSInventoryMasterComponent::OnItemConsumedEvent(const FGameplayEventData* 
 	
 	if (!IsValidSlotIndex(EInventoryType::HotKey, SlotIndex))
 	{
-		UE_LOG(LogInventoryComp, Error, TEXT("Invalid SlotIndex in OnItemConsumedEvent: %d"), SlotIndex);
+		UE_LOG(LogInventoryComp, Error, TEXT("OnItemConsumedEvent: 잘못된 슬롯 인덱스: %d"), SlotIndex);
 		return;
 	}
 	
@@ -2494,8 +2567,10 @@ void UTSInventoryMasterComponent::OnItemConsumedEvent(const FGameplayEventData* 
 		HandleActiveHotkeyIndexChanged();
 	}
 	
-	UE_LOG(LogInventoryComp, Log, TEXT("Item consumed: SlotIndex=%d, ItemID=%d"),
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogInventoryComp, Log, TEXT("아이템 소비됨: SlotIndex=%d, ItemID=%d"),
 		SlotIndex, Slot.ItemData.StaticDataID);
+#endif
 }
 #pragma endregion
 
