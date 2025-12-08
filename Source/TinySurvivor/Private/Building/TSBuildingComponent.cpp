@@ -209,7 +209,7 @@ void UTSBuildingComponent::UpdatePreviewMesh(float DeltaTime)
 			UMaterialInstanceDynamic* DynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(
 				i, PreviewMaterial);
 			DynamicMaterial->SetVectorParameterValue(FName("Color"),
-													 bCanPlace ? FLinearColor::Green : FLinearColor::Red);
+			                                         bCanPlace ? FLinearColor::Green : FLinearColor::Red);
 		}
 		bLastCanPlace = bCanPlace;
 	}
@@ -418,7 +418,7 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 	// 액터 속성 설정
 	if (SpawnedActor)
 	{
-		SpawnedActor->ItemInstance.StaticDataID = BuildingDataID;
+		SpawnedActor->InitializeFromBuildingData(BuildingData, BuildingDataID);
 		SpawnedActor->FinishSpawning(SpawnTransform);
 	}
 }
@@ -532,11 +532,13 @@ bool UTSBuildingComponent::IsInLightSourceRange(const FVector& Location) const
 		{
 			continue;
 		}
-
-		float LightIntensity = LightSource->GetLightscale();
-		if (LightIntensity > 0.f)
+		if (LightSource->GetLightRadius() >= FVector::Dist(Location, LightSource->GetActorLocation()))
 		{
-			return true;
+			float LightIntensity = LightSource->GetLightscale();
+			if (LightIntensity > 0.f)
+			{
+				return true;
+			}
 		}
 	}
 	return false;

@@ -5,6 +5,7 @@
 #include "Character/TSCharacter.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetComponent.h"
+#include "GameplayTags/ItemGameplayTags.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
@@ -39,13 +40,16 @@ ATSInteractionActorBase::ATSInteractionActorBase()
 void ATSInteractionActorBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HasAuthority() && ItemInstance.CreationServerTime == 0.0)
+	// 레벨 배치 액터 초기화 (서버에서만)
+	if (HasAuthority() && ItemInstance.StaticDataID != 0 && ItemInstance.CurrentDurability == -1)
 	{
-		ItemInstance.CreationServerTime = GetWorld()->GetTimeSeconds();
+		FBuildingData BuildingInfo;
+		if (CachedIDS && CachedIDS->GetBuildingDataSafe(ItemInstance.StaticDataID, BuildingInfo))
+		{
+			// 빌딩 컴포넌트에서 지연 스폰할때처럼 초기화
+			InitializeFromBuildingData(BuildingInfo, ItemInstance.StaticDataID);
+		}
 	}
-
-	InitializeFromItemData();
-
 	// 상호작용 위젯 설정
 	if (InteractionWidget && InteractionWidgetClass)
 	{
@@ -53,12 +57,16 @@ void ATSInteractionActorBase::BeginPlay()
 	}
 	float WidgetHeight = MeshComponent->Bounds.GetBox().GetExtent().Z;
 	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, WidgetHeight));
-	
 }
 
 void ATSInteractionActorBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+	// IDS 캐싱
+	if (UGameInstance* GI = GetWorld()->GetGameInstance())
+	{
+		CachedIDS = GI->GetSubsystem<UItemDataSubsystem>();
+	}
 	if (!Tags.Contains(FName("BlockBuilding")))
 	{
 		// 빌딩 오버랩 감지용 태그 추가
@@ -91,6 +99,51 @@ void ATSInteractionActorBase::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ATSInteractionActorBase, ItemInstance);
+}
+
+void ATSInteractionActorBase::InitializeFromBuildingData(const FBuildingData& BuildingInfo, const int32 StaticDataID)
+{
+	// 서버에서 빌딩 데이터로 멤버 변수 업데이트
+	if (HasAuthority())
+	{
+		// 빌딩 데이터 ID 설정
+		ItemInstance.StaticDataID = StaticDataID;
+		// 내구도 설정
+		ItemInstance.CurrentDurability = BuildingInfo.MaxDurability;
+		// 생성 시간 설정
+		ItemInstance.CreationServerTime = GetWorld()->GetTimeSeconds();
+	}
+	// 메쉬 설정
+	if (MeshComponent && !BuildingInfo.WorldMesh.IsNull())
+	{
+		UStaticMesh* Mesh = BuildingInfo.WorldMesh.LoadSynchronous();
+		if (Mesh)
+		{
+			MeshComponent->SetStaticMesh(Mesh);
+		}
+	}
+}
+
+void ATSInteractionActorBase::DamageDurability(UAbilitySystemComponent* ASC, int32 DamageAmount)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	// 내구도 업데이트
+	ItemInstance.CurrentDurability -= DamageAmount;
+
+	// 플레이어면 공격한 아이템 내구도 업데이트
+	if (ASC->GetAvatarActor()->IsA(ATSCharacter::StaticClass()))
+	{
+		SendItemDurabilityEvent(ASC);
+	}
+
+	// 내구도 0 이하이면 Destroy
+	if (ItemInstance.CurrentDurability <= 0)
+	{
+		Destroy();
+	}
 }
 
 void ATSInteractionActorBase::ShowInteractionWidget(ATSCharacter* InstigatorCharacter)
@@ -148,41 +201,38 @@ bool ATSInteractionActorBase::RunOnServer()
 
 void ATSInteractionActorBase::OnRep_ItemInstance()
 {
-	InitializeFromItemData();
+	if (LastStaticDataID != ItemInstance.StaticDataID)
+	{
+		// 빌딩 데이터 가져오기
+		FBuildingData BuildingInfo;
+		if (CachedIDS && CachedIDS->GetBuildingDataSafe(ItemInstance.StaticDataID, BuildingInfo))
+		{
+			InitializeMesh(BuildingInfo);
+		}
+		LastStaticDataID = ItemInstance.StaticDataID;
+	}
 }
 
-void ATSInteractionActorBase::InitializeFromItemData()
+void ATSInteractionActorBase::InitializeMesh(const FBuildingData& BuildingInfo)
 {
-	if (ItemInstance.StaticDataID == 0)
+	// 메쉬 설정
+	if (MeshComponent && !BuildingInfo.WorldMesh.IsNull())
 	{
-		return;
-	}
-
-	UGameInstance* GI = GetWorld()->GetGameInstance();
-	if (!GI)
-	{
-		return;
-	}
-	
-	UItemDataSubsystem* IDS = GI->GetSubsystem<UItemDataSubsystem>();
-	if (!IDS)
-	{
-		return;
-	}
-
-	FBuildingData ItemInfo;
-	if (!IDS->GetBuildingDataSafe(ItemInstance.StaticDataID, ItemInfo))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to get ItemData for ID: %d"), ItemInstance.StaticDataID);
-		return;
-	}
-
-	if (MeshComponent && !ItemInfo.WorldMesh.IsNull())
-	{
-		UStaticMesh* Mesh = ItemInfo.WorldMesh.LoadSynchronous();
+		UStaticMesh* Mesh = BuildingInfo.WorldMesh.LoadSynchronous();
 		if (Mesh)
 		{
 			MeshComponent->SetStaticMesh(Mesh);
 		}
 	}
+}
+
+void ATSInteractionActorBase::SendItemDurabilityEvent(UAbilitySystemComponent* ASC)
+{
+	// ASC 이벤트 태그 전송 
+	FGameplayEventData EventData;
+	EventData.EventTag = ItemTags::TAG_Event_Item_Tool_Harvest;
+	EventData.EventMagnitude = 0.0f;
+	EventData.Instigator = ASC->GetAvatarActor();
+	EventData.Target = ASC->GetAvatarActor();
+	ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
 }
