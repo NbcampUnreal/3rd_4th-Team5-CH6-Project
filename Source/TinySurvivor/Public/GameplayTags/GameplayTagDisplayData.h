@@ -29,7 +29,6 @@ public:
 		  , DisplayName_KR(FText::GetEmpty())
 		  , DisplayName_EN(FText::GetEmpty())
 		  , Unit(EDisplayUnit::NONE)
-		  , bShowSign(false)
 	{
 	}
 
@@ -48,8 +47,4 @@ public:
 	// 단위 (%, 초, m/s 등)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Display")
 	EDisplayUnit Unit = EDisplayUnit::NONE;
-
-	// 부호 표시 여부
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Display")
-	bool bShowSign = false;
 };
