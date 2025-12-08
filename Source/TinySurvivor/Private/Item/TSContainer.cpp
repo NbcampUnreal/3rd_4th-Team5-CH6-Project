@@ -6,6 +6,8 @@
 #include "Character/TSCharacter.h"
 #include "Controller/TSPlayerController.h"
 #include "Inventory/TSInventoryMasterComponent.h"
+#include "Item/Data/BuildingData.h"
+#include "Item/System/ItemDataSubsystem.h"
 
 
 // Sets default values
@@ -50,4 +52,29 @@ bool ATSContainer::RunOnServer()
 void ATSContainer::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void ATSContainer::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	SetInventoryData();
+}
+
+void ATSContainer::SetInventoryData()
+{
+	UItemDataSubsystem* IDS = GetWorld()->GetGameInstance()->GetSubsystem<UItemDataSubsystem>();
+	if (!IDS)
+	{
+		return;
+	}
+
+	FBuildingData ItemInfo;
+	if (!IDS->GetBuildingDataSafe(ItemInstance.StaticDataID, ItemInfo))
+	{
+		UE_LOG(LogTemp, Error, TEXT("TSContainer::SetInventoryData: Failed to get ItemData for ID: %d"), ItemInstance.StaticDataID);
+		return;
+	}
+	// 가방 슬롯 개수 설정
+	InventoryComp->MaxBagSlotCount = ItemInfo.StorageSlots;
+	InventoryComp->InitialBagSlotCount = ItemInfo.StorageSlots;
 }
