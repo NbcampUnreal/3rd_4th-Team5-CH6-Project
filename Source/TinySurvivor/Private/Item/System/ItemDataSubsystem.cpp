@@ -32,6 +32,7 @@ void UItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("ItemDataSubsystem Initialized"));
 	
 	// 네트워크 환경 확인 (디버그용)
@@ -44,6 +45,7 @@ void UItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			NetMode == NM_ListenServer ? TEXT("ListenServer") :
 			NetMode == NM_Client ? TEXT("Client") : TEXT("Unknown"));
 	}
+#endif
 	
 	// Project Settings에서 자동 로드
 	const UItemSystemSettings* Settings = UItemSystemSettings::Get();
@@ -74,7 +76,9 @@ void UItemDataSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UItemDataSubsystem::Deinitialize()
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("ItemDataSubsystem Deinitialized"));
+#endif
 	
 	ClearAllCaches();
 	TableAsset = nullptr;
@@ -169,9 +173,7 @@ bool UItemDataSubsystem::InitializeFromAsset(UItemTableAsset* InTableAsset)
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("- Resources: %d"), ResourceDataCache.Num());
 	
 	// 에디터에서만 자동 테스트 실행
-#if WITH_EDITOR
 	RunInitializationTests();
-#endif
 #endif
 	
 	return true;
@@ -419,6 +421,7 @@ void UItemDataSubsystem::GetCacheStatistics(int32& OutItemCount, int32& OutBuild
 // 캐시 디버그 정보를 콘솔에 출력
 void UItemDataSubsystem::PrintCacheDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("=== ItemDataSubsystem Cache Statistics ==="));
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("Initialized: %s"), bIsInitialized ? TEXT("Yes") : TEXT("No"));
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("Items Cached: %d"), ItemDataCache.Num());
@@ -549,6 +552,7 @@ void UItemDataSubsystem::PrintCacheDebugInfo() const
 	// }
 	
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("=========================================="));
+#endif
 }
 
 void UItemDataSubsystem::PrintItemDebugInfo(int32 ItemID) const
@@ -566,10 +570,11 @@ void UItemDataSubsystem::PrintItemDebugInfo(int32 ItemID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintItemDebugInfo] ItemID %d not found in ItemDataCache."), ItemID);
 		return;
 	}
-	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for ItemID %d =========="), ItemID);
 	FoundData->PrintDebugInfo();
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("====================================================\n"));
+#endif
 }
 
 void UItemDataSubsystem::PrintBuildingDebugInfo(int32 BuildingID) const
@@ -587,10 +592,11 @@ void UItemDataSubsystem::PrintBuildingDebugInfo(int32 BuildingID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintBuildingDebugInfo] BuildingID %d not found in BuildingDataCache."), BuildingID);
 		return;
 	}
-	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for BuildingID %d =========="), BuildingID);
 	FoundData->PrintDebugInfo();
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("====================================================\n"));
+#endif
 }
 
 void UItemDataSubsystem::PrintResourceDebugInfo(int32 ResourceID) const
@@ -608,13 +614,13 @@ void UItemDataSubsystem::PrintResourceDebugInfo(int32 ResourceID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintResourceDebugInfo] ResourceID %d not found in ResourceDataCache."), ResourceID);
 		return;
 	}
-	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for ResourceID %d =========="), ResourceID);
 	FoundData->PrintDebugInfo();
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("====================================================\n"));
+#endif
 }
 
-#if WITH_EDITOR
 // 캐시를 새로고침 (TableAsset 기반으로 다시 로드)
 void UItemDataSubsystem::RefreshCache()
 {
@@ -640,6 +646,7 @@ void UItemDataSubsystem::RefreshCache()
 
 void UItemDataSubsystem::RunInitializationTests()
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("ItemDataSubsystem 초기화 테스트 시작"));
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
@@ -752,8 +759,8 @@ void UItemDataSubsystem::RunInitializationTests()
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("테스트 완료"));
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("========================================"));
-}
 #endif
+}
 #pragma endregion
 
 #pragma region InternalCachingFunctions
@@ -785,12 +792,13 @@ void UItemDataSubsystem::CacheItemData()
 		}
 		else
 		{
-			UE_LOG(LogItemDataSubsystem, Warning, TEXT("유효하지 않은 ItemData 행 (ID: %d)"), 
+			UE_LOG(LogItemDataSubsystem, Warning, TEXT("유효하지 않은 ItemData 행 (ID: %d)"),
 				RowData ? RowData->ItemID : -1);
 		}
 	}
-	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("총 %d개의 아이템 캐싱 완료"), ItemDataCache.Num());
+#endif
 }
 
 // 건축물 데이터를 캐시에 저장
@@ -817,12 +825,13 @@ void UItemDataSubsystem::CacheBuildingData()
 		}
 		else
 		{
-			UE_LOG(LogItemDataSubsystem, Warning, TEXT("유효하지 않은 BuildingData 행 (ID: %d)"), 
+			UE_LOG(LogItemDataSubsystem, Warning, TEXT("유효하지 않은 BuildingData 행 (ID: %d)"),
 				RowData ? RowData->BuildingID : -1);
 		}
 	}
-	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("총 %d개의 건축물 캐싱 완료"), BuildingDataCache.Num());
+#endif
 }
 
 // 자원 데이터를 캐시에 저장
@@ -849,12 +858,13 @@ void UItemDataSubsystem::CacheResourceData()
 		}
 		else
 		{
-			UE_LOG(LogItemDataSubsystem, Warning, TEXT("유효하지 않은 ResourceData 행 (ID: %d)"), 
+			UE_LOG(LogItemDataSubsystem, Warning, TEXT("유효하지 않은 ResourceData 행 (ID: %d)"),
 				RowData ? RowData->ResourceID : -1);
 		}
 	}
-
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("총 %d개의 자원 캐싱 완료"), ResourceDataCache.Num());
+#endif
 }
 
 // 모든 캐시 데이터를 초기화

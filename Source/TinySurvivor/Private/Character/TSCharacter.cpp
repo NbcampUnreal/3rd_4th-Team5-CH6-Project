@@ -27,6 +27,7 @@
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "System/ResourceControl/TSResourceItemInterface.h"
 #include "Components/CapsuleComponent.h"
+#include "UI/TSPlayerUIDataControllerSystem.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -295,6 +296,15 @@ void ATSCharacter::InitAbilitySystem()
 				UE_LOG(LogTSCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
 			}
 		});
+		
+		// UI 컨트롤러 모델 시스템 초기화 요청		
+		UTSPlayerUIDataControllerSystem* PUICS = UTSPlayerUIDataControllerSystem::Get(this);
+		if (!IsValid(PUICS)) return;
+		if (!IsValid(GetController())) return;
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
+		PUICS->InitControllerModel(PlayerController, ASC);
+		PUICS->InitViewModel();
+		
 #endif
 	}
 }

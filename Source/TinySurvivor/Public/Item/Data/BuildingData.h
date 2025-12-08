@@ -77,6 +77,8 @@ struct FBuildingData : public FTableRowBase
 		, MaintenanceCostQty(0)                      // 유지비 수량 초기화 (0 = 없음)
 		, Icon(nullptr)                              // UI 아이콘 초기화 (nullptr = 없음)
 		, WorldMesh(nullptr)                         // 월드 표시용 메시 초기화 (nullptr = 없음)
+		, Desc_KR(FText::FromString(TEXT("")))       // 한국어 설명 텍스트 초기화 (빈 문자열)
+		, Desc_EN(FText::FromString(TEXT("")))       // 영어 설명 텍스트 초기화 (빈 문자열)
 		, ActorClass(nullptr)                   // 건축물 액터 클래스 초기화 (nullptr = 없음)
 	{}
 
@@ -219,6 +221,16 @@ struct FBuildingData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Visual",
 		meta=(DisplayName="World Mesh (3D 메시)", ToolTip="건축물 월드 메시"))
 	TSoftObjectPtr<UStaticMesh> WorldMesh;
+	
+	// 한국어 설명
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Visual",
+		meta = (DisplayName="Description_KR (한글 설명)", ToolTip="한국어 설명 텍스트", MultiLine=true))
+	FText Desc_KR;
+	
+	// 영어 설명
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Visual",
+		meta = (DisplayName="Description_EN (영문 설명)", ToolTip="영어 설명 텍스트", MultiLine=true))
+	FText Desc_EN;
 #pragma endregion
 
 #pragma region Spawn
