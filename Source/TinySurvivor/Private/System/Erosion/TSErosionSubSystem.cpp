@@ -149,11 +149,11 @@ void UTSErosionSubSystem::Deinitialize()
 	if (IsValid(TimeTickManager))
 	{
 		TimeTickManager->OnSecondTick.RemoveDynamic(this, &UTSErosionSubSystem::UpdateErosion);
-		UE_LOG(ErosionManager, Log, TEXT("TimeTickManager 구독 해제 완료"));
+		if (bShowDebug) UE_LOG(ErosionManager, Log, TEXT("TimeTickManager 구독 해제 완료"));
 	}
 	else
 	{
-		UE_LOG(ErosionManager, Verbose, TEXT("TimeTickManager가 이미 소멸됨 (구독 해제 생략)"));
+		if (bShowDebug) UE_LOG(ErosionManager, Verbose, TEXT("TimeTickManager가 이미 소멸됨 (구독 해제 생략)"));
 	}
 
 	// 모든 타이머 해제
@@ -297,7 +297,7 @@ void UTSErosionSubSystem::EnsureStateInfoExists()
 	// 재생성 방지
 	if (IsValid(StateInfo))
 	{
-		UE_LOG(ErosionManager, Warning, TEXT("StateInfo IsValid"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("StateInfo IsValid"));
 		return;
 	}
 	if (UWorld* World = GetWorld(); World)
@@ -308,7 +308,8 @@ void UTSErosionSubSystem::EnsureStateInfoExists()
 			if (It->IsValidLowLevel() && It->IsA(AErosionStateInfo::StaticClass()))
 			{
 				StateInfo = *It;
-				UE_LOG(ErosionManager, Warning, TEXT("StateInfo Found"));
+				if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("StateInfo Found"));
+				StateInfo->bShowDebug = bShowDebug;
 				return;
 			}
 		}
@@ -331,11 +332,12 @@ void UTSErosionSubSystem::EnsureStateInfoExists()
 				StateInfo->SetReplicates(true);
 				StateInfo->SetReplicateMovement(false); 
 				StateInfo->SetNetUpdateFrequency(1.f);
-				UE_LOG(ErosionManager, Warning, TEXT("StateInfo spawn Success"));
+				StateInfo->bShowDebug = bShowDebug;
+				if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("StateInfo spawn Success"));
 			}
 			else
 			{
-				UE_LOG(ErosionManager, Warning, TEXT("StateInfo spawn Fail"));
+				if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("StateInfo spawn Fail"));
 			}
 		}
 	}

@@ -49,7 +49,12 @@ protected:
 	// AErosionStateInfo UI 업데이트 (델리게이트, OnRep
 	//-----------------------------
 
-public:
+	public:
+
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
+
 	UPROPERTY(BlueprintAssignable)
 	FOnErosionChangedUIDelegate OnErosionChangedUIDelegate;
 
