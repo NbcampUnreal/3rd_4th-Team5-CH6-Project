@@ -943,12 +943,8 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 	}
 	
 	// 1. 내가 다운 || 죽음이면 못함
-	UE_LOG(LogTemp, Warning, TEXT("[@@@@OnInteract] >>> E Pressed | Owner: %s | HasAuthority: %d"),
-		*GetName(),
-		HasAuthority());
 	if (IsDowned() || IsDead())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[@@@@OnInteract] EarlyExit: I am Downed or Dead."));
 		return;
 	}
 	ATSCharacter* ReviveTarget = DetectReviveTarget();
@@ -956,19 +952,15 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 	if (ReviveTarget)
 	{
 		// 친구를 찾았고 + 기절 상태라면?
-	
-		UE_LOG(LogTemp, Warning, TEXT("Priority 1: Reviving Friend!"));
 		ServerStartRevive(ReviveTarget);
-		return; // [중요] 여기서 함수 종료! (아래 아이템 로직 실행 X)
+		return; 
 		
 	}
 	LineTrace();
 	if (!IsValid(CurrentHitActor.Get()))
 	{
-		// UE_LOG(LogTemp, Warning, TEXT("Nothing Hit."));
 		return;
 	}
-	// 우선 순위 2: 아이템 상호작용, 자원 채집
 	if (CurrentHitActor->Implements<UIInteraction>())
 	{
 		IIInteraction* InteractionInterface = Cast<IIInteraction>(CurrentHitActor);
@@ -1308,6 +1300,7 @@ void ATSCharacter::ServerInteract_Implementation(AActor* TargetActor)
 		IIInteraction* InteractionInterface = Cast<IIInteraction>(TargetActor);
 		if (InteractionInterface && InteractionInterface->CanInteract(this))
 		{
+			Multicast_PlayPickUpMontage();
 			InteractionInterface->Interact(this);
 		}
 	}
@@ -1610,3 +1603,12 @@ void ATSCharacter::Multicast_StopConsumeMontage_Implementation(UAnimMontage* Mon
 	}
 }
 #pragma endregion
+
+void ATSCharacter::Multicast_PlayPickUpMontage_Implementation()
+{
+	if (!PickUpMontage)
+	{
+		return;
+	}
+	PlayAnimMontage(PickUpMontage);
+}
