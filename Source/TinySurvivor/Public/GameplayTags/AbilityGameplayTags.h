@@ -47,6 +47,11 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempHot); // 더위 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempCold); // 추위 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Full); // 배부름
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Anxiety); // 30 < Sanity <= 70 
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Panic); // 0 <= Sanity < 70
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_InLightSourceRange); // 빛 구역이면 활성화 되는 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_InDarkSourceRange); // 어둠 구역이면 활성화 되는 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Sanity_InLightBlock); // 80 이상이면 빛구역이어도 회복 못하도록
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Attack);
 	

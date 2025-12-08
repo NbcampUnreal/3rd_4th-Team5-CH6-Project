@@ -36,6 +36,11 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempHot, "State.Status.TempHot"); // 더위 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempCold, "State.Status.TempCold"); // 추위 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Full, "State.Status.Full")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Anxiety, "State.Status.Anxiety")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Panic, "State.Status.Panic")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_InLightSourceRange, "State.Status.InLightSourceRange")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_InDarkSourceRange, "State.Status.InDarkSourceRange")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Sanity_InLightBlock, "State.Sanity.InLightBlock")
 	
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Attack, "State.Status.Attack");
 	
