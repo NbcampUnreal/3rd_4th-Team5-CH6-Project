@@ -14,6 +14,8 @@ ATSAICharacter::ATSAICharacter()
 	ASC->SetIsReplicated(true);
 	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	
+	ASC->AddLooseGameplayTag(MonsterTags::TAG_Character_Type_Monster);
+	
 	AttributeSet = CreateDefaultSubobject<UMonsterAttributeSet>(TEXT("AttributeSet"));
 	
 	AIControllerClass = ATSAIController::StaticClass();
@@ -116,9 +118,19 @@ void ATSAICharacter::ResetMonster()
 	SetActorTickEnabled(true);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	
+	if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance())
+	{
+		AnimInst->Montage_Stop(0.0f);
+	}
+	
 	if (AttributeSet)
 	{
 		AttributeSet->SetHealth(AttributeSet->GetMaxHealth());
+	}
+	
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(MonsterTags::TAG_State_Dead);
 	}
 	
 	if (ATSAIController* AIC = Cast<ATSAIController>(GetController()))

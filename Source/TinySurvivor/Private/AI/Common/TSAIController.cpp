@@ -14,7 +14,7 @@ ATSAIController::ATSAIController()
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight Config"));
 	SightConfig->SightRadius = 1000.0f;
 	SightConfig->LoseSightRadius = 1200.0f;
-	SightConfig->PeripheralVisionAngleDegrees = 60.0f;
+	SightConfig->PeripheralVisionAngleDegrees = 90.0f;
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;

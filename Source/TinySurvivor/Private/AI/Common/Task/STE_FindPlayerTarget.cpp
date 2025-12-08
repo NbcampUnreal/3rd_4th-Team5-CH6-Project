@@ -1,24 +1,28 @@
 // STE_FindPlayerTarget.cpp
 
 #include "AI/Common/Task/STE_FindPlayerTarget.h"
+
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemInterface.h"
 #include "StateTreeExecutionContext.h"
 #include "AIController.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "GameFramework/Character.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 #include "Kismet/GameplayStatics.h"
 
 void FSTE_FindPlayerTarget::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
 	FInstanceDataType& Data = Context.GetInstanceData<FInstanceDataType>(*this);
     
-	// State Tree의 주인 가져오기
-	APawn* OwnerPawn = Cast<APawn>(Context.GetOwner());
-	if (!OwnerPawn)
-		return;
-	
 	// Pawn을 통해 AIController 가져오기
 	AAIController* AIC = Cast<AAIController>(Context.GetOwner());
 	if (!AIC) 
+		return;
+	
+	// State Tree의 주인 가져오기
+	APawn* OwnerPawn = AIC->GetPawn();
+	if (!OwnerPawn)
 		return;
 
 	// AI Perception 컴포넌트 가져오기
@@ -40,8 +44,34 @@ void FSTE_FindPlayerTarget::Tick(FStateTreeExecutionContext& Context, const floa
 	// 가장 가까운 플레이어 찾기
 	for (AActor* Actor : PerceiveActors)
 	{
+		if (!IsValid(Actor))
+			continue;
+		
+		bool bIsPlayer = false;
+		
+		if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(Actor))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ASI IN"));
+			if (UAbilitySystemComponent* TargetASC = ASI->GetAbilitySystemComponent())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("TargetASC IN"));
+				if (TargetASC->HasMatchingGameplayTag(MonsterTags::TAG_Character_Type_Player))
+				{
+					FGameplayTagContainer tAGS = TargetASC->GetOwnedGameplayTags();
+					FString TagName = "";
+					for (auto TG : tAGS)
+					{
+						TagName = TG.ToString();
+						UE_LOG(LogTemp, Warning, TEXT("TagName : %s"), TagName);
+					}
+					
+					bIsPlayer = true;
+				}
+			}
+		}
+		
 		// 유효하고 죽지 않았고, Player 태그가 있는 대상만
-		if (IsValid(Actor) && Actor->ActorHasTag(FName("Player")))
+		if (bIsPlayer)
 		{
 			// 거리 제곱 계산
 			float DistSq = FVector::DistSquared(MyLoc, Actor->GetActorLocation());

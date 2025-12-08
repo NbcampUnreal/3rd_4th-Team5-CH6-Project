@@ -22,6 +22,7 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	// 사망 처리
+	UFUNCTION(BlueprintCallable, Category = "AI")
 	virtual void OnDeath(AActor* Killer);
 	virtual void OnDamaged(float DamageAmount, const FGameplayTagContainer& DamageTags, AActor* Attacker);
 	
