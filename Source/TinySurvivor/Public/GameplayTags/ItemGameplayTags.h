@@ -118,7 +118,7 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Tier_T3);             // T3
 	
 	//========================================
-	// (임시)
+	// 스탯 표시에 사용
 	// 아이템 등급 (Rarity)
 	//========================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity);
@@ -126,6 +126,7 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Common);       // 일반
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Normal);       // 보통
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Rare);         // 희귀
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Unique);       // 유니크
 	
 	//========================================
 	// (임시)
@@ -176,5 +177,23 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Rarity);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_StorageSlots);
 
+#pragma endregion
+	
+#pragma region ItemCategory
+	//========================================
+	// 아이템/빌딩 카테고리 (ItemCategory)
+	//========================================
+	
+	// 아이템 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Tool);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Weapon);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Armor);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Consumable);
+	
+	// 빌딩 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Storage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Lighting);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Crafting);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Defense);
 #pragma endregion
 }

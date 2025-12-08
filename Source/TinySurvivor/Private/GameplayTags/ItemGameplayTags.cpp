@@ -115,6 +115,7 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Rarity_Common, "Item.Rarity.Common");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Rarity_Normal, "Item.Rarity.Normal");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Rarity_Rare, "Item.Rarity.Rare");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Item_Rarity_Unique, "Item.Rarity.Unique");
 	
 	//========================================
 	// (임시)
@@ -165,5 +166,23 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_Rarity, "Display.Stat.Rarity");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Display_Stat_StorageSlots, "Display.Stat.StorageSlots");
 
+#pragma endregion
+	
+#pragma region ItemCategory
+	//========================================
+	// 아이템/빌딩 카테고리 (ItemCategory)
+	//========================================
+	
+	// 아이템 카테고리
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Tool, "Category.Item.Tool");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Weapon, "Category.Item.Weapon");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Armor, "Category.Item.Armor");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Consumable, "Category.Item.Consumable");
+	
+	// 빌딩 카테고리
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Storage, "Category.Building.Storage");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Lighting, "Category.Building.Lighting");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Crafting, "Category.Building.Crafting");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Defense, "Category.Building.Defense");
 #pragma endregion
 }
