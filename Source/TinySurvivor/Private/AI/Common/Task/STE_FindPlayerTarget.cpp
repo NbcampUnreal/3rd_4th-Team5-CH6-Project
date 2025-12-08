@@ -51,21 +51,24 @@ void FSTE_FindPlayerTarget::Tick(FStateTreeExecutionContext& Context, const floa
 		
 		if (IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(Actor))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("ASI IN"));
 			if (UAbilitySystemComponent* TargetASC = ASI->GetAbilitySystemComponent())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("TargetASC IN"));
+				FGameplayTagContainer OwnedTags;
+				TargetASC->GetOwnedGameplayTags(OwnedTags);
+				
+				for (const FGameplayTag& Tag : OwnedTags)
+				{
+					UE_LOG(LogTemp, Display, TEXT(" [%s] 보유 태그 : %s"), *Actor->GetName(), *Tag.ToString());
+				}
+				
 				if (TargetASC->HasMatchingGameplayTag(MonsterTags::TAG_Character_Type_Player))
 				{
-					FGameplayTagContainer tAGS = TargetASC->GetOwnedGameplayTags();
-					FString TagName = "";
-					for (auto TG : tAGS)
-					{
-						TagName = TG.ToString();
-						UE_LOG(LogTemp, Warning, TEXT("TagName : %s"), TagName);
-					}
-					
+					UE_LOG(LogTemp, Warning, TEXT("   >>> ★★★ 플레이어 태그 발견! 추적 대상 선정! ★★★"));
 					bIsPlayer = true;
+				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("   >>> 플레이어 태그 없음! (현재 보유 태그 개수: %d)"), OwnedTags.Num());
 				}
 			}
 		}
