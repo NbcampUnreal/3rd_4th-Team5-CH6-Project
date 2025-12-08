@@ -6,6 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogFBuildingRecipeData, Log, All);
 
 void FBuildingRecipeData::PrintDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogFBuildingRecipeData, Display, TEXT("============= Building Recipe Debug Info ============="));
 	
 	// Identifier
@@ -40,4 +41,5 @@ void FBuildingRecipeData::PrintDebugInfo() const
 	UE_LOG(LogFBuildingRecipeData, Display, TEXT("ValidateRecipeData: %s"), ValidateRecipeData() ? TEXT("True") : TEXT("False"));
 	
 	UE_LOG(LogFBuildingRecipeData, Display, TEXT("======================================================"));
+#endif
 }

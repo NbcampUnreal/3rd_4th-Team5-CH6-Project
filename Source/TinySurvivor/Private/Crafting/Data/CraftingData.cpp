@@ -6,6 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogFCraftingData, Log, All);
 
 void FCraftingData::PrintDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogFCraftingData, Display, TEXT("============= Crafting Recipe Debug Info ============="));
 	
 	// Identifier
@@ -50,4 +51,5 @@ void FCraftingData::PrintDebugInfo() const
 	UE_LOG(LogFCraftingData, Display, TEXT("ValidateRecipeData: %s"), ValidateRecipeData() ? TEXT("True") : TEXT("False"));
 	
 	UE_LOG(LogFCraftingData, Display, TEXT("======================================================"));
+#endif
 }
