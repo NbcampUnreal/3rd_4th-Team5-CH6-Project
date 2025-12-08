@@ -6,6 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogFResourceData, Log, All);
 
 void FResourceData::PrintDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogFResourceData, Display, TEXT("============= Resource Debug Info ============="));
 	
 	// Identifier
@@ -43,4 +44,5 @@ void FResourceData::PrintDebugInfo() const
 	UE_LOG(LogFResourceData, Display, TEXT("ActorClass: %s"), *ActorName);
 	
 	UE_LOG(LogFResourceData, Display, TEXT("============================================"));
+#endif
 }

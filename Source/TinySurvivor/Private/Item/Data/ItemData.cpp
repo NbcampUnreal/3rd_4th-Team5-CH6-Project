@@ -6,6 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogFItemData, Log, All);
 
 void FItemData::PrintDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogFItemData, Display, TEXT("============= Item Debug Info ============="));
 	
 	// Base Identifiers
@@ -106,6 +107,10 @@ void FItemData::PrintDebugInfo() const
 	UE_LOG(LogFItemData, Display, TEXT("Icon: %s"), Icon.IsNull() ? TEXT("None") : *Icon.ToString());
 	UE_LOG(LogFItemData, Display, TEXT("WorldMesh: %s"), WorldMesh.IsNull() ? TEXT("None") : *WorldMesh.ToString());
 	
+	// 한글/영문 설명 추가
+	UE_LOG(LogFItemData, Display, TEXT("Desc_KR: %s"), *Desc_KR.ToString());
+	UE_LOG(LogFItemData, Display, TEXT("Desc_EN: %s"), *Desc_EN.ToString());
+	
 	// Spawn
 	UE_LOG(LogFItemData, Display, TEXT("\n---[Spawn]"));
 	UE_LOG(LogFItemData, Display, TEXT("bSpawnAsActor: %s"), bSpawnAsActor ? TEXT("True") : TEXT("False"));
@@ -130,4 +135,5 @@ void FItemData::PrintDebugInfo() const
 	UE_LOG(LogFItemData, Display, TEXT("ValidateCategoryData: %s"), ValidateCategoryData() ? TEXT("True") : TEXT("False"));
 	
 	UE_LOG(LogFItemData, Display, TEXT("============================================"));
+#endif
 }

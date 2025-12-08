@@ -6,6 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogFBuildingData, Log, All);
 
 void FBuildingData::PrintDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogFBuildingData, Display, TEXT("============= Building Debug Info ============="));
 	
 	// Identifier
@@ -53,9 +54,14 @@ void FBuildingData::PrintDebugInfo() const
 	UE_LOG(LogFBuildingData, Display, TEXT("Icon: %s"), Icon.IsValid() ? *Icon->GetName() : TEXT("None"));
 	UE_LOG(LogFBuildingData, Display, TEXT("WorldMesh: %s"), WorldMesh.IsValid() ? *WorldMesh->GetName() : TEXT("None"));
 	
+	// 한글/영문 설명 추가
+	UE_LOG(LogFBuildingData, Display, TEXT("Desc_KR: %s"), *Desc_KR.ToString());
+	UE_LOG(LogFBuildingData, Display, TEXT("Desc_EN: %s"), *Desc_EN.ToString());
+	
 	// Spawn
 	UE_LOG(LogFBuildingData, Display, TEXT("---[Spawn]"));
 	UE_LOG(LogFBuildingData, Display, TEXT("ActorClass: %s"), ActorClass ? *ActorClass->GetName() : TEXT("None"));
 	
 	UE_LOG(LogFBuildingData, Display, TEXT("=============================================="));
+#endif
 }
