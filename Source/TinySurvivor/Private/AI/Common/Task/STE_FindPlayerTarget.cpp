@@ -1,6 +1,6 @@
 // STE_FindPlayerTarget.cpp
 
-#include "AI/Chaser/Task/STE_FindPlayerTarget.h"
+#include "AI/Common/Task/STE_FindPlayerTarget.h"
 #include "StateTreeExecutionContext.h"
 #include "AIController.h"
 #include "Perception/AIPerceptionComponent.h"

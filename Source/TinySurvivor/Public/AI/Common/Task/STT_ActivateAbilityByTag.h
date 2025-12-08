@@ -18,7 +18,7 @@ struct FSTT_ActivateAbilityByTagInstanceData
 
 // State Tree에서 GAS 어빌리티를 태그로 실행하는 태스크 
 USTRUCT(meta = (DisplayName = "Activate GAS Ability"))
-struct TINYSURVIVOR_API FSTT_ActivateAbilityByTag : public FStateTreeTaskBase
+struct TINYSURVIVOR_API FSTT_ActivateAbilityByTag : public FStateTreeTaskCommonBase
 {
 	GENERATED_BODY()
 	

@@ -1,6 +1,6 @@
 // STC_HasGameplayTag.cpp
 
-#include "AI/Chaser/Task/STC_HasGameplayTag.h"
+#include "AI/Common/Task/STC_HasGameplayTag.h"
 #include "StateTreeExecutionContext.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"

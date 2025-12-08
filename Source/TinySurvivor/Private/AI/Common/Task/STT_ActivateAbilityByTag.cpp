@@ -1,6 +1,6 @@
 // STT_ActivateAbilityByTag.cpp
 
-#include "AI/Chaser/Task/STT_ActivateAbilityByTag.h"
+#include "AI/Common/Task/STT_ActivateAbilityByTag.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "StateTreeExecutionContext.h"
