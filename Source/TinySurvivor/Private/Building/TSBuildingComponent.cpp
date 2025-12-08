@@ -292,11 +292,6 @@ bool UTSBuildingComponent::ValidatePlacement(FHitResult HitResult)
 
 bool UTSBuildingComponent::CanBuild(int32 RecipeID, int32& OutResultID)
 {
-	if (!GetOwner()->HasAuthority())
-	{
-		return false;
-	}
-
 	// 레시피 데이터 조회
 	UBuildingRecipeDataSubsystem* BuildingRecipeDataSub =
 		UBuildingRecipeDataSubsystem::GetBuildingRecipeDataSubsystem(GetWorld());
