@@ -35,6 +35,18 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Hunger, "State.Status.Hunger"); //배고픔 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempHot, "State.Status.TempHot"); // 더위 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_TempCold, "State.Status.TempCold"); // 추위 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Full, "State.Status.Full")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Anxiety, "State.Status.Anxiety")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Panic, "State.Status.Panic")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_InLightSourceRange, "State.Status.InLightSourceRange")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_InDarkSourceRange, "State.Status.InDarkSourceRange")
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Sanity_InLightBlock, "State.Sanity.InLightBlock")
+	
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Attack, "State.Status.Attack");
+	
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Downed, "State.Status.Downed");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Dead, "State.Status.Dead");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Rescuing, "State.Status.Rescuing");
 	
 	// Poison 관련 태그
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Poison, "State.Status.Poison");					// 독 상태이상
@@ -45,6 +57,15 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Item_Consuming, "State.Item.Consuming"); // 아이템 사용 중
 	
 	//================================
+	// State Modifier (방어구 효과)
+	//================================
+	// 스탯/효과 증가 계열
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Modifier, "State.Modifier"); // 스탯/효과 변경 계열 상위 태그
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Modifier_DAMAGE_REFLECT, "State.Modifier.DAMAGE_REFLECT");		// 피해 반사율 증가
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Modifier_DAMAGE_REDUCTION, "State.Modifier.DAMAGE_REDUCTION");	// 피해 감소율 증가
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Modifier_MOVE_SPEED, "State.Modifier.MOVE_SPEED");				// 이동 속도 증가
+	
+	//================================
 	// Input 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Input_HotKey, "Input.HotKey");
@@ -53,6 +74,12 @@ namespace AbilityTags
 	// Data 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Damage_Fall, "Data.Damage.Fall");
+
+  //================================
+	// Event 관련 태그 (몽타주 노티파이 등)
+	//================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Montage_HitCheck, "Event.Montage.HitCheck");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Armor_Hit, "Event.Armor.Hit");
 }
 
 namespace MonsterTags

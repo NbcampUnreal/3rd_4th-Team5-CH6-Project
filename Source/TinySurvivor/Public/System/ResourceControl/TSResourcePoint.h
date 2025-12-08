@@ -63,4 +63,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ResourcePoint")
 	TWeakObjectPtr<ATSResourceBaseActor> AllocatedResource;
 	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
 };

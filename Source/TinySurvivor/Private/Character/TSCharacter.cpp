@@ -1,3 +1,4 @@
+// TSCharacter.cpp
 #include "Character/TSCharacter.h"
 
 #include "Camera/CameraComponent.h"
@@ -20,6 +21,16 @@
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Item/Interface/IInteraction.h"
 #include "GameplayTags/AbilityGameplayTags.h"
+#include "Net/UnrealNetwork.h"
+#include "Building/TSBuildingComponent.h"
+#include "GAS/InteractTag.h"
+#include "Inventory/TSInventoryMasterComponent.h"
+#include "System/ResourceControl/TSResourceItemInterface.h"
+#include "Components/CapsuleComponent.h"
+#include "UI/TSPlayerUIDataControllerSystem.h"
+
+// 로그 카테고리 정의 (이 파일 내에서만 사용)
+DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
 
 ATSCharacter::ATSCharacter()
 {
@@ -204,7 +215,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Hunger 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Hunger 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -215,7 +226,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Thirst 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Thirst 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -226,7 +237,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Health 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Health 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -237,7 +248,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Sanity 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Sanity 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -248,7 +259,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[서버] Temperature 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Temperature 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -262,11 +273,11 @@ void ATSCharacter::InitAbilitySystem()
 			// NewCount == 0 : 태그가 제거됨
 			if (NewCount > 0)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
 			}
 		});
 		
@@ -278,13 +289,22 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (NewCount > 0)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+				UE_LOG(LogTSCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
 			}
 		});
+		
+		// UI 컨트롤러 모델 시스템 초기화 요청		
+		UTSPlayerUIDataControllerSystem* PUICS = UTSPlayerUIDataControllerSystem::Get(this);
+		if (!IsValid(PUICS)) return;
+		if (!IsValid(GetController())) return;
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
+		PUICS->InitControllerModel(PlayerController, ASC);
+		PUICS->InitViewModel();
+		
 #endif
 	}
 }
@@ -326,6 +346,341 @@ void ATSCharacter::InitializeAbilities()
 	// HotKey
 	GiveByTag(AbilityTags::TAG_Ability_HotKey.GetTag());
 	
+	// 자원
+	GiveByTag(InteractTag::INTERACTTAG_RESOURCE_STARTINTERACT.GetTag());
+}
+
+void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ATSCharacter, AnimType);
+	DOREPLIFETIME(ATSCharacter, ReviveTargetCharacter);
+	DOREPLIFETIME(ATSCharacter, bIsRescuing);
+	DOREPLIFETIME(ATSCharacter, bIsDownedState);
+	DOREPLIFETIME(ATSCharacter, bIsDeadState);
+}
+
+void ATSCharacter::BecomeDowned()
+{
+	if (!ASC)
+	{
+		return;
+	}
+	// 1. 기존 행동 취소 및 Downed 태그 부착
+	if (ASC)
+	{
+		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+	}
+
+	// 2. 이동속도 감소 GE 적용
+	if (ProneMoveSpeedEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(ProneMoveSpeedEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	// 3. DownedHealth 감소 GE 적용
+	if (DownedEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DownedEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	// 4. 클라이언트 애니메이션 동기화
+	bIsDownedState = true;
+}
+
+bool ATSCharacter::IsDowned() const
+{
+	if (ASC)
+	{
+		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed);
+	}
+	return false;
+}
+
+void ATSCharacter::Die()
+{
+	if (bIsDeadState)
+	{
+		return; // 이미 죽었으면 return
+	}
+
+	// 1. 태그 Downed -> Dead 교체
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Dead);
+	}
+	// 2. 상태 변수 업데이트 
+	bIsDownedState = false;
+	bIsDeadState = true;
+	// 3. 입력 차단
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+	// 4. 서버에서도 Ragdoll 물리 적용
+	OnRep_IsDeadState();
+}
+
+bool ATSCharacter::IsDead() const
+{
+	if (ASC)
+	{
+		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Dead);
+	}
+	return false;
+}
+
+void ATSCharacter::OnRep_IsDeadState()
+{
+	if (bIsDeadState)
+	{
+		// 1. 캡슐 콜리전 끄기 (시체 통과 가능하게)
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		// 2. 메쉬 물리 켜기 (철퍼덕)
+		GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+		GetMesh()->SetSimulatePhysics(true);
+		// 3. 이동 컴포넌트 정지
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->StopMovementImmediately();
+			GetCharacterMovement()->DisableMovement();
+		}
+	}
+}
+
+ATSCharacter* ATSCharacter::DetectReviveTarget()
+{
+	// ---------------Downed Character 탐지용 트레이스---------------
+	
+	// 오직 로컬 플레이어 컨트롤러에서만 실행
+	APlayerController* PC = Cast<APlayerController>(Controller);
+	if (!IsValid(PC) || !PC->IsLocalController()) return nullptr;
+	
+	// 화면 중앙 위치 가져오기
+	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return nullptr;
+	
+	// 화면 중앙 좌표 계산
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport) GEngine->GameViewport->GetViewportSize(ViewportSize);
+	FVector2D Center = ViewportSize / 2.f;
+	
+	FVector TraceStart, Forward;
+	UGameplayStatics::DeprojectScreenToWorld(PC, Center, TraceStart, Forward);
+    
+	FVector TraceEnd = TraceStart + Forward * 300.0f;
+	FCollisionShape Shape = FCollisionShape::MakeSphere(40.0f);
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_Pawn); 
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	FHitResult HitResult;
+	bool bHit = GetWorld()->SweepSingleByObjectType(HitResult, TraceStart, TraceEnd, FQuat::Identity, ObjectParams, Shape, Params);
+    
+	// 디버그
+	if (bLineTraceDebugDraw && bHit)
+	{
+		DrawDebugCapsule(GetWorld(), HitResult.Location, 50.0f, 40.0f, FQuat::Identity, FColor::Red, false, 1.0f);
+	}
+
+	if (bHit)
+	{
+		return Cast<ATSCharacter>(HitResult.GetActor());
+	}
+	return nullptr;
+	
+}
+
+void ATSCharacter::Revive() // Downed된 친구가 부활하는 함수
+{
+	if (IsDead())
+	{
+		return;
+	}
+	// 1. Downed 태그 제거
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+	}
+	// 2. Health 50 회복, DownedHealth 100 초기화
+	if (UTSAttributeSet* AS = GetAttributeSet())
+	{
+		AS->SetHealth(50.0f);
+		AS->SetDownedHealth(AS->GetMaxDownedHealth());
+	}
+	// 3. 변수 초기화
+	bIsDownedState = false;
+}
+
+bool ATSCharacter::IsRescueCharacter() const
+{
+	// 구조 중 상태 확인
+	if (ASC)
+	{
+		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	return false;
+}
+
+void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
+{
+	// 1. 구조자 상태, 타겟 상태, 거리 확인, 대상 탐지
+	if (IsDowned() || IsDead())
+	{
+		return;
+	}
+	if (!IsValid(Target)) 
+	{
+		return;
+	}
+	float Distance = FVector::Dist(GetActorLocation(), Target->GetActorLocation());
+	if (Distance > MaxReviveDistance)
+	{
+		return;
+	}
+	bool bTargetDown = Target->IsDowned();
+	bool bTargetDead = Target->IsDead();
+
+	if (!bTargetDown || bTargetDead)
+	{
+		return;
+	}
+	// 2. 타이머 중복 방지 (정리)
+	if (GetWorldTimerManager().IsTimerActive(ReviveTimerHandle))
+	{
+		GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
+	}
+	
+	// 3. 소생 상태 설정
+	ReviveTargetCharacter = Target; // 소생 대상을 변수에 저장
+	CurrentReviveTime = 0.f;
+	bIsRescuing = true;
+	
+	// 4. Rescue 태그 부착
+	if (ASC)
+	{
+		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	
+	// 5. 내 움직임 봉인 // 구조 중 이동 불가
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->SetMovementMode(MOVE_None);
+	}
+    
+	// 6. 타이머 시작 (5초)
+	GetWorldTimerManager().SetTimer(ReviveTimerHandle, this, &ATSCharacter::OnReviveFinished, ReviveDuration, false);
+}
+
+void ATSCharacter::ServerStopRevive_Implementation()
+{
+	// 1. 타이머 정리
+	GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
+	CurrentReviveTime = 0.f;
+	
+	// 2. 변수 초기화
+	ReviveTargetCharacter = nullptr;
+	bIsRescuing = false;
+	
+	// 2. Rescue 태그 제거
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	
+	// 4. 이동상태 복구
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	
+	// 5. 클라이언트 동기화
+	ClientForceStopRevive();
+}
+
+void ATSCharacter::ClientForceStopRevive_Implementation()
+{
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking); // 소생 강제 해제 -> 움직임 복구
+}
+
+void ATSCharacter::OnReviveFinished()
+{
+	// 1. 타이머 정리
+	GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
+	CurrentReviveTime = 0.f;
+	// 2. 타겟 정리 및 변수 초기화
+	ATSCharacter* Target = ReviveTargetCharacter;
+	ReviveTargetCharacter = nullptr;
+	// 3. 태그 제거
+	if (ASC)
+	{
+		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+	}
+	// 4. 이동상태 복구
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	bIsRescuing = false;
+	// 5. 살려주기 + 안전성 검사
+	if (!IsValid(Target))
+	{
+		return;
+	}
+	if (!Target->IsDowned() || Target->IsDead())
+	{
+		return;
+	}
+	Target->Revive();
+}
+
+void ATSCharacter::TickReviveValidation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	// 1. 대상이 사라짐 -> 취소
+	if (!IsValid(ReviveTargetCharacter))
+	{
+		ServerStopRevive();
+		return;
+	}
+
+	// 2. 대상이 그 사이에 죽어버렸거나, 이미 일어남 -> 취소
+	if (ReviveTargetCharacter->IsDead() || !ReviveTargetCharacter->IsDowned())
+	{
+		ServerStopRevive();
+		return;
+	}
+
+	// 3. 거리 계산 (기어가서 멀어짐 방지)
+	float DistSq = FVector::DistSquared(GetActorLocation(), ReviveTargetCharacter->GetActorLocation());
+	float MaxDistSq = MaxReviveDistance * MaxReviveDistance; // sqrt 말고 곱셈으로..
+	if (DistSq > MaxDistSq)
+	{
+		ServerStopRevive();
+	}
+}
+
+void ATSCharacter::OnRep_IsRescuing()
+{
+	if (bIsRescuing )
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_None);
+	} else
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
 }
 
 void ATSCharacter::BeginPlay()
@@ -584,10 +939,34 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 	{
 		return;
 	}
-	if (!IsValid(CurrentHitActor.Get()))
+	
+	// 1. 내가 다운 || 죽음이면 못함
+	UE_LOG(LogTemp, Warning, TEXT("[@@@@OnInteract] >>> E Pressed | Owner: %s | HasAuthority: %d"),
+		*GetName(),
+		HasAuthority());
+	if (IsDowned() || IsDead())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[@@@@OnInteract] EarlyExit: I am Downed or Dead."));
 		return;
 	}
+	ATSCharacter* ReviveTarget = DetectReviveTarget();
+    
+	if (ReviveTarget)
+	{
+		// 친구를 찾았고 + 기절 상태라면?
+	
+		UE_LOG(LogTemp, Warning, TEXT("Priority 1: Reviving Friend!"));
+		ServerStartRevive(ReviveTarget);
+		return; // [중요] 여기서 함수 종료! (아래 아이템 로직 실행 X)
+		
+	}
+	LineTrace();
+	if (!IsValid(CurrentHitActor.Get()))
+	{
+		// UE_LOG(LogTemp, Warning, TEXT("Nothing Hit."));
+		return;
+	}
+	// 우선 순위 2: 아이템 상호작용, 자원 채집
 	if (CurrentHitActor->Implements<UIInteraction>())
 	{
 		IIInteraction* InteractionInterface = Cast<IIInteraction>(CurrentHitActor);
@@ -603,6 +982,18 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 			}
 		}
 	}
+	if (CurrentHitActor->Implements<UTSResourceItemInterface>() && IsValid(ASC))
+	{
+		FGameplayTagContainer WithTags;
+		WithTags.AddTag(InteractTag::INTERACTTAG_RESOURCE_STARTINTERACT);
+		ASC->TryActivateAbilitiesByTag(WithTags);
+	}
+}
+
+void ATSCharacter::OnStopInteract(const struct FInputActionValue& Value)
+{
+	ServerStopRevive();
+	ServerSendStopInteractEvent();
 }
 
 void ATSCharacter::OnLeftClick(const struct FInputActionValue& Value)
@@ -809,11 +1200,15 @@ void ATSCharacter::LineTrace()
 	LastHitActor = CurrentHitActor;
 	CurrentHitActor = HitResult.GetActor();
 	
-	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_GameTraceChannel1);
-	DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green, false, 1.f, 0, 1.f);
-	if (HitResult.bBlockingHit)
+	//test----------------------------------------------------
+	if (bLineTraceDebugDraw)
 	{
-		DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 8.f, 12, FColor::Red, false, 1.f);
+		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_GameTraceChannel1);
+		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green, false, 1.f, 0, 1.f);
+		if (HitResult.bBlockingHit)
+		{
+			DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 8.f, 12, FColor::Red, false, 1.f);
+		}
 	}
 	// 같은 걸 바라보면 아무것도 하지 않음.
 	if (CurrentHitActor == LastHitActor) return;
@@ -843,6 +1238,11 @@ void ATSCharacter::LineTrace()
 			}
 		}
 	}
+}
+
+void ATSCharacter::OnTogglelinetrace(const struct FInputActionValue& Value)
+{
+	bLineTraceDebugDraw = ! bLineTraceDebugDraw;
 }
 
 bool ATSCharacter::IsClimbing()
@@ -916,6 +1316,15 @@ bool ATSCharacter::ServerInteract_Validate(AActor* TargetActor)
 	return IsValid(TargetActor);
 }
 
+void ATSCharacter::ServerSendStopInteractEvent_Implementation()
+{
+	if (IsValid(ASC))
+	{
+		FGameplayEventData EventData;
+		ASC->HandleGameplayEvent(InteractTag::INTERACTTAG_STOPINTERACT, &EventData);
+	}
+}
+
 void ATSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -938,6 +1347,10 @@ void ATSCharacter::Tick(float DeltaTime)
 		}
 	}
 	
+	if (HasAuthority() && bIsRescuing)
+	{
+		TickReviveValidation(); // 구조 중이면 -? 매 프레임 거리와 상태 체크
+	}
 	// ■ WASD 태그 관리
 	//[S]=====================================================================================
 	if (ASC && GetCharacterMovement())
@@ -1021,6 +1434,13 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnBuild);
 		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnInteract);
+		
+		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Canceled, this,
+										   &ATSCharacter::OnStopInteract);
+		
+		EnhancedInputComponent->BindAction(InputDataAsset->InteractAction, ETriggerEvent::Completed, this,
+										   &ATSCharacter::OnStopInteract);
+		
 		EnhancedInputComponent->BindAction(InputDataAsset->PingAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnPing);
 		EnhancedInputComponent->BindAction(InputDataAsset->WheelScrollAction, ETriggerEvent::Started, this,
@@ -1056,5 +1476,135 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnHotKey9);
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey0Action, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnHotKey0);
+		
+		
+		// --- test --- 
+		EnhancedInputComponent->BindAction(InputDataAsset->OnTogglelinetraceAction, ETriggerEvent::Started, this,
+										   &ATSCharacter::OnTogglelinetrace);
 	}
 }
+
+#pragma region Multicast_ConsumeMontage
+void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
+	UAnimMontage* Montage, float PlayRate, float ServerStartTime)
+{
+	if (!Montage)
+	{
+		return;
+	}
+	
+	// 몽타주 재생 전 유효성 체크 강화
+	if (!Montage->IsValidLowLevel())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Multicast] 유효하지 않은 몽타주!"));
+		return;
+	}
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		return;
+	}
+	
+	// 애니메이션 인스턴스 상태 확인
+	if (!AnimInstance->IsValidLowLevel())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Multicast] AnimInstance 상태 이상!"));
+		return;
+	}
+	
+	// 이미 재생 중이면 스킵
+	// if (AnimInstance->Montage_IsPlaying(Montage))
+	// {
+	// 	return;
+	// }
+	// 이미 재생 중이면 정지 후 재시작
+	if (AnimInstance->Montage_IsPlaying(Montage))
+	{
+		AnimInstance->Montage_Stop(0.0f, Montage);
+	}
+	
+	//=======================================================================
+	// 네트워크 지연 보정 로직 추가
+	//=======================================================================
+	float StartPosition = 0.0f;
+	
+	// 서버가 아닌 경우에만 시간 차이 계산
+	if (!HasAuthority())
+	{
+		// 1. 현재 클라이언트 로컬 시간
+		float LocalTime = GetWorld()->GetTimeSeconds();
+		
+		// 2. 서버가 시작한 시점부터 얼마나 지났는지 계산
+		float Elapsed = FMath::Max(LocalTime - ServerStartTime, 0.0f);
+		
+		// 3. 몽타주 길이 확인
+		float MontageLength = Montage->GetPlayLength();
+		
+		// 4. 이미 몽타주가 끝난 시점이라면 재생하지 않음
+		if (Elapsed >= MontageLength)
+		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			UE_LOG(LogTSCharacter, Warning, TEXT("[Client] 몽타주 시작 지연 과다 (경과=%.2fs, 길이=%.2fs) - 재생 스킵"),
+				Elapsed, MontageLength);
+			return; // 재생 스킵
+#endif
+		}
+		
+		// 5. 지연된 시간만큼 건너뛰기
+		StartPosition = Elapsed;
+
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTSCharacter, Log, TEXT("[Client] 네트워크 지연 보정: %.2f초 건너뛰고 재생 (전체 %.2fs)"),
+			StartPosition, MontageLength);
+#endif
+	}
+	
+	//=======================================================================
+	// 몽타주 재생 (시작 위치 적용)
+	//=======================================================================
+	float PlayedLength = AnimInstance->Montage_Play(
+		Montage,
+		PlayRate,
+		EMontagePlayReturnType::MontageLength,
+		StartPosition // 지연된 시간만큼 건너뜀
+	);
+	
+	if (PlayedLength > 0.f)
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTemp, Log, TEXT("[Multicast] 몽타주 재생: %s (Role: %s, StartPos: %.2fs)"),
+			*Montage->GetName(),
+			HasAuthority() ? TEXT("Server") : TEXT("Client"),
+			StartPosition);
+#endif
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Multicast] 몽타주 재생 실패: %s"), *Montage->GetName());
+	}
+}
+
+void ATSCharacter::Multicast_StopConsumeMontage_Implementation(UAnimMontage* Montage)
+{
+	if (!Montage)
+	{
+		return;
+	}
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		return;
+	}
+	
+	if (AnimInstance->Montage_IsPlaying(Montage))
+	{
+		AnimInstance->Montage_Stop(0.2f, Montage);
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTSCharacter, Log, TEXT("[Multicast] 몽타주 정지: %s (Role: %s)"),
+			*Montage->GetName(), HasAuthority() ? TEXT("Server") : TEXT("Client"));
+#endif
+	}
+}
+#pragma endregion

@@ -64,6 +64,12 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackDamage);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackSpeed);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackRange);
+	
+	// 방어구 스탯 전달용 태그 추가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_HealthBonus);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_DamageReflection);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_DamageReduction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_MoveSpeed);
 #pragma endregion
 	
 #pragma region Ability
@@ -112,7 +118,7 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Tier_T3);             // T3
 	
 	//========================================
-	// (임시)
+	// 스탯 표시에 사용
 	// 아이템 등급 (Rarity)
 	//========================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity);
@@ -120,6 +126,7 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Common);       // 일반
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Normal);       // 보통
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Rare);         // 희귀
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Unique);       // 유니크
 	
 	//========================================
 	// (임시)
@@ -142,5 +149,51 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Craft);        // 크래프팅
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Interaction);  // 상호작용 (필드 내 오브젝트)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Install);      // 설치 (건축물)
+#pragma endregion
+	
+#pragma region DisplayStat
+	//========================================
+	// 아이템 상세페이지 - 스탯 (DisplayStat)
+	//========================================
+	
+	// 아이템 스탯
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_HarvestTarget);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_AttackDamage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Durability);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_AttackRange);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_EquipSlot);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Head);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Torso);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Leg);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_EffectDuration);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaxStack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_DecayRate);
+	
+	// 빌딩 스탯
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_LightRadius);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_ErosionReduction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaxMaintenance);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaintenanceInterval);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Rarity);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_StorageSlots);
+
+#pragma endregion
+	
+#pragma region ItemCategory
+	//========================================
+	// 아이템/빌딩 카테고리 (ItemCategory)
+	//========================================
+	
+	// 아이템 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Tool);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Weapon);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Armor);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Consumable);
+	
+	// 빌딩 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Storage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Lighting);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Crafting);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Defense);
 #pragma endregion
 }

@@ -52,12 +52,12 @@ void AErosionLightSourceSubActor::BeginPlay()
 		UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
 		if (!IsValid(ErosionSubSystem))
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾지 못했음."));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾지 못했음."));
 			return;
 		}
 		else
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾음."));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾음."));
 		}
 	
 		// 매니저의 침식도 스테이지 이벤트 구독
@@ -105,7 +105,7 @@ void AErosionLightSourceSubActor::ChangeLightScaleByErosion(float CurrentErosion
 		else if (100.f <= CurrentErosionScale)
 			SetLightScale(EmissiveScaleStep.StepMax);
 	}
-	UE_LOG(ErosionManager, Warning, TEXT("가로등 : 침식도 이벤트 수신 받음"));
+	if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("가로등 : 침식도 이벤트 수신 받음"));
 }
 
 void AErosionLightSourceSubActor::SetLightScale(float scale)
@@ -115,8 +115,8 @@ void AErosionLightSourceSubActor::SetLightScale(float scale)
 	if (true == bUsePointLight)
 	{
 		PointLightComponent->SetIntensity(LightScale);
-		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화됨 (포인트 라이트)"));
-		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화 성공"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화됨 (포인트 라이트)"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화 성공"));
 		return;
 	}
 	else
@@ -124,14 +124,14 @@ void AErosionLightSourceSubActor::SetLightScale(float scale)
 		int32 MatIndex = StaticMeshComponent->GetMaterialIndex("Light");
 		if (MatIndex == INDEX_NONE)
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인덱스 찾지 못함"));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인덱스 찾지 못함"));
 			return;
 		}
 		
 		UMaterialInterface* BaseMat = StaticMeshComponent->GetMaterial(MatIndex);
 		if (!BaseMat)
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인터페이스 찾지 못함"));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인터페이스 찾지 못함"));
 			return;
 		}
 		
@@ -142,8 +142,8 @@ void AErosionLightSourceSubActor::SetLightScale(float scale)
 		}
 
 		LightMID->SetScalarParameterValue("EmissiveIntensity", LightScale);
-		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화됨 (머티리얼)"));
-		UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화 성공"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화됨 (머티리얼)"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 가로등 밝기 변화 성공"));
 		return;
 	}
 }
@@ -155,8 +155,8 @@ void AErosionLightSourceSubActor::OnRep_LightScale()
 	if (true == bUsePointLight)
 	{
 		PointLightComponent->SetIntensity(LightScale);
-		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화됨 (포인트 라이트)"));
-		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화 성공"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화됨 (포인트 라이트)"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화 성공"));
 		return;
 	}
 	else
@@ -164,14 +164,14 @@ void AErosionLightSourceSubActor::OnRep_LightScale()
 		int32 MatIndex = StaticMeshComponent->GetMaterialIndex("Light");
 		if (MatIndex == INDEX_NONE)
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인덱스 찾지 못함"));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인덱스 찾지 못함"));
 			return;
 		}
 		
 		UMaterialInterface* BaseMat = StaticMeshComponent->GetMaterial(MatIndex);
 		if (!BaseMat)
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인터페이스 찾지 못함"));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인터페이스 찾지 못함"));
 			return;
 		}
 		
@@ -182,8 +182,8 @@ void AErosionLightSourceSubActor::OnRep_LightScale()
 		}
 
 		LightMID->SetScalarParameterValue("EmissiveIntensity", LightScale);
-		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화됨 (머티리얼)"));
-		UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화 성공"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화됨 (머티리얼)"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 가로등 밝기 변화 성공"));
 		return;
 	}
 }

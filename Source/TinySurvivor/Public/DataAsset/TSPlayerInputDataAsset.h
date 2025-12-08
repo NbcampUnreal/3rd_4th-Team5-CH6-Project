@@ -115,6 +115,10 @@ public:
 	TObjectPtr<class UInputAction> DebugDropAction;   // 키보드 'J'
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> DebugRemoveAction; // 키보드 'K'
+	
+	//-----test---
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> OnTogglelinetraceAction; // '\' 
 	//
 #pragma endregion
 };

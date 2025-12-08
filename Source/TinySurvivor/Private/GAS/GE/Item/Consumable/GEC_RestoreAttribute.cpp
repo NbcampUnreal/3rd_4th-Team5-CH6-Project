@@ -133,7 +133,7 @@ void UGEC_RestoreAttribute::Execute_Implementation(
 	//=======================================================================
 	// 4. EffectTag와 EffectValue 추출
 	//=======================================================================
-	FGameplayTag EffectTag = ItemInfo.EffectTag;
+	FGameplayTag EffectTag = ItemInfo.EffectTag_Consumable;
 	float EffectValue = ItemInfo.EffectValue;
 	
 	if (!EffectTag.IsValid())

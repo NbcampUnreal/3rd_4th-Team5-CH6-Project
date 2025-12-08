@@ -1,8 +1,9 @@
+// TSAttributeSet.cpp
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayEffectExtension.h"
+#include "Character/TSCharacter.h"
 #include "GameplayTags/AbilityGameplayTags.h"
-
 
 //***********************************************
 // 생성자 초기화
@@ -22,7 +23,7 @@ UTSAttributeSet::UTSAttributeSet()
 	InitThirst(100.0f);
 	InitMaxThirst(100.0f);
 	
-	InitSanity(100.0f);
+	InitSanity(70.0f);
 	InitMaxSanity(100.0f);
 	
 	InitTemperature(36.5f); //36.5??
@@ -33,12 +34,21 @@ UTSAttributeSet::UTSAttributeSet()
 	
 	InitBaseDamage(10.0f);		// 기본 공격력
 	InitDamageBonus(0.0f);		// 무기 추가 공격력 (초기값 0)
-
+	
 	InitBaseAttackSpeed(1.0f);	// 기본 공격속도
 	InitAttackSpeedBonus(1.0f);	// 무기 추가 속도, 적용 전 기본 배율 1
-
+	
 	InitBaseAttackRange(100.0f);	// 기본 공격반경
 	InitAttackRangeBonus(1.0f);	// 무기 추가 반경, 적용 전 기본 배율 1
+	
+	InitBaseDamageReduction(0.0f);	// 0% 기본
+	InitDamageReductionBonus(0.0f);	// 장비/버프 추가
+	
+	InitBaseDamageReflection(0.0f);	// 0% 기본
+	InitDamageReflectionBonus(0.0f);	// 장비/버프 추가
+	
+	InitDownedHealth(100.0f); // 기절 시 다운헬스 100 설정
+	InitMaxDownedHealth(100.0f);
 }
 //***********************************************
 //복제 설정
@@ -68,6 +78,12 @@ void UTSAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AttackSpeedBonus, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseAttackRange, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AttackRangeBonus, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseDamageReduction, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DamageReductionBonus, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseDamageReflection, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DamageReflectionBonus, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DownedHealth, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxDownedHealth, COND_None, REPNOTIFY_Always);
 }
 //***********************************************
 //값 변경 전 Clamp
@@ -127,6 +143,36 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 				ASC->RemoveLooseGameplayTag(HungerStatusTag);
 			}
 		}
+		
+		AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
+		ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
+		// Full 상태 처리
+		FGameplayTag FullStatusTag = AbilityTags::TAG_State_Status_Full;
+		if (GetHunger() >= 100.0f)
+		{
+			// 배부름 태그 부착
+			if (!ASC->HasMatchingGameplayTag(FullStatusTag))
+			{
+				ASC->AddLooseGameplayTag(FullStatusTag);
+			}
+			if (Char  && Char->FullRecoverHealthEffectClass)
+			{
+				FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+				ContextHandle.AddSourceObject(this);
+				FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->FullRecoverHealthEffectClass, 1, ContextHandle);
+            
+				if (SpecHandle.IsValid())
+				{
+					ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+				}
+			}
+		} else
+		{
+			if (ASC->HasMatchingGameplayTag(FullStatusTag))
+			{
+				ASC->RemoveLooseGameplayTag(FullStatusTag);
+			}
+		}
 	}
 	if (Data.EvaluatedData.Attribute == GetTemperatureAttribute())
 	{
@@ -171,13 +217,78 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 	}
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
-		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
 		if (GetHealth() <= 0.0f)
 		{
-			/////////////////////////
-			//내 캐릭터 죽는 함수 구현//
-			////////////////////////
-			UE_LOG(LogTemp, Log, TEXT("캐릭터 사망 로직 구현 전 -> 체력 0 이 되어 죽었음 !! 로그만 찍기"));
+			///////////////////
+			// 내 캐릭터 Down //
+			///////////////////
+			UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+			AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
+			ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
+			if (Char && !Char -> IsDowned()) // Downed 상태가 아니라면 
+			{
+				// Downed Health 를 Max 로 세팅 해주고
+				if (UTSAttributeSet* AS = Char->GetAttributeSet())
+				{
+					AS->SetDownedHealth(AS->GetMaxDownedHealth());
+				}
+				// Downed 상태 진입
+				Char -> BecomeDowned();
+			}
+		}
+	}
+	if (Data.EvaluatedData.Attribute == GetDownedHealthAttribute())
+	{
+		if (GetHealth() <= 0.0f && GetDownedHealth() <= 0.0f)
+		{
+			//////////////////
+			// 내 캐릭터 사망 //
+			//////////////////
+			UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+			AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
+			ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
+			if (Char) 
+			{
+				// 다운하도록
+				Char -> Die();
+			}
+		}
+	}
+	if (Data.EvaluatedData.Attribute == GetSanityAttribute())
+	{
+		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+		FGameplayTag AnxietyTag = AbilityTags::TAG_State_Status_Anxiety;
+		FGameplayTag PanicTag = AbilityTags::TAG_State_Status_Panic;
+		if (GetSanity() >= 70.0f)
+		{
+			ASC->RemoveLooseGameplayTag(AnxietyTag);
+			ASC->RemoveLooseGameplayTag(PanicTag);
+		}
+		else if (GetSanity() >= 30)
+		{
+			ASC->AddLooseGameplayTag(AnxietyTag);
+			ASC->RemoveLooseGameplayTag(PanicTag);
+		} 
+		else
+		{
+			ASC->AddLooseGameplayTag(PanicTag);
+			ASC->RemoveLooseGameplayTag(AnxietyTag);
+		}
+
+		FGameplayTag SanityBlockTag = AbilityTags::TAG_State_Sanity_InLightBlock;
+		if (GetSanity() >= 80.0f)
+		{
+			if (!ASC->HasMatchingGameplayTag(SanityBlockTag))
+			{
+				ASC->AddLooseGameplayTag(SanityBlockTag);
+			}
+		}
+		else
+		{
+			if (ASC->HasMatchingGameplayTag(SanityBlockTag))
+			{
+				ASC->RemoveLooseGameplayTag(SanityBlockTag);
+			}
 		}
 	}
 }
@@ -217,7 +328,8 @@ void UTSAttributeSet::ClampBeforeChange(const FGameplayAttribute& Attribute, flo
 			 Attribute == GetMaxHungerAttribute() || 
 			 Attribute == GetMaxThirstAttribute() ||
 			 Attribute == GetMaxSanityAttribute() || 
-			 Attribute == GetMaxTemperatureAttribute())
+			 Attribute == GetMaxTemperatureAttribute() ||
+			 Attribute == GetMaxDownedHealthAttribute())
 	{
 		NewValue = FMath::Max(1.0f, NewValue);
 	}
@@ -234,6 +346,18 @@ void UTSAttributeSet::ClampBeforeChange(const FGameplayAttribute& Attribute, flo
 		NewValue = FMath::Max(1.0f, NewValue);
 	}
 	// Bonus는 음수 허용 (디버프 가능)
+	else if (Attribute == GetBaseDamageReductionAttribute() ||
+		 Attribute == GetDamageReductionBonusAttribute() ||
+		 Attribute == GetBaseDamageReflectionAttribute() ||
+		 Attribute == GetDamageReflectionBonusAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, -1.0f, 1.0f); 
+		// 또는 필요 시 0~1만 허용
+	}
+	else if (Attribute == GetDownedHealthAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxDownedHealth());
+	}
 }
 void UTSAttributeSet::ClampAfterEffect(const struct FGameplayEffectModCallbackData& Data)
 {
@@ -262,6 +386,10 @@ void UTSAttributeSet::ClampAfterEffect(const struct FGameplayEffectModCallbackDa
 	{
 		SetTemperature(FMath::Clamp(GetTemperature(), 0.0f, GetMaxTemperature()));
 	}
+	else if (Data.EvaluatedData.Attribute == GetDownedHealthAttribute())
+	{
+		SetDownedHealth(FMath::Clamp(GetDownedHealth(), 0.0f, GetMaxDownedHealth()));
+	}
 }
 //***********************************************
 //OnRep 함수 구현
@@ -270,46 +398,57 @@ void UTSAttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Health, OldHealth);
 }
+
 void UTSAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldMaxHealth)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxHealth, OldMaxHealth);
 }
+
 void UTSAttributeSet::OnRep_Stamina(const FGameplayAttributeData& OldStamina)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Stamina, OldStamina);
 }
+
 void UTSAttributeSet::OnRep_MaxStamina(const FGameplayAttributeData& OldMaxStamina)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxStamina, OldMaxStamina);
 }
+
 void UTSAttributeSet::OnRep_Hunger(const FGameplayAttributeData& OldHunger)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Hunger, OldHunger);
 }
+
 void UTSAttributeSet::OnRep_MaxHunger(const FGameplayAttributeData& OldMaxHunger)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxHunger, OldMaxHunger);
 }
+
 void UTSAttributeSet::OnRep_Thirst(const FGameplayAttributeData& OldThirst)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Thirst, OldThirst);
 }
+
 void UTSAttributeSet::OnRep_MaxThirst(const FGameplayAttributeData& OldMaxThirst)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxThirst, OldMaxThirst);
 }
+
 void UTSAttributeSet::OnRep_Sanity(const FGameplayAttributeData& OldSanity)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Sanity, OldSanity);
 }
+
 void UTSAttributeSet::OnRep_MaxSanity(const FGameplayAttributeData& OldMaxSanity)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxSanity, OldMaxSanity);
 }
+
 void UTSAttributeSet::OnRep_Temperature(const FGameplayAttributeData& OldTemperature)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Temperature, OldTemperature);
 }
+
 void UTSAttributeSet::OnRep_MaxTemperature(const FGameplayAttributeData& OldMaxTemperature)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxTemperature, OldMaxTemperature);
@@ -353,4 +492,33 @@ void UTSAttributeSet::OnRep_BaseAttackRange(const FGameplayAttributeData& OldBas
 void UTSAttributeSet::OnRep_AttackRangeBonus(const FGameplayAttributeData& OldAttackRangeBonus)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, AttackRangeBonus, OldAttackRangeBonus);
+}
+
+void UTSAttributeSet::OnRep_BaseDamageReduction(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, BaseDamageReduction, OldValue);
+}
+
+void UTSAttributeSet::OnRep_DamageReductionBonus(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DamageReductionBonus, OldValue);
+}
+
+void UTSAttributeSet::OnRep_BaseDamageReflection(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, BaseDamageReflection, OldValue);
+}
+
+void UTSAttributeSet::OnRep_DamageReflectionBonus(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DamageReflectionBonus, OldValue);
+}
+void UTSAttributeSet::OnRep_DownedHealth(const FGameplayAttributeData& OldDownedHealth)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DownedHealth, OldDownedHealth);
+}
+
+void UTSAttributeSet::OnRep_MaxDownedHealth(const FGameplayAttributeData& OldMaxDownedHealth)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxDownedHealth, OldMaxDownedHealth);
 }

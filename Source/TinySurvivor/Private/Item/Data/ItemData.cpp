@@ -6,6 +6,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogFItemData, Log, All);
 
 void FItemData::PrintDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogFItemData, Display, TEXT("============= Item Debug Info ============="));
 	
 	// Base Identifiers
@@ -33,6 +34,7 @@ void FItemData::PrintDebugInfo() const
 			UE_LOG(LogFItemData, Display, TEXT("  AttackSpeed: %.2f"), WeaponData.AttackSpeed);
 			UE_LOG(LogFItemData, Display, TEXT("  AttackRange: %.2f"), WeaponData.AttackRange);
 			UE_LOG(LogFItemData, Display, TEXT("  MaxDurability: %d"), WeaponData.MaxDurability);
+			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossAmount: %d"), WeaponData.DurabilityLossAmount);
 			break;
 		
 		case EItemCategory::TOOL:
@@ -42,7 +44,7 @@ void FItemData::PrintDebugInfo() const
 			UE_LOG(LogFItemData, Display, TEXT("  AttackSpeed: %.2f"), ToolData.AttackSpeed);
 			UE_LOG(LogFItemData, Display, TEXT("  AttackRange: %.2f"), ToolData.AttackRange);
 			UE_LOG(LogFItemData, Display, TEXT("  MaxDurability: %d"), ToolData.MaxDurability);
-			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossRate: %.2f"), ToolData.DurabilityLossRate);
+			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossAmount: %d"), ToolData.DurabilityLossAmount);
 			UE_LOG(LogFItemData, Display, TEXT("  HarvestTargetTag: %s"), *ToolData.HarvestTargetTag.ToString());
 			break;
 		
@@ -58,11 +60,8 @@ void FItemData::PrintDebugInfo() const
 			UE_LOG(LogFItemData, Display, TEXT("ArmorData:"));
 			UE_LOG(LogFItemData, Display, TEXT("  EquipSlot: %s"), *UEnum::GetValueAsString(ArmorData.EquipSlot));
 			UE_LOG(LogFItemData, Display, TEXT("  HealthBonus: %.2f"), ArmorData.HealthBonus);
-			UE_LOG(LogFItemData, Display, TEXT("  DamageReductionRate: %.2f"), ArmorData.DamageReductionRate);
-			UE_LOG(LogFItemData, Display, TEXT("  MoveSpeedBonus: %.2f"), ArmorData.MoveSpeedBonus);
-			UE_LOG(LogFItemData, Display, TEXT("  SpecialEffectID: %d"), ArmorData.SpecialEffectID);
-			UE_LOG(LogFItemData, Display, TEXT("  RequiredRarity: %d"), ArmorData.RequiredRarity);
 			UE_LOG(LogFItemData, Display, TEXT("  MaxDurability: %d"), ArmorData.MaxDurability);
+			UE_LOG(LogFItemData, Display, TEXT("  DurabilityLossAmount: %d"), ArmorData.DurabilityLossAmount);
 			break;
 	
 		case EItemCategory::MATERIAL:
@@ -72,20 +71,45 @@ void FItemData::PrintDebugInfo() const
 	
 	// Effect
 	UE_LOG(LogFItemData, Display, TEXT("\n---[Effect]"));
-	if (EffectTag.IsValid())
+	switch (Category)
 	{
-		UE_LOG(LogFItemData, Display, TEXT("EffectTag: %s"), *EffectTag.ToString());
-		UE_LOG(LogFItemData, Display, TEXT("EffectValue: %.2f"), EffectValue);
-	}
-	else
-	{
+	case EItemCategory::CONSUMABLE:
+		if (EffectTag_Consumable.IsValid())
+		{
+			UE_LOG(LogFItemData, Display, TEXT("EffectTag (Consumable): %s"), *EffectTag_Consumable.ToString());
+			UE_LOG(LogFItemData, Display, TEXT("EffectValue: %.2f"), EffectValue);
+		}
+		else
+		{
+			UE_LOG(LogFItemData, Display, TEXT("No effect (Consumable)"));
+		}
+		break;
+		
+	case EItemCategory::ARMOR:
+		if (EffectTag_Armor.IsValid())
+		{
+			UE_LOG(LogFItemData, Display, TEXT("EffectTag (Armor): %s"), *EffectTag_Armor.ToString());
+			UE_LOG(LogFItemData, Display, TEXT("EffectValue: %.2f"), EffectValue);
+		}
+		else
+		{
+			UE_LOG(LogFItemData, Display, TEXT("No effect (Armor)"));
+		}
+		break;
+		
+	default:
 		UE_LOG(LogFItemData, Display, TEXT("No effect"));
+		break;
 	}
 	
 	// Visual
 	UE_LOG(LogFItemData, Display, TEXT("\n---[Visual]"));
 	UE_LOG(LogFItemData, Display, TEXT("Icon: %s"), Icon.IsNull() ? TEXT("None") : *Icon.ToString());
 	UE_LOG(LogFItemData, Display, TEXT("WorldMesh: %s"), WorldMesh.IsNull() ? TEXT("None") : *WorldMesh.ToString());
+	
+	// 한글/영문 설명 추가
+	UE_LOG(LogFItemData, Display, TEXT("Desc_KR: %s"), *Desc_KR.ToString());
+	UE_LOG(LogFItemData, Display, TEXT("Desc_EN: %s"), *Desc_EN.ToString());
 	
 	// Spawn
 	UE_LOG(LogFItemData, Display, TEXT("\n---[Spawn]"));
@@ -111,4 +135,5 @@ void FItemData::PrintDebugInfo() const
 	UE_LOG(LogFItemData, Display, TEXT("ValidateCategoryData: %s"), ValidateCategoryData() ? TEXT("True") : TEXT("False"));
 	
 	UE_LOG(LogFItemData, Display, TEXT("============================================"));
+#endif
 }

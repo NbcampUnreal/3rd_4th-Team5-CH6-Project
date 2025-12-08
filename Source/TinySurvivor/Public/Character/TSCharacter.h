@@ -1,3 +1,4 @@
+// TSCharacter.h
 #pragma once
 
 #include "CoreMinimal.h"
@@ -82,7 +83,8 @@ private:
 
 #pragma region Animation
 public:
-	EItemAnimType AnimType = EItemAnimType::NONE;
+	UPROPERTY(Replicated, EditAnywhere, Category = "Animation")
+	EItemAnimType AnimType = EItemAnimType::AXE;
 	
 	UFUNCTION(BlueprintPure, Category = "Animation")
 	EItemAnimType GetAnimType() const	{
@@ -93,8 +95,87 @@ public:
 	{
 		this->AnimType = ItemAnimType;
 	}
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 #pragma endregion
 	
+#pragma region Downed & Dead & Revive
+	// ------------------------------------------------
+	// ------------------ Downed 상태 ------------------
+	// ------------------------------------------------
+	virtual void BecomeDowned(); // Health<=0 일 때 캐릭터 Downed 상태로 만드는 함수
+	
+	UFUNCTION(BlueprintCallable, Category = "State")
+	bool IsDowned() const; // 현재 캐릭터가 Downed 상태인지 확인 (태그로 확인)
+	
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "State")
+	bool bIsDownedState = false; // 기절 상태 클라 동기화 함수 
+	
+	// ----------------------------------------------
+	// ------------------ Dead 상태 ------------------
+	// ----------------------------------------------
+	virtual void Die(); // Down 상태에서 DownedHealth 0 되면 호출
+	
+	UFUNCTION(BlueprintCallable, Category = "State")
+	bool IsDead() const; // 현재 캐릭터가 Dead 상태인지 확인 (살릴 수 있나 없나) 
+	
+	UPROPERTY(ReplicatedUsing = OnRep_IsDeadState, BlueprintReadOnly, Category = "State")
+	bool bIsDeadState ; // 클라로 Dead 여부 동기화
+	
+	UFUNCTION()
+	void OnRep_IsDeadState(); // 클라에서 Dead true면 호출 (죽는 모션 동기화)
+	
+	// ------------------------------------------------
+	// ------------------ Revive 상태 ------------------
+	// ------------------------------------------------
+	ATSCharacter* DetectReviveTarget(); // Target 감지
+	
+	virtual void Revive(); // Downed 캐릭터를 살려주는 함수
+	
+	UFUNCTION(BlueprintCallable, Category = "State")
+	bool IsRescueCharacter() const; // 내가 지금 친구를 살려주고 있는가
+	
+	UFUNCTION(Server, Reliable)
+	void ServerStartRevive(ATSCharacter* Target); // 소생 시작 요청
+	
+	UFUNCTION(Server, Reliable)
+	void ServerStopRevive(); // 소생 중단 요청
+	
+	UFUNCTION(Client, Reliable)
+	void ClientForceStopRevive(); // 서버에서 강제로 소생 중당 -> 클라 알림
+	
+	void OnReviveFinished(); // 서버 타이머가 ReviveDuration 만큼 지난 후 호출되는 콜백함수
+	
+	void TickReviveValidation(); // 죽었는지, Downed이 아닌지, 거리 멀진 않은지 확인
+	
+	UPROPERTY(Replicated)
+	ATSCharacter* ReviveTargetCharacter; // 소생 중인 대상 (기절된 친구)
+	
+	UPROPERTY(ReplicatedUsing = OnRep_IsRescuing,BlueprintReadOnly, Category = "State")
+	bool bIsRescuing; // 기절한 친구를 살려주고 있는지
+	
+	UFUNCTION()
+	void OnRep_IsRescuing(); // bIsRescuing 이 변경될 때마다 클라에서 이동 모드 동기화하는 함수
+	
+	FTimerHandle ReviveTimerHandle; // 5초 Revive 타이머 핸들
+	
+	UPROPERTY()
+	float CurrentReviveTime = 0.f; // 소생 진행 시간 (현재 진행 시간 누적 값)
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Revive")
+	float ReviveDuration = 5.0f; // 소생 소요시간 5초
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Revive")
+	float MaxReviveDistance = 250.0f; // 소생 유지 최대 거리 (친구가 기어가서 더 멀어지면 소생 끊김)
+	
+	
+	// ------------------ GE ------------------
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	TSubclassOf<UGameplayEffect> ProneMoveSpeedEffectClass; // 기절 시 MoveSpeed 200 설정
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
+	TSubclassOf<UGameplayEffect> DownedEffectClass; // 기절 시 DownedHealth 1초당 -5씩 깎는 GE
+
+#pragma endregion
 protected:
 	virtual void BeginPlay() override;
 
@@ -123,6 +204,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> FallDamageEffectClass; // 낙하데미지 GE
 	
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> FullRecoverHealthEffectClass; // Full 시 health recover 하는 GE
+protected:
 	// test -> 체온 상태이상에 따라 GE 적용 되는지 보기 위한 GE 적용 테스트 코드
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> TempTESTClass;
@@ -147,6 +232,7 @@ protected:
 	void OnOpenBag(const struct FInputActionValue& Value);
 	void OnBuild(const struct FInputActionValue& Value);
 	void OnInteract(const struct FInputActionValue& Value);
+	void OnStopInteract(const struct FInputActionValue& Value);
 	void OnLeftClick(const struct FInputActionValue& Value); //얘넨 모르겠다 (한 키에 여러가지 함수?)
 	void OnRightClick(const struct FInputActionValue& Value); // 얘넨 모르겠다.
 	void OnPing(const struct FInputActionValue& Value);
@@ -165,7 +251,6 @@ protected:
 	void OnHotKey9(const struct FInputActionValue& Value);
 	void OnHotKey0(const struct FInputActionValue& Value);
 	
-	
 	virtual void OnMoveSpeedChanged(const FOnAttributeChangeData& Data);
 	virtual void Landed(const FHitResult& Hit) override; //낙하 감지 함수
 #pragma endregion
@@ -182,6 +267,14 @@ private:
 	TWeakObjectPtr<AActor> CurrentHitActor; //현재 라인트레이스에 맞고 있는 액터
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastHitActor; //직전 프레임에서 맞고 있던 액터
+	
+	
+	//test-----------------------------------------------------------------------
+	// 디버그 라인 On/Off
+	UPROPERTY(EditAnywhere, Category = "LineTrace|Debug")
+	bool bLineTraceDebugDraw = false;
+	
+	void OnTogglelinetrace(const struct FInputActionValue& Value);
 #pragma endregion
 
 #pragma region Climb
@@ -208,34 +301,21 @@ private:
 	void ServerSendUseItemEvent();
 	UFUNCTION(Server, Reliable,WithValidation)
 	void ServerInteract(AActor* TargetActor);
+	UFUNCTION(Server, Reliable)
+	void ServerSendStopInteractEvent();
 	
 public:	
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
-#pragma region Test
-	// [TEST] 디버그용 입력 액션
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> DebugDropAction;   // 키보드 'J'
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> DebugRemoveAction; // 키보드 'K'
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> TestCreateItemAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Debug")
-	TObjectPtr<UInputAction> TestDeleteItemAction;
-
-	// [TEST] 입력 바인딩 함수
-	void OnDebugDrop(const FInputActionValue& Value);
-	void OnDebugRemove(const FInputActionValue& Value);
-
-	// [TEST] 서버 로직
-	UFUNCTION(Server, Reliable)
-	void Server_DebugDropItem();
-
-	UFUNCTION(Server, Reliable)
-	void Server_DebugRemoveItem();
-#pragma endregion Test
+#pragma region Multicast_ConsumeMontage
+public:
+	// 소모품 사용 몽타주 재생 (Multicast)
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayConsumeMontage(UAnimMontage* Montage, float PlayRate, float ServerStartTime);
+	
+	// 소모품 사용 몽타주 정지 (Multicast)
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_StopConsumeMontage(UAnimMontage* Montage);
+#pragma endregion
 };

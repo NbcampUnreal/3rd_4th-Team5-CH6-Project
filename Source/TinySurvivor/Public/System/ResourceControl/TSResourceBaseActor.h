@@ -46,7 +46,7 @@ public:
 	virtual void GetItemFromResource(UAbilitySystemComponent* ASC, EItemAnimType& RequiredToolType, int32& ATK, FVector& HitPoint, FVector& HitNormal, FVector PlayerLocation, FVector ForwardVector, bool IsLeftMouseClicked) override;
 
 	// 수확 시간 게터  
-	FORCEINLINE int32 GetGatheringTime() const { return ResourceRuntimeData.GatheringTime; }
+	virtual float GetTargetHaverestTimeRemaining() override { return ResourceRuntimeData.GatheringTime; } 
 	
 protected:
 	// 수확 내부 유틸
@@ -88,6 +88,10 @@ protected:
 	bool bDoOnceSpawnedIn70 = false;
 	bool bDoOnceSpawnedIn30 = false;
 	bool bDoOnceSpawnedIn00 = false;
+	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 

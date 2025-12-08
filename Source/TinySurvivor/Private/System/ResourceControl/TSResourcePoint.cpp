@@ -19,7 +19,7 @@ void ATSResourcePoint::BeginPlay()
 	UTSResourceControlSubSystem* ResourceControlSubSystem = UTSResourceControlSubSystem::GetUTSResourceControlSubSystem(this);
 	if (!IsValid(ResourceControlSubSystem))
 	{
-		UE_LOG(ResourceControlSystem, Error, TEXT("자원 원천 관리 시스템을 찾지 못함."));
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("자원 원천 관리 시스템을 찾지 못함."));
 		return;
 	}
 	
