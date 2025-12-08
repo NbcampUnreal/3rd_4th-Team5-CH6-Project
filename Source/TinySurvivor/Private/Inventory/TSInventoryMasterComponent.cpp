@@ -1128,6 +1128,8 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 			도구 전용 처리:
 			- 캐릭터 파트 요청에 따라 도구만 왼손(Ws_l) 소켓에 장착.
 			- 기획 파트 요청에 따라 도구만 스케일을 1.75로 확대. (도구 에셋이 작게 보여서)
+			- 단, 현재 횃불(예: JunkTorch)은 에셋 크기가 이미 커서 스케일 확대 제외.
+			  추후 횃불 에셋이 다른 도구와 동일한 크기로 조정되면 스케일 1.75 확대 적용 예정.
 		*/
 		if (ItemInfo.Category == EItemCategory::TOOL)
 		{
@@ -1136,7 +1138,14 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 				FAttachmentTransformRules::SnapToTargetIncludingScale,
 				TEXT("Ws_l"));
 			
-			CurrentEquippedItem->SetActorScale3D(FVector(1.75f));
+			// 스케일 조정 제외 대상(예: 횃불)
+			const int32 JunkTorchToolID = 202;
+			
+			// 특정 도구 제외하고 스케일 확대
+			if (ItemInfo.ItemID != JunkTorchToolID)
+			{
+				CurrentEquippedItem->SetActorScale3D(FVector(1.75f));
+			}
 		}
 		else
 		{
