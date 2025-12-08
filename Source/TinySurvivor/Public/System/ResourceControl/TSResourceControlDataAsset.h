@@ -22,4 +22,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ResourceDataTables")
 	TArray<TObjectPtr<UDataTable>> ResourceDataTables;
+
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
+	
 };

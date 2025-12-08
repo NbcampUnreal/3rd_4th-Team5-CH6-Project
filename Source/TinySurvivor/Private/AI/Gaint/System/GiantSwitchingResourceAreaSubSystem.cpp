@@ -85,6 +85,7 @@ void UGiantSwitchingResourceAreaSubSystem::Initialize(FSubsystemCollectionBase& 
 	if (GiantSwitchingAreaData)
 	{
 		UE_LOG(GiantSwitchingResourceAreaSubSystem, Warning, TEXT("[GiantSwitchingResourceAreaSubSystem] Sync loaded config: %s"), *GiantSwitchingAreaData->GetName());
+		bShowDebug = GiantSwitchingAreaData->bShowDebug;
 	}
 	else
 	{
@@ -126,21 +127,21 @@ void UGiantSwitchingResourceAreaSubSystem::AddResourceArea(const FGameplayTag& R
 {
 	if (!ResourceArea.IsValid())
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: ResourceArea 유효하지 않음."));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: ResourceArea 유효하지 않음."));
 		return;
 	}
 	
 	auto Value = ResourceAreaMap.Find(ResourceAreaIDTag);
 	if (Value != nullptr)
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 이미 IDTag로 추가된 지역을 추가하려고 시도했음."));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 이미 IDTag로 추가된 지역을 추가하려고 시도했음."));
 		return;
 	}
 	
 	ResourceAreaMap.Add(ResourceAreaIDTag, ResourceArea);
-	UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 추가 성공"));
-	UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 등록 지역 태그 : %s"), *ResourceAreaIDTag.ToString());
-	UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 등록 지역 액터 : %s"), *ResourceArea->GetName());
+	if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 추가 성공"));
+	if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 등록 지역 태그 : %s"), *ResourceAreaIDTag.ToString());
+	if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 등록 지역 액터 : %s"), *ResourceArea->GetName());
 }
 
 AGiantSwitchingResourceArea* UGiantSwitchingResourceAreaSubSystem::GetNearestResourceArea(const FVector& Location) const
@@ -151,7 +152,7 @@ AGiantSwitchingResourceArea* UGiantSwitchingResourceAreaSubSystem::GetNearestRes
 	
 	if (!IsValid(GiantSwitchingAreaData))
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: GiantSwitchingAreaData is nullptr"));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: GiantSwitchingAreaData is nullptr"));
 		return nullptr;
 	}
 	
@@ -159,13 +160,13 @@ AGiantSwitchingResourceArea* UGiantSwitchingResourceAreaSubSystem::GetNearestRes
 	AActor* Nearest  = UGameplayStatics::FindNearestActor(GiantCurrentLocation, ResourceAreaActors, Distance);
 	if (!IsValid(Nearest))
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 가능한 서칭 지역이 없음. nullptr"));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 가능한 서칭 지역이 없음. nullptr"));
 		return nullptr;
 	}
 	
 	auto ResourceArea = Cast<AGiantSwitchingResourceArea>(Nearest);
-	UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾은 지역 태그 : %s"), *ResourceArea->GetResourceAreaTag().ToString());
-	UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾은 지역 액터 : %s"), *ResourceArea->GetName());
+	if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾은 지역 태그 : %s"), *ResourceArea->GetResourceAreaTag().ToString());
+	if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾은 지역 액터 : %s"), *ResourceArea->GetName());
 	return ResourceArea;
 }
 
@@ -183,7 +184,7 @@ void UGiantSwitchingResourceAreaSubSystem::AddIntersectArea(const FVector& Locat
 	
 	if (!IsValid(GiantSwitchingAreaData))
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: GiantSwitchingAreaData is nullptr"));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: GiantSwitchingAreaData is nullptr"));
 		return;
 	}
 	
@@ -191,7 +192,7 @@ void UGiantSwitchingResourceAreaSubSystem::AddIntersectArea(const FVector& Locat
 	AActor* Nearest  = UGameplayStatics::FindNearestActor(Location, ResourceAreaActors, Distance);
 	if (!IsValid(Nearest))
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 가능한 서칭 지역이 없음. nullptr"));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 가능한 서칭 지역이 없음. nullptr"));
 		return;
 	}
 	
@@ -199,7 +200,7 @@ void UGiantSwitchingResourceAreaSubSystem::AddIntersectArea(const FVector& Locat
 	auto FoundResourceArea = ResourceAreaMap.Find(ResourceArea->GetResourceAreaTag());
 	if (!FoundResourceArea->IsValid())
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾으려는 지역이 유효하지 않음"));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾으려는 지역이 유효하지 않음"));
 		return;
 	}
 	
@@ -212,14 +213,14 @@ void UGiantSwitchingResourceAreaSubSystem::RemoveIntersectArea(const FVector& Lo
 	FGameplayTag* FoundResourceAreaTag = CurrentIntersectAreaMap.Find(Location);
 	if (FoundResourceAreaTag == nullptr)
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾으려는 지역 태그가 유효하지 않음"));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾으려는 지역 태그가 유효하지 않음"));
 		return;
 	}
 
 	auto FoundResourceArea = ResourceAreaMap.Find(*FoundResourceAreaTag);
 	if (!FoundResourceArea->IsValid())
 	{
-		UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾으려는 지역이 유효하지 않음"));
+		if (bShowDebug) UE_LOG(GiantSwitchingResourceAreaSubSystem, Log, TEXT("GiantSwitchingResourceAreaSubSystem: 찾으려는 지역이 유효하지 않음"));
 		return;
 	}
 		

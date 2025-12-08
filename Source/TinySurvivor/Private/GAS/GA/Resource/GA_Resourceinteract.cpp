@@ -15,7 +15,7 @@ UGA_Resourceinteract::UGA_Resourceinteract()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
-	UE_LOG(LogTemp, Warning, TEXT("자원 채취 시작"));
+	if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("자원 채취 시작"));
 }
 
 void UGA_Resourceinteract::ActivateAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,const FGameplayEventData* TriggerEventData)
@@ -24,12 +24,12 @@ void UGA_Resourceinteract::ActivateAbility(const FGameplayAbilitySpecHandle Hand
 	
 	if (!K2_CommitAbility())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("자원 채취 소모 비용 감당 실패"));
+		if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("자원 채취 소모 비용 감당 실패"));
 		K2_EndAbility();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("자원 채취 소모 비용 감당 성공"));
+		if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("자원 채취 소모 비용 감당 성공"));
 	}
 	
 	BoxTrace();
@@ -42,7 +42,7 @@ void UGA_Resourceinteract::ActivateAbility(const FGameplayAbilitySpecHandle Hand
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("월드 존재하지 않음"));
+		if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("월드 존재하지 않음"));
 	}
 	
 	UAbilityTask_WaitGameplayEvent* CancelInteractTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,ReceiveEndTag);
@@ -106,7 +106,7 @@ void UGA_Resourceinteract::BoxTrace()
 
 void UGA_Resourceinteract::CheckTimeRemaining(float Progress)
 {
-	UE_LOG(LogTemp, Warning, TEXT("INTERACTTAG_RESOURCE_STARTINTERACT is Not GO %f"), Progress);
+	if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("INTERACTTAG_RESOURCE_STARTINTERACT is Not GO %f"), Progress);
 	// UI 업데이트 하고 싶으면 추후에 여기 로직 추가해서...
 }
 
@@ -118,7 +118,7 @@ void UGA_Resourceinteract::CheckDistance()
 
 	if (Distance > CanInteractRange)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("자원 채취 소모 거리 재기 실패"));
+		if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("자원 채취 소모 거리 재기 실패"));
 		K2_EndAbility();
 	}
 }

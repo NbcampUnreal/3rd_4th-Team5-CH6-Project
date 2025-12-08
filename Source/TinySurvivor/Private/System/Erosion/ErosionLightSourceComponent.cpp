@@ -21,12 +21,12 @@ void UErosionLightSourceComponent::BeginPlay()
 		UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
 		if (!IsValid(ErosionSubSystem))
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾지 못했음."));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾지 못했음."));
 			return;
 		}
 		else
 		{
-			UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾음."));
+			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾음."));
 		}
 	
 		// 매니저의 이벤트 구독 (1초마다 침식도 증가)
@@ -74,7 +74,7 @@ void UErosionLightSourceComponent::ReceiveErosionCheckTime()
 	// 유비지 상태가 적자면 계산하지 않음.
 	if (false == UpdateActiveFlag())
 	{
-		UE_LOG(ErosionManager, Warning, TEXT("유지비 없음"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("유지비 없음"));
 		if (!IsValid(GetOwner())) return;
 		if (!UKismetSystemLibrary::DoesImplementInterface(GetOwner(), UErosionLightSourceInterface::StaticClass())) return;
 		IErosionLightSourceInterface::Execute_SetErosionLightSource(GetOwner(), false);
@@ -82,7 +82,7 @@ void UErosionLightSourceComponent::ReceiveErosionCheckTime()
 	}
 	else
 	{
-		UE_LOG(ErosionManager, Warning, TEXT("유지비 있음"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("유지비 있음"));
 		if (!IsValid(GetOwner())) return;
 		if (!UKismetSystemLibrary::DoesImplementInterface(GetOwner(), UErosionLightSourceInterface::StaticClass())) return;
 		IErosionLightSourceInterface::Execute_SetErosionLightSource(GetOwner(), true);
@@ -91,7 +91,7 @@ void UErosionLightSourceComponent::ReceiveErosionCheckTime()
 	// 유지비 디버깅용
 	if (false == bIsActiveLightForDebug)
 	{
-		UE_LOG(ErosionManager, Warning, TEXT("유지비 디버깅용 : 유지비 없음"));
+		if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("유지비 디버깅용 : 유지비 없음"));
 		if (!IsValid(GetOwner())) return;
 		if (!UKismetSystemLibrary::DoesImplementInterface(GetOwner(), UErosionLightSourceInterface::StaticClass())) return;
 		IErosionLightSourceInterface::Execute_SetErosionLightSource(GetOwner(), false);

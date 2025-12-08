@@ -111,4 +111,8 @@ protected:
 	// 머리티리얼 인스턴스
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
 	UMaterialInstanceDynamic* LightMID = nullptr;
+	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
 };
