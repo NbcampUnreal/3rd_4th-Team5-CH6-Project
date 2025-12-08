@@ -93,3 +93,21 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Armor_Hit);
 }
 
+namespace MonsterTags
+{
+	// 식별용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Player);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Monster);
+	
+	// 상태용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Dead);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Hit);
+	
+	// AI 공격용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Attack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Sprint);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Cooldown_Attack);
+	
+	// 이벤트용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Montage_Hit);
+}

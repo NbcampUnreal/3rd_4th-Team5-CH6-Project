@@ -74,10 +74,29 @@ namespace AbilityTags
 	// Data 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Damage_Fall, "Data.Damage.Fall");
-	
-	//================================
+
+  //================================
 	// Event 관련 태그 (몽타주 노티파이 등)
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Montage_HitCheck, "Event.Montage.HitCheck");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Armor_Hit, "Event.Armor.Hit");
+}
+
+namespace MonsterTags
+{
+	// 식별용
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Character_Type_Player, "Character.Type.Player");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Character_Type_Monster, "Character.Type.Monster");
+	
+	// 상태용
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Dead, "State.Dead");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Hit, "State.Hit");
+	
+	// AI 공격용
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Attack, "Ability.Attack");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Sprint, "Ability.Sprint");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Cooldown_Attack, "Cooldown.Attack");
+	
+	// 이벤트용
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Montage_Hit, "Event.Montage.Hit");
 }
