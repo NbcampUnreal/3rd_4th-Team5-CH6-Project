@@ -4,15 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
-#include "GA_ChaserAttack.generated.h"
+#include "GA_MonsterAttack.generated.h"
 
 UCLASS()
-class TINYSURVIVOR_API UGA_ChaserAttack : public UGameplayAbility
+class TINYSURVIVOR_API UGA_MonsterAttack : public UGameplayAbility
 {
 	GENERATED_BODY()
 	
 public:
-	UGA_ChaserAttack();
+	UGA_MonsterAttack();
 	
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	
@@ -32,6 +32,6 @@ protected:
 	void OnMontageCompleted();
 	
 	UFUNCTION()
-	void OnEventReceived(FGameplayTag EventTag, FGameplayEventData EventData);
+	void OnEventReceived(FGameplayEventData EventData);
 	
 };
