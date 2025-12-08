@@ -23,7 +23,7 @@ UTSAttributeSet::UTSAttributeSet()
 	InitThirst(100.0f);
 	InitMaxThirst(100.0f);
 	
-	InitSanity(100.0f);
+	InitSanity(70.0f);
 	InitMaxSanity(100.0f);
 	
 	InitTemperature(36.5f); //36.5??
@@ -251,6 +251,43 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 			{
 				// 다운하도록
 				Char -> Die();
+			}
+		}
+	}
+	if (Data.EvaluatedData.Attribute == GetSanityAttribute())
+	{
+		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+		FGameplayTag AnxietyTag = AbilityTags::TAG_State_Status_Anxiety;
+		FGameplayTag PanicTag = AbilityTags::TAG_State_Status_Panic;
+		if (GetSanity() >= 70.0f)
+		{
+			ASC->RemoveLooseGameplayTag(AnxietyTag);
+			ASC->RemoveLooseGameplayTag(PanicTag);
+		}
+		else if (GetSanity() >= 30)
+		{
+			ASC->AddLooseGameplayTag(AnxietyTag);
+			ASC->RemoveLooseGameplayTag(PanicTag);
+		} 
+		else
+		{
+			ASC->AddLooseGameplayTag(PanicTag);
+			ASC->RemoveLooseGameplayTag(AnxietyTag);
+		}
+
+		FGameplayTag SanityBlockTag = AbilityTags::TAG_State_Sanity_InLightBlock;
+		if (GetSanity() >= 80.0f)
+		{
+			if (!ASC->HasMatchingGameplayTag(SanityBlockTag))
+			{
+				ASC->AddLooseGameplayTag(SanityBlockTag);
+			}
+		}
+		else
+		{
+			if (ASC->HasMatchingGameplayTag(SanityBlockTag))
+			{
+				ASC->RemoveLooseGameplayTag(SanityBlockTag);
 			}
 		}
 	}
