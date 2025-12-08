@@ -266,6 +266,16 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 		CurrentResourceHealth = CurrentResourceHealth - ATK;
 		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 체력 %f"), CurrentResourceHealth);
 		
+		// ASC 이벤트 태그 전송  (도구 내구도 감소)
+		FGameplayEventData EventData;
+		EventData.EventTag = ItemTags::TAG_Event_Item_Tool_Harvest;
+		EventData.EventMagnitude = 0.0f;
+		EventData.Instigator = ASC->GetAvatarActor();
+		EventData.Target = ASC->GetAvatarActor();
+		ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("이벤트 전송함"));
+	
+		
 		// 70퍼센트
 		if (CurrentHPPercent > 0.3f && CurrentHPPercent <= 0.7f) 
 		{
@@ -304,14 +314,6 @@ void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& A
 	
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 성공"));
 	
-	// ASC 이벤트 태그 전송 
-	FGameplayEventData EventData;
-	EventData.EventTag = ItemTags::TAG_Event_Item_Tool_Harvest;
-	EventData.EventMagnitude = 0.0f;
-	EventData.Instigator = ASC->GetAvatarActor();
-	EventData.Target = ASC->GetAvatarActor();
-	ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
-	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("이벤트 전송함"));
 	
 	// 만약 체력이 안 쓴다? 그러면 죽어.
 	if (false == IsHasHealth)
