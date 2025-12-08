@@ -1,4 +1,4 @@
 // MonsterSpawnConfig.cpp
 
-#include "AI/Common/MonsterSpawnConfig.h"
+#include "AI/Common/Spawn/MonsterSpawnConfig.h"
 

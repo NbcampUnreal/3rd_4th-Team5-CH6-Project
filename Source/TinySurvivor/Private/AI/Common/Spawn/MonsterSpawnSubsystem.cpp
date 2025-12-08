@@ -1,13 +1,15 @@
 // MonsterSpawnSubsystem.cpp
 
-#include "AI/Common/MonsterSpawnSubsystem.h"
+#include "AI/Common/Spawn/MonsterSpawnSubsystem.h"
 
-#include "AI/Common/MonsterSpawnConfig.h"
+#include "AI/Common/Spawn/MonsterSpawnConfig.h"
 #include "Engine/AssetManager.h"
 
 void UMonsterSpawnSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	
+	CurrentMaxMonsterCount = 5;
 }
 
 void UMonsterSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
@@ -17,35 +19,10 @@ void UMonsterSpawnSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	if (GetWorld()->GetNetMode() == NM_Client)
 		return;
 	
-	UAssetManager& AssetMgr = UAssetManager::Get();
-	const FPrimaryAssetId ConfigId(TEXT("MonsterSpawnConfig"), TEXT("DA_MonsterSpawnConfig_Default"));
-	FSoftObjectPath AssetPath = AssetMgr.GetPrimaryAssetPath(ConfigId);
-	
-	if (AssetPath.IsValid())
-	{
-		UObject* LoadedObject = AssetPath.TryLoad();
-		MonsterConfig = Cast<UMonsterSpawnConfig>(LoadedObject);
-		
-		if (MonsterConfig)
-		{
-			UE_LOG(LogTemp, Log, TEXT("[SpawnSystem] Config Loaded: %s"), *MonsterConfig->GetName());	
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("[SpawnSystem] Failed to load Config Asset!"));	
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("[SpawnSystem] Invalid Asset Path. Check Project Settings -> Asset Manager!"));
-	}
-	
 	if (UTSErosionSubSystem* ErosionSys = UTSErosionSubSystem::GetErosionSubSystem(this))
 	{
 		ErosionSys->OnErosionChangedDelegate.AddDynamic(this, &UMonsterSpawnSubsystem::OnErosionChanged);
 	}
-	
-	InWorld.GetTimerManager().SetTimer(SpawnTimerHandle, this, &UMonsterSpawnSubsystem::CheckSpawnRules, 5.0f, true);
 }
 
 void UMonsterSpawnSubsystem::Deinitialize()
@@ -61,6 +38,20 @@ void UMonsterSpawnSubsystem::Deinitialize()
 	}
 	
 	Super::Deinitialize();
+}
+
+void UMonsterSpawnSubsystem::InitializeSpawnConfig(UMonsterSpawnConfig* NewConfig)
+{
+	if (!NewConfig)
+		return;
+	
+	MonsterConfig = NewConfig;
+	
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(SpawnTimerHandle);
+		World->GetTimerManager().SetTimer(SpawnTimerHandle, this, &UMonsterSpawnSubsystem::CheckSpawnRules, 5.0f, true);
+	}
 }
 
 void UMonsterSpawnSubsystem::RegisterSpawner(ATSAISpawner* Spawner)

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "AI/Common/TSAICharacter.h"
-#include "AI/Common/TSAISpawner.h"
+#include "AI/Common/Spawn/TSAISpawner.h"
 #include "System/Erosion/TSErosionSubSystem.h"
 #include "MonsterSpawnSubsystem.generated.h"
 
@@ -20,6 +20,9 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Deinitialize() override;
+	
+	UFUNCTION(BlueprintCallable, Category = "Spawn")
+	void InitializeSpawnConfig(UMonsterSpawnConfig* NewConfig);
 	
 	// 스포너 등록
 	void RegisterSpawner(ATSAISpawner* Spawner);

@@ -1,6 +1,6 @@
 // MonsterRegionVolume.cpp
 
-#include "AI/Common/AMonsterRegionVolume.h"
+#include "AI/Common/Spawn/AMonsterRegionVolume.h"
 
 AAMonsterRegionVolume::AAMonsterRegionVolume()
 {
