@@ -23,12 +23,27 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	// 사망 처리
 	virtual void OnDeath(AActor* Killer);
+	virtual void OnDamaged(float DamageAmount, const FGameplayTagContainer& DamageTags, AActor* Attacker);
 	
 	// 풀에서 꺼낼 때 초기화하는 함수
 	void ResetMonster();
 	
 protected:
-	virtual void BeginPlay() override;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|Hit")
+	UAnimMontage* HitReactMontageFront;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|Hit")
+	UAnimMontage* HitReactMontageBack;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|Hit")
+	UAnimMontage* HitReactMontageLeft;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|Hit")
+	UAnimMontage* HitReactMontageRight;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|Death")
+	UAnimMontage* DeathMontage;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UAbilitySystemComponent> ASC;
@@ -36,6 +51,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UMonsterAttributeSet> AttributeSet;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	TObjectPtr<UStateTreeComponent> StateTreeComponent;
+private:
+	// 방향에 따른 적절한 몽타주 반환 함수
+	UAnimMontage* GetHitMontageByDirection(AActor* Attacker);
 };

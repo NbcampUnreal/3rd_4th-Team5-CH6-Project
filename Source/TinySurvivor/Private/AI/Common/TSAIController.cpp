@@ -2,7 +2,10 @@
 
 #include "AI/Common/TSAIController.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 
 ATSAIController::ATSAIController()
 {
@@ -19,18 +22,15 @@ ATSAIController::ATSAIController()
 	AIPerception->ConfigureSense(*SightConfig);
 	AIPerception->SetDominantSense(SightConfig->GetSenseImplementation());
 	
-	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ATSAIController::OnTargetDetected);
+	StateTreeComponent = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeComponent"));
 }
 
 void ATSAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-}
-
-void ATSAIController::OnTargetDetected(AActor* Actor, FAIStimulus Stimulus)
-{
-	if (Actor->ActorHasTag("Player") && Stimulus.WasSuccessfullySensed())
+	
+	if (StateTreeComponent)
 	{
-		GetBlackboardComponent()->SetValueAsObject("TargetActor", Actor);
+		StateTreeComponent->StartLogic();
 	}
 }

@@ -1,10 +1,12 @@
 // TSAICharacter.cpp
 
 #include "AI/Common/TSAICharacter.h"
-#include "AI/Common/MonsterSpawnSubsystem.h"
+#include "AI/Common/Spawn/MonsterSpawnSubsystem.h"
 #include "AI/Common/TSAIController.h"
 #include "Components/CapsuleComponent.h"
 #include "System/Erosion/TSErosionSubSystem.h"
+#include "GameplayTags/AbilityGameplayTags.h"
+#include "Kismet/KismetMathLibrary.h"
 
 ATSAICharacter::ATSAICharacter()
 {
@@ -12,12 +14,10 @@ ATSAICharacter::ATSAICharacter()
 	ASC->SetIsReplicated(true);
 	ASC->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
 	
-	AttributeSet = CreateDefaultSubobject<UMonsterAttributeSet>("AttributeSet");
+	AttributeSet = CreateDefaultSubobject<UMonsterAttributeSet>(TEXT("AttributeSet"));
 	
 	AIControllerClass = ATSAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	
-	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>(TEXT("StateTreeComponent"));
 }
 
 UAbilitySystemComponent* ATSAICharacter::GetAbilitySystemComponent() const
@@ -30,6 +30,11 @@ void ATSAICharacter::OnDeath(AActor* Killer)
 	if (!HasAuthority())
 		return;
 	
+	if (DeathMontage)
+	{
+		PlayAnimMontage(DeathMontage);
+	}
+	
 	// 처치 시 침식도 감소
 	if (UTSErosionSubSystem* ErosionSys = UTSErosionSubSystem::GetErosionSubSystem(this))
 	{
@@ -39,9 +44,12 @@ void ATSAICharacter::OnDeath(AActor* Killer)
 	}
 	
 	// State Tree 정지
-	if (StateTreeComponent)
+	if (ATSAIController* AICon = Cast<ATSAIController>(GetController()))
 	{
-		StateTreeComponent->StopLogic("Dead");
+		if (UStateTreeAIComponent* STComp = AICon->GetStateTreeComponent())
+		{
+			STComp->StopLogic("Dead");
+		}
 	}
 	
 	// 스폰 매니저에게 반납 요청
@@ -63,6 +71,44 @@ void ATSAICharacter::OnDeath(AActor* Killer)
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
+void ATSAICharacter::OnDamaged(float DamageAmount, const FGameplayTagContainer& DamageTags, AActor* Attacker)
+{
+	if (AttributeSet->GetHealth() <= 0.0f)
+		return;
+	
+	// 방향에 따른 몽타주 선택
+	UAnimMontage* SelectedMontage = GetHitMontageByDirection(Attacker);
+	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+	
+	if (!AnimInst || !SelectedMontage)
+		return;
+	
+	UAnimMontage* CurrentMontage = AnimInst->GetCurrentActiveMontage();
+	
+	if (CurrentMontage)
+	{
+		// 이미 피격 모션 중이라면 무시
+		if (CurrentMontage == HitReactMontageFront ||
+			CurrentMontage == HitReactMontageBack ||
+			CurrentMontage == HitReactMontageLeft ||
+			CurrentMontage == HitReactMontageRight)
+		{
+			return;
+		}
+	}
+	
+	// 몽타주 실행
+	PlayAnimMontage(SelectedMontage);
+	
+	if (ATSAIController* AICon = Cast<ATSAIController>(GetController()))
+	{
+		if (UStateTreeAIComponent* STComp = AICon->GetStateTreeComponent())
+		{
+			STComp->SendStateTreeEvent(FStateTreeEvent(MonsterTags::TAG_State_Hit));
+		}
+	}
+}
+
 void ATSAICharacter::ResetMonster()
 {
 	SetActorHiddenInGame(false);
@@ -75,24 +121,42 @@ void ATSAICharacter::ResetMonster()
 		AttributeSet->SetHealth(AttributeSet->GetMaxHealth());
 	}
 	
-	if (StateTreeComponent)
-	{
-		StateTreeComponent->StartLogic();
-	}
-	
-	if (AAIController* AIC = Cast<AAIController>(GetController()))
+	if (ATSAIController* AIC = Cast<ATSAIController>(GetController()))
 	{
 		if (UAIPerceptionComponent* Perception = AIC->GetPerceptionComponent())
 		{
 			Perception->ForgetAll();
 		}
+		
+		if (UStateTreeAIComponent* STComp = AIC->GetStateTreeComponent())
+		{
+			STComp->StartLogic();
+		}
 	}
 }
 
-void ATSAICharacter::BeginPlay()
+UAnimMontage* ATSAICharacter::GetHitMontageByDirection(AActor* Attacker)
 {
-	Super::BeginPlay();
+	if (!Attacker)
+		return HitReactMontageFront;
 	
-	if (HasAuthority())
-		StateTreeComponent->StartLogic();
+	FVector MyLoc = GetActorLocation();
+	FVector TargetLoc = Attacker->GetActorLocation();
+	FVector Direction = (TargetLoc - MyLoc).GetSafeNormal();
+	
+	FRotator LookAtRot = UKismetMathLibrary::FindLookAtRotation(MyLoc, TargetLoc);
+	FRotator MyRot = GetActorRotation();
+	
+	FRotator DeltaRot = UKismetMathLibrary::NormalizedDeltaRotator(LookAtRot, MyRot);
+	
+	float Yaw = DeltaRot.Yaw;
+	
+	if (Yaw >= -45.0f && Yaw <= 45.0f)
+		return HitReactMontageFront;
+	else if (Yaw > 45.0f && Yaw <= 135.0f)
+		return HitReactMontageRight;
+	else if (Yaw >= -135.0f && Yaw < -45.0f)
+		return HitReactMontageLeft;
+	else
+		return HitReactMontageBack;
 }

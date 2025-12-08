@@ -36,6 +36,19 @@ void UMonsterAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffec
 		// 다시 한번 값 제한
 		SetHealth(FMath::Clamp(GetHealth(), 0.0f, GetMaxHealth()));
 		
+		float DamageTaken = Data.EvaluatedData.Magnitude;
+		
+		if (DamageTaken < 0.0f)
+		{
+			AActor* TargetActor = Data.Target.GetAvatarActor();
+			ATSAICharacter* Monster = Cast<ATSAICharacter>(TargetActor);
+			
+			if (Monster)
+			{
+				Monster->OnDeath(Data.EffectSpec.GetEffectContext().GetInstigator());
+			}
+		}
+		
 		// 체력이 0 이하가 되면 사망 처리
 		if (GetHealth() <= 0.0f)
 		{
