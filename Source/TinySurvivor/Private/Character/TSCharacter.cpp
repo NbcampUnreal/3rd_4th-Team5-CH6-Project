@@ -207,6 +207,8 @@ void ATSCharacter::InitAbilitySystem()
 			UTSAttributeSet::GetMoveSpeedAttribute()
 		).AddUObject(this, &ATSCharacter::OnMoveSpeedChanged);
 		
+		ASC->AddLooseGameplayTag(MonsterTags::TAG_Character_Type_Player);
+		
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 		// ■ 추적: Hunger 변경 추적 (서버에서만 로그)
 		ASC->GetGameplayAttributeValueChangeDelegate(

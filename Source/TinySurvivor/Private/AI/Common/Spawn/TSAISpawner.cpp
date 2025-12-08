@@ -50,6 +50,26 @@ void ATSAISpawner::BeginPlay()
 	}
 }
 
+void ATSAISpawner::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	
+	if (!RegionKey.IsNone())
+		return;
+	
+	TArray<AActor*> OverlappingActors;
+	GetOverlappingActors(OverlappingActors, AAMonsterRegionVolume::StaticClass());
+	
+	for (AActor* Actor : OverlappingActors)
+	{
+		if (AAMonsterRegionVolume* Volume = Cast<AAMonsterRegionVolume>(Actor))
+		{
+			RegionKey = Volume->Regionkey;
+			break;
+		}
+	}
+}
+
 FVector ATSAISpawner::GetRandomPointInVolume() const
 {
 	return UKismetMathLibrary::RandomPointInBoundingBox(SpawnVolume->GetComponentLocation(), SpawnVolume->GetScaledBoxExtent());
