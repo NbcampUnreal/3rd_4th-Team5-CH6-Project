@@ -60,6 +60,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UTSGiantSwitchingAreaDataAsset> GiantSwitchingAreaData;
 
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 

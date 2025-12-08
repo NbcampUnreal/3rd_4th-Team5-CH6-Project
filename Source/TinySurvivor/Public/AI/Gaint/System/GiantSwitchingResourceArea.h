@@ -128,6 +128,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GiantSwitchingResourceArea")
 	int32 MaxIntersectArea = 2;
 	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
+	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	//----------------------------------

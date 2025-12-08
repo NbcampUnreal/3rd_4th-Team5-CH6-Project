@@ -21,4 +21,8 @@ public:
 	// 섹터 CDO
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Area")
 	TSubclassOf<AGiantSwitchingResourceArea> AreaClass;
+	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
 };
