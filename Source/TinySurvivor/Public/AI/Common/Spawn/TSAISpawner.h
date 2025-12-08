@@ -26,6 +26,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UBoxComponent* SpawnVolume;
 	
+	virtual void OnConstruction(const FTransform& Transform) override;
+	
 	// 박스 내 랜덤 위치 반환
 	FVector GetRandomPointInVolume() const;
 };
