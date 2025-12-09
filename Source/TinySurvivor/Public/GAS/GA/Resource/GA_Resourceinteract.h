@@ -55,6 +55,9 @@ protected:
 	TWeakObjectPtr<ATSCharacter> ThePlayer;
 	TWeakObjectPtr<UAbilitySystemComponent> CachedASC;
 	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
 #pragma endregion	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma region AbilityOption

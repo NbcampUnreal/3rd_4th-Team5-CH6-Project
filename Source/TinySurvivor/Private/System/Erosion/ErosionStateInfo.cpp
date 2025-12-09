@@ -40,14 +40,14 @@ void AErosionStateInfo::ServerSetErosion(float NewValue)
 		UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
 		if (IsValid(ErosionSubSystem) && ErosionSubSystem->GetShowDebug())
 		{
-			UE_LOG(ErosionManager, Error, TEXT("[Server] ServerSetErosion 호출됨 — CurrentErosion = %.2f"), CurrentErosion);
+			if (bShowDebug) UE_LOG(ErosionManager, Error, TEXT("[Server] ServerSetErosion 호출됨 — CurrentErosion = %.2f"), CurrentErosion);
 		}
 		
 		OnErosionChangedUIDelegate.Broadcast(CurrentErosion); // 호스트 (서버)
 	}
 	else
 	{
-		UE_LOG(ErosionManager, Error, TEXT("[Client] ServerSetErosion 호출 시도됨 (권한 없음) — 무시됨"));
+		if (bShowDebug) UE_LOG(ErosionManager, Error, TEXT("[Client] ServerSetErosion 호출 시도됨 (권한 없음) — 무시됨"));
 	}
 }
 
@@ -62,7 +62,7 @@ void AErosionStateInfo::OnRep_CurrentErosion()
 	UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
 	if (IsValid(ErosionSubSystem))
 	{
-		UE_LOG(ErosionManager, Error, TEXT("[Client] OnRep_CurrentErosion 호출됨 — CurrentErosion = %.2f"), CurrentErosion);
+		if (bShowDebug) UE_LOG(ErosionManager, Error, TEXT("[Client] OnRep_CurrentErosion 호출됨 — CurrentErosion = %.2f"), CurrentErosion);
 	}
 	
 	OnErosionChangedUIDelegate.Broadcast(CurrentErosion); // 클라이언트 

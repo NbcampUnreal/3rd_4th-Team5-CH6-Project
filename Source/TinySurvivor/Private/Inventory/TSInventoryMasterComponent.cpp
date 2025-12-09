@@ -1128,6 +1128,8 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 			도구 전용 처리:
 			- 캐릭터 파트 요청에 따라 도구만 왼손(Ws_l) 소켓에 장착.
 			- 기획 파트 요청에 따라 도구만 스케일을 1.75로 확대. (도구 에셋이 작게 보여서)
+			- 단, 현재 횃불(예: JunkTorch)은 에셋 크기가 이미 커서 스케일 확대 제외.
+			  추후 횃불 에셋이 다른 도구와 동일한 크기로 조정되면 스케일 1.75 확대 적용 예정.
 		*/
 		if (ItemInfo.Category == EItemCategory::TOOL)
 		{
@@ -1136,7 +1138,14 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 				FAttachmentTransformRules::SnapToTargetIncludingScale,
 				TEXT("Ws_l"));
 			
-			CurrentEquippedItem->SetActorScale3D(FVector(1.75f));
+			// 스케일 조정 제외 대상(예: 횃불)
+			const int32 JunkTorchToolID = 202;
+			
+			// 특정 도구 제외하고 스케일 확대
+			if (ItemInfo.ItemID != JunkTorchToolID)
+			{
+				CurrentEquippedItem->SetActorScale3D(FVector(1.75f));
+			}
 		}
 		else
 		{
@@ -1291,38 +1300,102 @@ void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryT
 	{
 		return;
 	}
+	
 	float CurrentTime = GetWorld()->GetTimeSeconds();
+	
+	// 활성화된 슬롯 변경 여부 추적
+	bool bActiveSlotChanged = false;
+	
+	/*
+		현재 슬롯 인덱스 추적
+		범위 기반 for 루프는 인덱스 정보를 제공하지 않으므로,
+		ActiveHotkeyIndex와 비교하기 위해 수동으로 추적
+	*/
+	int32 SlotIndex = 0;
+	
 	for (FSlotStructMaster& Slot : Inventory->InventorySlotContainer)
 	{
+		// 빈 슬롯은 건너뛰기
 		if (Slot.ItemData.StaticDataID == 0)
 		{
+			/*
+				인덱스가 엉망이 되기 때문에 빼먹으면 안 됨!
+				만약 `++SlotIndex`를 빼먹으면:
+				슬롯 0: 비어있음 → continue (SlotIndex는 여전히 0)
+				슬롯 1: 사과    → SlotIndex = 0으로 처리됨!! 문제발생!! (실제로는 1번인데!)
+			*/
+			++SlotIndex; // continue 전 인덱스 증가 필수
 			continue;
 		}
+		
+		// 아이템 정보 조회 실패 시 건너뛰기
 		FItemData ItemInfo;
 		if (!GetItemData(Slot.ItemData.StaticDataID, ItemInfo))
 		{
+			++SlotIndex; // continue 전 인덱스 증가 필수
 			continue;
 		}
+		
+		// 부패 가능한 아이템만 처리
 		if (ItemInfo.IsDecayEnabled() && Slot.ExpirationTime > 0)
 		{
+			// 아직 만료되지 않았으면 부패도만 업데이트
 			if (CurrentTime < Slot.ExpirationTime)
 			{
 				Slot.CurrentDecayPercent = UpdateDecayPercent(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate);
+				++SlotIndex; // continue 전 인덱스 증가 필수
 				continue;
 			}
+			
+			//=======================================================================
+			// 부패 시간 만료: 부패물로 전환
+			//=======================================================================
+			
+			// 부패물 정보 캐싱
 			if (CachedDecayedItemInfo.ItemID != CachedDecayedItemID)
 			{
 				if (!GetItemData(CachedDecayedItemID, CachedDecayedItemInfo))
 				{
+					++SlotIndex; // continue 전 인덱스 증가 필수
 					continue;
 				}
 			}
+			
+			// 슬롯 데이터를 부패물로 변경
 			Slot.ItemData.StaticDataID = CachedDecayedItemID;
 			Slot.ExpirationTime = 0;
 			Slot.bCanStack = CachedDecayedItemInfo.IsStackable();
 			Slot.MaxStackSize = CachedDecayedItemInfo.MaxStack;
-			UE_LOG(LogTemp, Log, TEXT("Decayed: ID=%d"), Slot.ItemData.StaticDataID);
+			
+			// 현재 손에 들고 있는 슬롯이 부패물로 전환된 경우 플래그 설정
+			if (InventoryType == EInventoryType::HotKey && SlotIndex == ActiveHotkeyIndex)
+			{
+				bActiveSlotChanged = true;
+			}
+			
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			UE_LOG(LogInventoryComp, Log, TEXT("Decayed: ID=%d (Slot=%d, IsActive=%s)"),
+				Slot.ItemData.StaticDataID,
+				SlotIndex,
+				(InventoryType == EInventoryType::HotKey && SlotIndex == ActiveHotkeyIndex) ? TEXT("Yes") : TEXT("No"));
+#endif
 		}
+		
+		++SlotIndex; // 다음 슬롯으로
+	}
+	
+	//=======================================================================
+	// 활성화된 슬롯이 부패물로 전환된 경우 메시 재장착
+	//=======================================================================
+	if (bActiveSlotChanged)
+	{
+		HandleActiveHotkeyIndexChanged(); // 기존 메시 제거 -> 새 메시 장착
+		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogInventoryComp, Log,
+			TEXT("활성화된 슬롯(#%d)의 아이템이 부패물로 전환되어 메시를 업데이트했습니다."),
+			ActiveHotkeyIndex);
+#endif
 	}
 }
 #pragma endregion

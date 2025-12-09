@@ -89,6 +89,10 @@ protected:
 	bool bDoOnceSpawnedIn30 = false;
 	bool bDoOnceSpawnedIn00 = false;
 	
+	// 디버깅
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
+	bool bShowDebug = false;
+	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
 	//========================

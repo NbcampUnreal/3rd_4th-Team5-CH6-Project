@@ -47,12 +47,18 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempHot); // 더위 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_TempCold); // 추위 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Full); // 배부름
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Anxiety); // 30 < Sanity <= 70 
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Panic); // 0 <= Sanity < 70
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_InLightSourceRange); // 빛 구역이면 활성화 되는 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_InDarkSourceRange); // 어둠 구역이면 활성화 되는 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Sanity_InLightBlock); // 80 이상이면 빛구역이어도 회복 못하도록
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Attack);
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Downed); // 내 캐릭터 기절
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Dead); // 내 캐릭터 사망
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Rescuing); // 친구를 살려주고 있는가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_PickUpItem);
 	
 	// Poison 관련 태그
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상
@@ -88,3 +94,21 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Armor_Hit);
 }
 
+namespace MonsterTags
+{
+	// 식별용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Player);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Monster);
+	
+	// 상태용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Dead);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Hit);
+	
+	// AI 공격용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Attack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Sprint);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Cooldown_Attack);
+	
+	// 이벤트용
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Montage_Hit);
+}

@@ -75,6 +75,11 @@ struct FBuildingData : public FTableRowBase
 		, MaintenanceCostID(0)                       // 유지비 재료 ID 초기화 (0 = 없음)
 		, MaintenanceInterval(0)                     // 유지비 소모 간격 초기화 (0초 = 없음)
 		, MaintenanceCostQty(0)                      // 유지비 수량 초기화 (0 = 없음)
+		, LightRadius_Units(0.f)                     // 광원 유효 반경 초기화
+		, ErosionReduction(0.f)                      // 침식도 감소량 초기화
+		, SanityRecoveryPerSec(0.f)                  // 정신력 회복 초기화
+		, MaxMaintenance(0)                          // 최대 동작 시간 초기화
+		, StorageSlots(0)                            // 창고 슬롯 초기화
 		, Icon(nullptr)                              // UI 아이콘 초기화 (nullptr = 없음)
 		, WorldMesh(nullptr)                         // 월드 표시용 메시 초기화 (nullptr = 없음)
 		, Desc_KR(FText::FromString(TEXT("")))       // 한국어 설명 텍스트 초기화 (빈 문자열)

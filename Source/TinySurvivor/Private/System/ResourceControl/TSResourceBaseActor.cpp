@@ -43,32 +43,32 @@ void ATSResourceBaseActor::BeginPlay()
 	UItemDataSubsystem* ItemDataSubsystem = UItemDataSubsystem::GetItemDataSubsystem(this);
 	if (!IsValid(ItemDataSubsystem))
 	{
-		UE_LOG(ResourceControlSystem, Error, TEXT("ItemDataSubsystem 찾지 못함."));
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("ItemDataSubsystem 찾지 못함."));
 		return;
 	}
 	
 	bool bFoundData = ItemDataSubsystem->GetResourceDataSafe(ThisResourceID, ResourceRuntimeData);
 	if (!bFoundData)
 	{
-		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
-		UE_LOG(ResourceControlSystem, Error, TEXT("%s 가 자원 원천 데이터를 찾는데 실패함."), *GetName());
-		UE_LOG(ResourceControlSystem, Error, TEXT("ThisResourceID %d 찾지 못함."), ThisResourceID);
-		UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("%s 가 자원 원천 데이터를 찾는데 실패함."), *GetName());
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("ThisResourceID %d 찾지 못함."), ThisResourceID);
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("//============================================//"));
 		return;
 	}
 	else
 	{
-		UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
-		UE_LOG(ResourceControlSystem, Log, TEXT("%s 가 자원 원천 데이터를 찾는데 성공함."), *GetName());
-		UE_LOG(ResourceControlSystem, Log, TEXT("ThisResourceID %d 찾음."), ThisResourceID);
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("%s 가 자원 원천 데이터를 찾는데 성공함."), *GetName());
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("ThisResourceID %d 찾음."), ThisResourceID);
 	}
 	
 	CurrentItemCount = ResourceRuntimeData.TotalYield;
-	UE_LOG(ResourceControlSystem, Log, TEXT("아이템 수량 설정 완료 %d"), CurrentItemCount);
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("아이템 수량 설정 완료 %d"), CurrentItemCount);
 	
-	UE_LOG(ResourceControlSystem, Log, TEXT("아이템 뱉어내기 준비 완료"));
-	UE_LOG(ResourceControlSystem, Error, TEXT("테스트 용이므로 추후 반드시 언바인딩할 것."));
-	UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("아이템 뱉어내기 준비 완료"));
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("테스트 용이므로 추후 반드시 언바인딩할 것."));
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("//============================================//"));
 	
 	if (IsLevelPlaced)
 	{
@@ -90,17 +90,17 @@ void ATSResourceBaseActor::BeginPlay()
 	
 		if (!IsValid(LootComponent))
 		{
-			UE_LOG(LogTemp, Error, TEXT("[TSLoot] LootComponent INVALID!"));
+			if (bShowDebug) UE_LOG(LogTemp, Error, TEXT("[TSLoot] LootComponent INVALID!"));
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[TSLoot] LootTable Count = %d"), LootComponent->LootTable.Num());
+			if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("[TSLoot] LootTable Count = %d"), LootComponent->LootTable.Num());
 
 			for (int32 i = 0; i < LootComponent->LootTable.Num(); i++)
 			{
 				const FLootRule& Rule = LootComponent->LootTable[i];
 
-				UE_LOG(LogTemp, Warning,
+				if (bShowDebug) UE_LOG(LogTemp, Warning,
 					TEXT("[TSLoot] [%d] ItemID=%d | Chance=%f | Min=%d | Max=%d"),
 					i,
 					Rule.ItemID,
@@ -126,7 +126,7 @@ void ATSResourceBaseActor::SetSpawnPoint(ATSResourcePoint* Point)
 {
 	if (!IsValid(Point)) return;
 	OwningPoint = Point;	
-	UE_LOG(ResourceControlSystem, Log, TEXT("OwningPoint 이식 성공 "));
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("OwningPoint 이식 성공 "));
 }
 
 void ATSResourceBaseActor::SetMeshComp(UStaticMesh* InResourceStaticMeshComp)
@@ -146,8 +146,8 @@ void ATSResourceBaseActor::InitFromResourceData(FResourceData& Data)
 	ResourceRuntimeData = Data;
 	CurrentItemCount = ResourceRuntimeData.TotalYield;
 	CurrentResourceHealth = ResourceRuntimeData.ResourceHealth;
-	UE_LOG(ResourceControlSystem, Log, TEXT("아이템 수량 설정 완료 %d"), CurrentItemCount);
-	UE_LOG(ResourceControlSystem, Log, TEXT("자원 체력 설정 완료 %f"), CurrentResourceHealth);
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("아이템 수량 설정 완료 %d"), CurrentItemCount);
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("자원 체력 설정 완료 %f"), CurrentResourceHealth);
 	
 	// 2. 메시 설정
 	if (IsValid(ResourceStaticMeshComp))
@@ -180,17 +180,17 @@ void ATSResourceBaseActor::InitFromResourceData(FResourceData& Data)
 	
 	if (!IsValid(LootComponent))
 	{
-		UE_LOG(LogTemp, Error, TEXT("[TSLoot] LootComponent INVALID!"));
+		if (bShowDebug) UE_LOG(LogTemp, Error, TEXT("[TSLoot] LootComponent INVALID!"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[TSLoot] LootTable Count = %d"), LootComponent->LootTable.Num());
+		if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("[TSLoot] LootTable Count = %d"), LootComponent->LootTable.Num());
 
 		for (int32 i = 0; i < LootComponent->LootTable.Num(); i++)
 		{
 			const FLootRule& Rule = LootComponent->LootTable[i];
 
-			UE_LOG(LogTemp, Warning,
+			if (bShowDebug) UE_LOG(LogTemp, Warning,
 				TEXT("[TSLoot] [%d] ItemID=%d | Chance=%f | Min=%d | Max=%d"),
 				i,
 				Rule.ItemID,
@@ -201,7 +201,7 @@ void ATSResourceBaseActor::InitFromResourceData(FResourceData& Data)
 		}
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("Init Resource %d at Actor %s"), Data.ResourceID, *GetName());
+	if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("Init Resource %d at Actor %s"), Data.ResourceID, *GetName());
 }
 
 void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EItemAnimType& RequiredToolType, int32& ATK, FVector& HitPoint, FVector& HitNormal, FVector PlayerLocation, FVector ForwardVector, bool IsLeftMouseClicked)
@@ -251,7 +251,7 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 	}
 #pragma endregion 
 
-	UE_LOG(ResourceControlSystem, Error, TEXT("GetItemFromResource 시작"));
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("GetItemFromResource 시작"));
 	
 	if (ResourceRuntimeData.RequiredToolType == EItemAnimType::NONE)
 	{
@@ -264,7 +264,17 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 		float CurrentHPPercent = CurrentResourceHealth / ResourceRuntimeData.ResourceHealth;
 		
 		CurrentResourceHealth = CurrentResourceHealth - ATK;
-		UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 체력 %f"), CurrentResourceHealth);
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 체력 %f"), CurrentResourceHealth);
+		
+		// ASC 이벤트 태그 전송  (도구 내구도 감소)
+		FGameplayEventData EventData;
+		EventData.EventTag = ItemTags::TAG_Event_Item_Tool_Harvest;
+		EventData.EventMagnitude = 0.0f;
+		EventData.Instigator = ASC->GetAvatarActor();
+		EventData.Target = ASC->GetAvatarActor();
+		ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("이벤트 전송함"));
+	
 		
 		// 70퍼센트
 		if (CurrentHPPercent > 0.3f && CurrentHPPercent <= 0.7f) 
@@ -297,21 +307,13 @@ void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& A
 		bool bSuccess = LootComponent->SpawnHarvestLoot(TargetLocation, SpawnOriginLocation);
 		if (false == bSuccess)
 		{
-			UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 실패함"));
+			if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 실패함"));
 			return;
 		}
 	}
 	
-	UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 성공"));
+	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 성공"));
 	
-	// ASC 이벤트 태그 전송 
-	FGameplayEventData EventData;
-	EventData.EventTag = ItemTags::TAG_Event_Item_Tool_Harvest;
-	EventData.EventMagnitude = 0.0f;
-	EventData.Instigator = ASC->GetAvatarActor();
-	EventData.Target = ASC->GetAvatarActor();
-	ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
-	UE_LOG(ResourceControlSystem, Error, TEXT("이벤트 전송함"));
 	
 	// 만약 체력이 안 쓴다? 그러면 죽어.
 	if (false == IsHasHealth)
@@ -325,7 +327,7 @@ void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& A
 	{
 		if (CurrentResourceHealth <= 0.f)
 		{
-			UE_LOG(ResourceControlSystem, Error, TEXT("체력을 없으므로 삭제"));
+			if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("체력을 없으므로 삭제"));
 			RequestSpawnResource();
 		}
 	}
@@ -347,16 +349,16 @@ void ATSResourceBaseActor::RequestSpawnResource()
 			OwningPoint->IsCommonPoint()
 			);
 			OwningPoint->ClearAllocatedResource(); 
-			UE_LOG(ResourceControlSystem, Log, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 완료"));
+			if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 완료"));
 		}
 		else
 		{
-			UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 스폰 포인트 찾지 못함."));
+			if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 스폰 포인트 찾지 못함."));
 		}
 	}
 	else
 	{
-		UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 컨트롤 시스템 찾지 못함."));
+		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 컨트롤 시스템 찾지 못함."));
 	}
 	Destroy();
 }
