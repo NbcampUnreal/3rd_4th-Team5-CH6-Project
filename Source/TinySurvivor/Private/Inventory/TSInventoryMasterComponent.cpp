@@ -533,7 +533,31 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	if (ItemInfo.Category == EItemCategory::CONSUMABLE)
 	{
 		//=======================================================================
-		// 1. 기존 리소스 정리
+		// 1. Cancel 태그 체크 (몽타주 재생 전)
+		//=======================================================================
+		FGameplayTagContainer CancelTags;
+		CancelTags.AddTag(AbilityTags::TAG_State_Move_WASD);
+		CancelTags.AddTag(AbilityTags::TAG_State_Move_Sprint);
+		CancelTags.AddTag(AbilityTags::TAG_State_Move_Crouch);
+		CancelTags.AddTag(AbilityTags::TAG_State_Move_Roll);
+		CancelTags.AddTag(AbilityTags::TAG_State_Move_Jump);
+		CancelTags.AddTag(AbilityTags::TAG_State_Move_Climb);
+		// TODO: 피격 태그 추가
+		// CancelTags.AddTag(AbilityTags::TAG_State_Combat_Hit); // 예상
+		
+		// Cancel 태그 중 하나라도 있으면 소비 불가
+		if (ASC->HasAnyMatchingGameplayTags(CancelTags))
+		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			UE_LOG(LogInventoryComp, Warning,
+				TEXT("소모품 사용 불가: Cancel 태그 감지됨 (ItemID=%d)"),
+				ItemInfo.ItemID);
+#endif
+			return; // 조기 종료
+		}
+		
+		//=======================================================================
+		// 2. 기존 리소스 정리
 		//=======================================================================
 		ClearConsumableAbilityResources();
 		
@@ -576,7 +600,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		}
 		
 		//=======================================================================
-		// 3. 어빌리티 발동
+		// 4. 어빌리티 발동
 		//=======================================================================
 		GrantAndScheduleConsumableAbility(ItemInfo, SlotIndex, ASC);
 		
