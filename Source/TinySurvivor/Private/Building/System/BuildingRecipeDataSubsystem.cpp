@@ -31,6 +31,7 @@ void UBuildingRecipeDataSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 {
 	Super::Initialize(Collection);
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogBuildingRecipeDataSubsystem, Log, TEXT("BuildingRecipeDataSubsystem Initialized"));
 	
 	// 네트워크 환경 확인 (디버그용)
@@ -43,6 +44,7 @@ void UBuildingRecipeDataSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 			NetMode == NM_ListenServer ? TEXT("ListenServer") :
 			NetMode == NM_Client ? TEXT("Client") : TEXT("Unknown"));
 	}
+#endif
 	
 	// Project Settings에서 자동 로드
 	const UBuildingRecipeSystemSettings* Settings = UBuildingRecipeSystemSettings::Get();
@@ -73,7 +75,9 @@ void UBuildingRecipeDataSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 
 void UBuildingRecipeDataSubsystem::Deinitialize()
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogBuildingRecipeDataSubsystem, Log, TEXT("BuildingRecipeDataSubsystem Deinitialized"));
+#endif
 	
 	ClearAllCaches();
 	TableAsset = nullptr;
@@ -164,9 +168,8 @@ bool UBuildingRecipeDataSubsystem::InitializeFromAsset(UBuildingRecipeTableAsset
 	UE_LOG(LogBuildingRecipeDataSubsystem, Log, TEXT("- Recipes: %d"), BuildingRecipeDataCache.Num());
 	
 	// 에디터에서만 자동 테스트 실행
-#if WITH_EDITOR
+
 	RunInitializationTests();
-#endif
 #endif
 	
 	return true;
@@ -314,6 +317,7 @@ void UBuildingRecipeDataSubsystem::GetCacheStatistics(int32& OutRecipeCount) con
 // 캐시 디버그 정보를 콘솔에 출력
 void UBuildingRecipeDataSubsystem::PrintCacheDebugInfo() const
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("=== BuildingRecipeDataSubsystem Cache Statistics ==="));
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("Initialized: %s"), bIsInitialized ? TEXT("Yes") : TEXT("No"));
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("Recipes Cached: %d"), BuildingRecipeDataCache.Num());
@@ -347,6 +351,7 @@ void UBuildingRecipeDataSubsystem::PrintCacheDebugInfo() const
 	}
 	
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("====================================================="));
+#endif
 }
 
 void UBuildingRecipeDataSubsystem::PrintRecipeDebugInfo(int32 RecipeID) const
@@ -365,12 +370,13 @@ void UBuildingRecipeDataSubsystem::PrintRecipeDebugInfo(int32 RecipeID) const
 		return;
 	}
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("\n========== Debug Info for RecipeID %d =========="), RecipeID);
 	FoundData->PrintDebugInfo();
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("====================================================\n"));
+#endif
 }
 
-#if WITH_EDITOR
 // 캐시를 새로고침 (TableAsset 기반으로 다시 로드)
 void UBuildingRecipeDataSubsystem::RefreshCache()
 {
@@ -387,13 +393,16 @@ void UBuildingRecipeDataSubsystem::RefreshCache()
 	ClearAllCaches();
 	CacheBuildingRecipeData();
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogBuildingRecipeDataSubsystem, Log, TEXT("캐시 새로고침 완료"));
 	// 새로고침 후 캐시 상태 디버그 출력
 	PrintCacheDebugInfo();
+#endif
 }
 
 void UBuildingRecipeDataSubsystem::RunInitializationTests()
 {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("========================================"));
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("BuildingRecipeDataSubsystem 초기화 테스트 시작"));
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("========================================"));
@@ -499,8 +508,8 @@ void UBuildingRecipeDataSubsystem::RunInitializationTests()
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("========================================"));
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("테스트 완료"));
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("========================================"));
-}
 #endif
+}
 #pragma endregion
 
 #pragma region InternalCachingFunctions
@@ -536,7 +545,9 @@ void UBuildingRecipeDataSubsystem::CacheBuildingRecipeData()
 		}
 	}
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogBuildingRecipeDataSubsystem, Log, TEXT("총 %d개의 건축물 레시피 캐싱 완료"), BuildingRecipeDataCache.Num());
+#endif
 }
 
 // 모든 캐시 데이터를 초기화
