@@ -49,7 +49,7 @@ protected:
 public:
 	// 나중에 건물 데이터로부터 값 초기화할 함수 : 몇 초마다 몇을 감소할 거냐?
 	UFUNCTION(BlueprintCallable)
-	void InitializeFromBuildingData();
+	void InitializeFromBuildingData(const FBuildingData& BuildingData);
 
 	// 상태 업데이트 (아이템 데이터로부터 유지비가 가능한 상태인지 아닌지 받아옴)
 	UFUNCTION(BlueprintCallable)

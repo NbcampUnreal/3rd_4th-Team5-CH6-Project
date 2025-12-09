@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ErosionLightSourceInterface.h"
 #include "GameFramework/Actor.h"
+#include "Item/TSInteractionActorBase.h"
 #include "ErosionLightSourceSubActor.generated.h"
 
 class UErosionLightSourceComponent;
@@ -32,10 +33,22 @@ struct FLightScaleStep
 };
 
 UCLASS()
-class TINYSURVIVOR_API AErosionLightSourceSubActor : public AActor, public IErosionLightSourceInterface
+class TINYSURVIVOR_API AErosionLightSourceSubActor : public ATSInteractionActorBase, public IErosionLightSourceInterface
 {
 	GENERATED_BODY()
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// ===============================
+	// ATSInteractionActorBase 함수 오버라이드 
+	// 빌딩 액터 멤버 변수
+	// ===============================
+	
+public:
+	virtual void InitializeFromBuildingData(const FBuildingData& BuildingInfo, const int32 StaticDataID) override;
+	float GetLightRadius() const { return LightRadius; }
+protected:
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")
+	float LightRadius = 0.f;
+	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// ===============================

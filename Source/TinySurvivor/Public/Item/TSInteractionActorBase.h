@@ -8,6 +8,9 @@
 #include "Runtime/ItemInstance.h"
 #include "TSInteractionActorBase.generated.h"
 
+struct FBuildingData;
+class UAbilitySystemComponent;
+class UItemDataSubsystem;
 class UWidgetComponent;
 
 UCLASS()
@@ -19,6 +22,12 @@ public:
 	// Sets default values for this actor's properties
 	ATSInteractionActorBase();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// 빌딩 데이터로 멤버 변수 업데이트
+	virtual void InitializeFromBuildingData(const FBuildingData& BuildingInfo, const int32 StaticDataID);
+
+	// 액터 내구도 업데이트
+	void DamageDurability(UAbilitySystemComponent* ASC, float DamageAmount);
 
 #pragma region IInteraction
 	virtual void ShowInteractionWidget(ATSCharacter* InstigatorCharacter) override;
@@ -41,9 +50,15 @@ protected:
 	virtual void PostInitializeComponents() override;
 	UFUNCTION()
 	void OnRep_ItemInstance();
-	
-	virtual void InitializeFromItemData();
-	
+	// 메시 초기화
+	virtual void InitializeMesh(const FBuildingData& BuildingInfo);
+
+	// 플레이어 아이템 내구도 업데이트 이벤트 발송
+	void SendItemDurabilityEvent(UAbilitySystemComponent* ASC);
+
+	TObjectPtr<UItemDataSubsystem> CachedIDS;
+	int32 LastStaticDataID = 0;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
 	TObjectPtr<UWidgetComponent> InteractionWidget;
