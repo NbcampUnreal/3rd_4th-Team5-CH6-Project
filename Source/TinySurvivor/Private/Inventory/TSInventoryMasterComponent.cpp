@@ -117,6 +117,14 @@ void UTSInventoryMasterComponent::BeginPlay()
 }
 #pragma endregion
 
+#pragma region EndPlay
+void UTSInventoryMasterComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ClearConsumableAbilityResources();
+	Super::EndPlay(EndPlayReason);
+}
+#pragma endregion
+
 #pragma region ReplicationCallback
 void UTSInventoryMasterComponent::OnRep_HotkeyInventory()
 {
@@ -201,9 +209,11 @@ void UTSInventoryMasterComponent::ServerActivateHotkeySlot_Implementation(int32 
 	{
 		return;
 	}
-
+	
+	// 슬롯 변경 시 예약된 소모품 Ability Trigger 취소
+	ClearConsumableAbilityResources();
+	
 	ActiveHotkeyIndex = SlotIndex;
-
 	HandleActiveHotkeyIndexChanged();
 }
 
@@ -518,9 +528,16 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 	//============================================================
 	if (ItemInfo.Category == EItemCategory::CONSUMABLE)
 	{
+		//=======================================================================
+		// 1. 기존 리소스 정리
+		//=======================================================================
+		ClearConsumableAbilityResources();
+		
+		//=======================================================================
+		// 3. 몽타주 재생 (Multicast)
+		//=======================================================================
 		bool bMontageStarted = false;
 		
-		// 몽타주 재생 (Multicast)
 		if (ItemInfo.ConsumableData.ConsumptionMontage.IsValid())
 		{
 			UAnimMontage* Montage = ItemInfo.ConsumableData.ConsumptionMontage.LoadSynchronous();
@@ -535,6 +552,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 					// 서버 시간을 함께 전달
 					Character->Multicast_PlayConsumeMontage(Montage, 1.0f, ServerStartTime);
 					bMontageStarted = true;
+					
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 					UE_LOG(LogInventoryComp, Log,
 						TEXT("[Server] 소모품 몽타주 Multicast 호출: %s (StartTime=%.2f)"),
@@ -544,7 +562,7 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 			}
 		}
 		
-		// 몽타주가 있는데 재생 실패하면 Ability 발동 중단
+		// 몽타주 재생 실패 시 중단
 		if (ItemInfo.ConsumableData.ConsumptionMontage.IsValid() && !bMontageStarted)
 		{
 			UE_LOG(LogTemp, Error,
@@ -553,61 +571,10 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 			return;
 		}
 		
-		// 어빌리티 발동 (서버에서만)
-		if (ItemInfo.AbilityBP)
-		{
-			FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
-			FGameplayAbilitySpecHandle SpecHandle = ASC->GiveAbility(Spec);
-			
-			if (SpecHandle.IsValid())
-			{
-				/*
-					여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
-					아이템 Ability를 Add한 직후 곧바로 이벤트 트리거 시도하면 실패해서, 다음 틱에서 트리거하기 위한 구조
-					
-					원래는 GiveAbility 후 즉시 TriggerAbilityFromGameplayEvent하려 했으나,
-					다음 틱(0.01초 뒤)에 TriggerAbilityFromGameplayEvent를 호출.
-					
-					GiveAbility → TriggerAbilityFromGameplayEvent를 같은 틱에서 호출하면,
-					
-					- 문제 1:
-					ASC가 Ability를 아직 InternalList에 제대로 등록하지 않아 실패할 수 있음.
-					부여 직후 즉시 Trigger하면 Activation 실패 가능
-					
-					- 문제 2:
-					AbilityActorInfo 갱신 시점 문제
-					AbilityActorInfo가 업데이트되기 전에 Trigger하면,
-					SpecHandle이 유효하지 않거나 Ability가 검색되지 않는 이슈 발생.
-					
-					따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
-				*/
-				
-				// EventData 전달
-				FGameplayEventData EventData;
-				EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
-				EventData.EventMagnitude = static_cast<float>(SlotIndex);
-				EventData.Instigator = ASC->GetOwner();
-				EventData.Target = ASC->GetOwner();
-				
-				// 다음 틱에서 트리거
-				FTimerHandle TimerHandle;
-				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [ASC, SpecHandle, EventData]()
-				{
-					ASC->TriggerAbilityFromGameplayEvent(
-						SpecHandle, ASC->AbilityActorInfo.Get(),
-						ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
-				}, 0.01f, false);
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-				UE_LOG(LogTemp, Log, TEXT("[Server] 소모품 어빌리티 발동: ID=%d"), Slot.ItemData.StaticDataID);
-#endif
-			}
-			else
-			{
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-				UE_LOG(LogTemp, Log, TEXT("아이템 어빌리티 활성화 실패: ID=%d"), Slot.ItemData.StaticDataID);
-#endif
-			}
-		}
+		//=======================================================================
+		// 3. 어빌리티 발동
+		//=======================================================================
+		GrantAndScheduleConsumableAbility(ItemInfo, SlotIndex, ASC);
 		
 		// 여기서 return (아이템 소비는 어빌리티에서 처리)
 		return;
@@ -2740,5 +2707,152 @@ void UTSInventoryMasterComponent::TryRegisterEventListeners()
 	{
 		GetWorld()->GetTimerManager().ClearTimer(ASCCheckTimerHandle);
 	}
+}
+#pragma endregion
+
+#pragma region ClearConsumableAbilityResources
+void UTSInventoryMasterComponent::ClearConsumableAbilityResources()
+{
+	// Timer 정리
+	if (ConsumableAbilityTriggerTimer.IsValid())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(ConsumableAbilityTriggerTimer);
+		}
+		ConsumableAbilityTriggerTimer.Invalidate();
+	}
+	
+	// Ability Spec 제거
+	if (ActiveConsumableAbilityHandle.IsValid())
+	{
+		if (UAbilitySystemComponent* ASC = GetASC())
+		{
+			FGameplayAbilitySpec* ExistingSpec = ASC->FindAbilitySpecFromHandle(
+				ActiveConsumableAbilityHandle);
+			
+			if (ExistingSpec)
+			{
+				if (ExistingSpec->IsActive())
+				{
+					ASC->CancelAbilityHandle(ActiveConsumableAbilityHandle);
+				}
+				ASC->ClearAbility(ActiveConsumableAbilityHandle);
+			}
+		}
+		ActiveConsumableAbilityHandle = FGameplayAbilitySpecHandle();
+	}
+}
+#pragma endregion
+
+#pragma region GrantAndScheduleConsumableAbility
+bool UTSInventoryMasterComponent::GrantAndScheduleConsumableAbility(
+	const FItemData& ItemInfo,
+	int32 SlotIndex,
+	UAbilitySystemComponent* ASC)
+{
+	if (!ItemInfo.AbilityBP)
+	{
+		return false;
+	}
+	
+	FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
+	FGameplayAbilitySpecHandle SpecHandle = ASC->GiveAbility(Spec);
+	
+	if (!SpecHandle.IsValid())
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTemp, Log, TEXT("아이템 어빌리티 활성화 실패: ID=%d"), ItemInfo.ItemID);
+#endif 
+		return false;
+	}
+	
+	/*
+		여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
+		아이템 Ability를 Add한 직후 곧바로 이벤트 트리거 시도하면 실패해서, 다음 틱에서 트리거하기 위한 구조
+		
+		원래는 GiveAbility 후 즉시 TriggerAbilityFromGameplayEvent하려 했으나,
+		다음 틱(0.01초 뒤)에 TriggerAbilityFromGameplayEvent를 호출.
+		
+		GiveAbility → TriggerAbilityFromGameplayEvent를 같은 틱에서 호출하면,
+		
+		- 문제 1:
+		ASC가 Ability를 아직 InternalList에 제대로 등록하지 않아 실패할 수 있음.
+		부여 직후 즉시 Trigger하면 Activation 실패 가능
+		
+		- 문제 2:
+		AbilityActorInfo 갱신 시점 문제
+		AbilityActorInfo가 업데이트되기 전에 Trigger하면,
+		SpecHandle이 유효하지 않거나 Ability가 검색되지 않는 이슈 발생.
+		
+		따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
+	*/
+	
+	// 새로운 SpecHandle 저장
+	ActiveConsumableAbilityHandle = SpecHandle;
+	
+	// EventData 전달
+	FGameplayEventData EventData;
+	EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
+	EventData.EventMagnitude = static_cast<float>(SlotIndex);
+	EventData.Instigator = ASC->GetOwner();
+	EventData.Target = ASC->GetOwner();
+	
+	// TWeakObjectPtr로 안전하게 캡처
+	TWeakObjectPtr<UTSInventoryMasterComponent> WeakThis(this);
+	TWeakObjectPtr<UAbilitySystemComponent> WeakASC(ASC);
+	
+	// 다음 틱에서 트리거, Timer Handle을 멤버 변수로 관리
+	GetWorld()->GetTimerManager().SetTimer(
+		ConsumableAbilityTriggerTimer,
+		[WeakThis, WeakASC, SpecHandle, EventData]()
+		{
+			// 컴포넌트 유효성 체크
+			if (!WeakThis.IsValid())
+			{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogInventoryComp, Warning, TEXT("Ability Trigger 취소: 컴포넌트가 파괴됨"));
+#endif 
+				return;
+			}
+			
+			// ASC 유효성 체크
+			if (!WeakASC.IsValid())
+			{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogInventoryComp, Warning, TEXT("Ability Trigger 취소: ASC가 파괴됨"));
+#endif
+				return;
+			}
+			
+			UTSInventoryMasterComponent* This = WeakThis.Get();
+			UAbilitySystemComponent* ASC = WeakASC.Get();
+			
+			// SpecHandle 재검증
+			if (This->ActiveConsumableAbilityHandle == SpecHandle
+				&& This->ActiveConsumableAbilityHandle.IsValid())
+			{
+				ASC->TriggerAbilityFromGameplayEvent(
+					SpecHandle, ASC->AbilityActorInfo.Get(),
+					ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
+				
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogInventoryComp, Log, TEXT("Ability Trigger 실행"));
+#endif
+			}
+			else
+			{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogInventoryComp, Warning,
+					TEXT("Ability Trigger 취소됨 (이미 새로운 Ability로 대체됨)"));
+#endif
+			}
+		},0.01f, false);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogTemp, Log, TEXT("[Server] 소모품 어빌리티 발동: ID=%d"), ItemInfo.ItemID);
+#endif
+	
+	return true;
 }
 #pragma endregion
