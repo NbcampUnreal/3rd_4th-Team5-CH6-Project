@@ -32,6 +32,15 @@ void ATSCampfire::BeginPlay()
 	GetWorldTimerManager().SetTimer(LifeTimeTimerHandle, this, &ATSCampfire::OnLifeTimeExpired, LifeTime, false);
 }
 
+void ATSCampfire::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (LifeTimeTimerHandle.IsValid())
+	{
+		GetWorldTimerManager().ClearTimer(LifeTimeTimerHandle);
+	}
+	Super::EndPlay(EndPlayReason);
+}
+
 void ATSCampfire::OnLifeTimeExpired()
 {
 	if (FireEffect)
@@ -40,4 +49,3 @@ void ATSCampfire::OnLifeTimeExpired()
 	}
 	Destroy();
 }
-
