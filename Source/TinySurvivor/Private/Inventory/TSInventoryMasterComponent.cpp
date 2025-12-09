@@ -538,10 +538,10 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		FGameplayTagContainer CancelTags;
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_WASD);
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_Sprint);
-		CancelTags.AddTag(AbilityTags::TAG_State_Move_Crouch);
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_Roll);
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_Jump);
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_Climb);
+		//CancelTags.AddTag(AbilityTags::TAG_State_Move_Crouch);
 		// TODO: 피격 태그 추가
 		// CancelTags.AddTag(AbilityTags::TAG_State_Combat_Hit); // 예상
 		
