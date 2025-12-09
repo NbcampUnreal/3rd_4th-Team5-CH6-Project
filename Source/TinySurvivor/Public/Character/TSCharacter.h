@@ -19,6 +19,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class UTSPlayerInputDataAsset;
 class UInputAction;
+class AErosionLightSourceSubActor;
 
 UCLASS()
 class TINYSURVIVOR_API ATSCharacter : public ACharacter , public IAbilitySystemInterface
@@ -177,6 +178,13 @@ public:
 	TSubclassOf<UGameplayEffect> DownedEffectClass; // 기절 시 DownedHealth 1초당 -5씩 깎는 GE
 
 #pragma endregion
+#pragma region Sanity
+	
+	FTimerHandle LightCheckTimerHandle;
+	UFUNCTION()
+	void CheckInLightSource();
+	
+#pragma endregion
 protected:
 	virtual void BeginPlay() override;
 
@@ -201,6 +209,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> TempColdEffectClass; // 추위 상태이상 -> 속도 * 0.5 
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> LightEffectClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
+	TSubclassOf<UGameplayEffect> DarkEffectClass;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> FallDamageEffectClass; // 낙하데미지 GE
