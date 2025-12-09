@@ -28,6 +28,7 @@
 #include "System/ResourceControl/TSResourceItemInterface.h"
 #include "Components/CapsuleComponent.h"
 #include "UI/TSPlayerUIDataControllerSystem.h"
+#include "GameState/TSGameState.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -401,6 +402,14 @@ void ATSCharacter::BecomeDowned()
 	}
 	// 4. 클라이언트 애니메이션 동기화
 	bIsDownedState = true;
+	
+	if (HasAuthority())
+	{
+		if (ATSGameState* GS = GetWorld()->GetGameState<ATSGameState>())
+		{
+			GS->CheckGameOver();
+		}
+	}
 }
 
 bool ATSCharacter::IsDowned() const
@@ -435,6 +444,14 @@ void ATSCharacter::Die()
 	}
 	// 4. 서버에서도 Ragdoll 물리 적용
 	OnRep_IsDeadState();
+	
+	if (HasAuthority())
+	{
+		if (ATSGameState* GS = GetWorld()->GetGameState<ATSGameState>())
+		{
+			GS->CheckGameOver();
+		}
+	}
 }
 
 bool ATSCharacter::IsDead() const
