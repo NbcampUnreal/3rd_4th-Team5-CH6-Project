@@ -60,6 +60,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	// ========================================
@@ -350,6 +351,30 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
 	TSubclassOf<UGameplayEffect> ArmorEffectStatEffectClass; // GE_ArmorEffectStats_Base
+#pragma endregion
+	
+#pragma region ConsumableAbility
+private:
+	// 현재 활성화된 소모품 Ability의 SpecHandle
+	FGameplayAbilitySpecHandle ActiveConsumableAbilityHandle;
+	
+	// Timer 취소용 핸들
+	FTimerHandle ConsumableAbilityTriggerTimer;
+	
+	// 소모품 Ability 관련 리소스 정리
+	void ClearConsumableAbilityResources();
+	
+	/*
+		소모품 Ability를 부여하고 Trigger 예약
+		@param ItemInfo 아이템 정보
+		@param SlotIndex 슬롯 인덱스
+		@param ASC AbilitySystemComponent
+		@return 성공 여부
+	*/
+	bool GrantAndScheduleConsumableAbility(
+		const FItemData& ItemInfo, 
+		int32 SlotIndex, 
+		UAbilitySystemComponent* ASC);
 #pragma endregion
 	
 private:
