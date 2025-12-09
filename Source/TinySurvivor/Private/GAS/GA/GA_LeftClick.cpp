@@ -7,6 +7,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GameplayTags/AbilityGameplayTags.h"
+#include "Item/TSInteractionActorBase.h"
 
 UGA_LeftClick::UGA_LeftClick()
 {
@@ -205,11 +206,16 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 				continue;
 			}
 			
-			if (ItemAnimType == EItemAnimType::HAMMER)
+			ATSInteractionActorBase* InteractionActorBase = Cast<ATSInteractionActorBase>(HitActor);
+			float DamageAmount = (float)ATK;
+			if (InteractionActorBase)
 			{
-				// 빌딩 뿌셔!
+				if (ItemAnimType == EItemAnimType::HAMMER)
+				{
+					InteractionActorBase->DamageDurability(ASC,DamageAmount);
+					UE_LOG(LogTemp, Log, TEXT("Hammer Hit "));
+				}
 				
-				UE_LOG(LogTemp, Log, TEXT("Hammer Hit "));
 			}
 			
 			ITSResourceItemInterface* ResourceInterface = Cast<ITSResourceItemInterface>(HitActor);
