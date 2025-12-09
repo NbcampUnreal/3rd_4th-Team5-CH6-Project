@@ -29,6 +29,7 @@
 #include "Components/CapsuleComponent.h"
 #include "UI/TSPlayerUIDataControllerSystem.h"
 #include "GameState/TSGameState.h"
+#include "System/Erosion/ErosionLightSourceSubActor.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -154,6 +155,31 @@ void ATSCharacter::PossessedBy(AController* NewController)
 			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
+	if (LightEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(LightEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	if (DarkEffectClass)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DarkEffectClass, 1, ContextHandle);
+            
+		if (SpecHandle.IsValid())
+		{
+			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+	
+	// 빛 탐지를 위한 0.1초 타이머 시작
+	GetWorld()->GetTimerManager().SetTimer(LightCheckTimerHandle,this,&ATSCharacter::CheckInLightSource,0.1f,true);
 	
 	//테스트 코드 GE_TempHot,GE_TempCold 잘 되는지 테스트 하는 용도
 	// 이 GE는 추후 삭제 예정 (체온 원하는 값으로 override 할 수 있는 GE)
@@ -699,6 +725,47 @@ void ATSCharacter::OnRep_IsRescuing()
 	} else
 	{
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
+}
+
+void ATSCharacter::CheckInLightSource()
+{
+	// 빛구역인지 확인하자
+	TArray<AActor*> LightActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(),AErosionLightSourceSubActor::StaticClass(), LightActors);
+	const FGameplayTag InLightTag = AbilityTags::TAG_State_Status_InLightSourceRange;
+	if (LightActors.Num() == 0)
+	{
+		if (ASC->HasMatchingGameplayTag(InLightTag)) //주변에 빛 액터 없는데 라이트 태그 갖고있으면 없애기
+		{
+			ASC->RemoveLooseGameplayTag(InLightTag);
+		}
+		return;
+	}
+	
+	float NearestDistance = 0.0f;
+	
+	AActor* NearestActor = UGameplayStatics::FindNearestActor(GetActorLocation(),LightActors,NearestDistance);
+	
+	AErosionLightSourceSubActor* NearestLight = Cast<AErosionLightSourceSubActor>(NearestActor);
+	
+	const float LightRange = 5000.0f; // 50 미터?
+	
+	if (NearestLight && NearestDistance <= LightRange)
+	{
+		// 빛도 있고 가까우면
+		// 이건 빛구역이다 -> 태그 넣기
+		if (!ASC -> HasMatchingGameplayTag(InLightTag))
+		{
+			ASC->AddLooseGameplayTag(InLightTag);
+		}
+	} else
+	{
+		// 어둠 구역이니까 라이트 태그 떼기
+		if (ASC->HasMatchingGameplayTag(InLightTag))
+		{
+			ASC->RemoveLooseGameplayTag(InLightTag);
+		}
 	}
 }
 
