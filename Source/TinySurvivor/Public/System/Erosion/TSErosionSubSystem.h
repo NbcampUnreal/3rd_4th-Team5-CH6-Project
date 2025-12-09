@@ -63,6 +63,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Erosion | API")
 	static UTSErosionSubSystem* GetErosionSubSystem(const UObject* WorldContextObject);
 	
+	// 게터: 현재 침식도
+	UFUNCTION(BlueprintPure, Category="Erosion | API")
+	float GetCurrentErosion() const { return CurrentErosion; }
+	
 	// 즉시 가감 API  : 외부 이벤트 입력 (즉시 침식도 변경 : ex몬스터 처치 시에 활용)
 	UFUNCTION(BlueprintCallable, Category="Erosion | API")
 	void AddOrSubtractErosion(float AddOrSubtract); // (+/-)

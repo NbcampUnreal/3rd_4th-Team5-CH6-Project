@@ -3,6 +3,7 @@
 #include "System/Erosion/ErosionLightSourceComponent.h"
 #include "System/Erosion/TSErosionSubsystem.h"
 #include "Engine/World.h"
+#include "Item/Data/BuildingData.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "System/Erosion/ErosionLightSourceInterface.h"
 
@@ -28,9 +29,8 @@ void UErosionLightSourceComponent::BeginPlay()
 		{
 			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("침식도 매니저 찾음."));
 		}
-	
-		// 매니저의 이벤트 구독 (1초마다 침식도 증가)
-		ErosionSubSystem->OnErosionLightSourceSubDelegate.AddDynamic(this, &UErosionLightSourceComponent::ReceiveErosionCheckTime);
+		// // 매니저의 이벤트 구독 (1초마다 침식도 증가)
+		// ErosionSubSystem->OnErosionLightSourceSubDelegate.AddDynamic(this, &UErosionLightSourceComponent::ReceiveErosionCheckTime);
 	}
 }
 
@@ -45,7 +45,7 @@ void UErosionLightSourceComponent::EndPlay(const EEndPlayReason::Type EndPlayRea
 	ErosionSubSystem->OnErosionLightSourceSubDelegate.RemoveAll(this);
 }
 
-void UErosionLightSourceComponent::InitializeFromBuildingData()
+void UErosionLightSourceComponent::InitializeFromBuildingData(const FBuildingData& BuildingData)
 {
 	// 건축물에서 정적 데이터 받아야 한다.
 	// 받아와야 하는 것
@@ -57,6 +57,7 @@ void UErosionLightSourceComponent::InitializeFromBuildingData()
 	// 1. 아이템 (== 건축물)이 자신에게 붙은 라이트 소스 컴포넌트에게 직접 이 함수릃 호출.
 	// 2. 아이템 (== 건축물)로부터 이 컴포넌트가 건축물이 라이트인지 물어서 라이트이면 데이터를 가져온다.
 	// 2번의 경우 그렇다면 언제 그걸 호출할 건지에 대한 타이밍 문제가 있음.
+	MaintenanceEffectValue = BuildingData.ErosionReduction * -1;
 }
 
 bool UErosionLightSourceComponent::UpdateActiveFlag()
@@ -97,7 +98,7 @@ void UErosionLightSourceComponent::ReceiveErosionCheckTime()
 		IErosionLightSourceInterface::Execute_SetErosionLightSource(GetOwner(), false);
 		return;
 	}
-
+	/*
 	// 1초씩 누적
 	AccumulatedTime += 1.0f;
 
@@ -107,6 +108,7 @@ void UErosionLightSourceComponent::ReceiveErosionCheckTime()
 		AccumulatedTime = 0.0f;
 		OnIntervalTriggered();
 	}
+	*/
 
 	if (bShowDebug) UE_LOG(ErosionManager, Log, TEXT("가로등 : 1초 타이머 수신 받음"));
 }

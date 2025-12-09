@@ -2,15 +2,27 @@
 
 #include "System/Erosion/ErosionLightSourceSubActor.h"
 #include "Components/PointLightComponent.h"
+#include "Item/Data/BuildingData.h"
 #include "Net/UnrealNetwork.h"
 #include "System/Erosion/ErosionLightSourceComponent.h"
 #include "System/Erosion/TSErosionSubSystem.h"
-
+void AErosionLightSourceSubActor::InitializeFromBuildingData(const FBuildingData& BuildingInfo,
+	const int32 StaticDataID)
+{
+	Super::InitializeFromBuildingData(BuildingInfo, StaticDataID);
+	if (HasAuthority())
+	{
+		LightRadius = BuildingInfo.LightRadius_Units;
+		ErosionLightSourceComponent->InitializeFromBuildingData(BuildingInfo);
+	}
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	// ===============================
 	// UErosionLightSourceComponent 라이프 사이클
 	// ===============================
+
+
 
 AErosionLightSourceSubActor::AErosionLightSourceSubActor()
 {
@@ -31,8 +43,9 @@ AErosionLightSourceSubActor::AErosionLightSourceSubActor()
 	}
 	else
 	{
-		StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
-		StaticMeshComponent->SetupAttachment(GetRootComponent());
+		MeshComponent->SetupAttachment(GetRootComponent());
+		// MeshComponent = CreateDefaultSubobject<UMeshComponent>(TEXT("MeshComponent"));
+		// MeshComponent->SetupAttachment(GetRootComponent());
 	}
 }
 
@@ -41,6 +54,7 @@ void AErosionLightSourceSubActor::GetLifetimeReplicatedProps(TArray<class FLifet
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION_NOTIFY(AErosionLightSourceSubActor, LightScale, COND_None, REPNOTIFY_Always)
+	DOREPLIFETIME(AErosionLightSourceSubActor, LightRadius);
 }
 
 void AErosionLightSourceSubActor::BeginPlay()
@@ -62,6 +76,9 @@ void AErosionLightSourceSubActor::BeginPlay()
 	
 		// 매니저의 침식도 스테이지 이벤트 구독
 		ErosionSubSystem->OnErosionChangedDelegate.AddDynamic(this, &AErosionLightSourceSubActor::ChangeLightScaleByErosion);
+		// 침식도 감소 브로드캐스트: 런타임 중 컴포넌트 Beginplay 호출 타이밍이 안맞아서 여기에서 호출함
+		ErosionLightSourceComponent->OnIntervalTriggered();
+		ChangeLightScaleByErosion(ErosionSubSystem->GetCurrentErosion());
 	}
 }
 
@@ -121,14 +138,14 @@ void AErosionLightSourceSubActor::SetLightScale(float scale)
 	}
 	else
 	{
-		int32 MatIndex = StaticMeshComponent->GetMaterialIndex("Light");
+		int32 MatIndex = MeshComponent->GetMaterialIndex("Light");
 		if (MatIndex == INDEX_NONE)
 		{
 			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인덱스 찾지 못함"));
 			return;
 		}
 		
-		UMaterialInterface* BaseMat = StaticMeshComponent->GetMaterial(MatIndex);
+		UMaterialInterface* BaseMat = MeshComponent->GetMaterial(MatIndex);
 		if (!BaseMat)
 		{
 			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("호스트 : 머티리얼 인터페이스 찾지 못함"));
@@ -138,7 +155,7 @@ void AErosionLightSourceSubActor::SetLightScale(float scale)
 		if (!LightMID)
 		{
 			LightMID = UMaterialInstanceDynamic::Create(BaseMat, this);
-			StaticMeshComponent->SetMaterial(MatIndex, LightMID);
+			MeshComponent->SetMaterial(MatIndex, LightMID);
 		}
 
 		LightMID->SetScalarParameterValue("EmissiveIntensity", LightScale);
@@ -161,14 +178,14 @@ void AErosionLightSourceSubActor::OnRep_LightScale()
 	}
 	else
 	{
-		int32 MatIndex = StaticMeshComponent->GetMaterialIndex("Light");
+		int32 MatIndex = MeshComponent->GetMaterialIndex("Light");
 		if (MatIndex == INDEX_NONE)
 		{
 			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인덱스 찾지 못함"));
 			return;
 		}
 		
-		UMaterialInterface* BaseMat = StaticMeshComponent->GetMaterial(MatIndex);
+		UMaterialInterface* BaseMat = MeshComponent->GetMaterial(MatIndex);
 		if (!BaseMat)
 		{
 			if (bShowDebug) UE_LOG(ErosionManager, Warning, TEXT("클라이언트 : 머티리얼 인터페이스 찾지 못함"));
@@ -178,7 +195,7 @@ void AErosionLightSourceSubActor::OnRep_LightScale()
 		if (!LightMID)
 		{
 			LightMID = UMaterialInstanceDynamic::Create(BaseMat, this);
-			StaticMeshComponent->SetMaterial(MatIndex, LightMID);
+			MeshComponent->SetMaterial(MatIndex, LightMID);
 		}
 
 		LightMID->SetScalarParameterValue("EmissiveIntensity", LightScale);
