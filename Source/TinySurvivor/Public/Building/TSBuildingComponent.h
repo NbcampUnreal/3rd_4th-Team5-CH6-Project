@@ -67,10 +67,15 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Building|Settings")
 	TEnumAsByte<ECollisionChannel> OverlapChannel = ECC_Pawn;
 
+	// 무시할 액터 캐싱
+	UPROPERTY(EditDefaultsOnly, Category = "Building|Settings")
+	TArray<AActor*> CachedIgnoredActors;
+	void GetIgnoredActors();
+	
 	// LightSource 범위 체크
 	bool IsInLightSourceRange(const FVector& Location) const;
 	float LightSourceDetectionRadius = 5000.f;
-	
+
 	// 빌딩 관련 변수
 	UPROPERTY(ReplicatedUsing = OnRep_IsBuildingMode)
 	bool bIsBuildingMode = false;
@@ -88,7 +93,7 @@ private:
 
 	// 마지막 유효한 설치 위치
 	FTransform LastTransform;
-	
+
 	// 프리뷰 메시 관련 변수
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> PreviewMeshComp;
@@ -96,8 +101,8 @@ private:
 	UMaterialInterface* PreviewMaterial;
 	UPROPERTY()
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> CachedDynamicMaterials;
-    
-	bool bLastCanPlace = false; 
+
+	bool bLastCanPlace = false;
 
 	mutable UItemDataSubsystem* CachedIDS = nullptr;
 };
