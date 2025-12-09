@@ -124,14 +124,14 @@ void ATSInteractionActorBase::InitializeFromBuildingData(const FBuildingData& Bu
 	}
 }
 
-void ATSInteractionActorBase::DamageDurability(UAbilitySystemComponent* ASC, int32 DamageAmount)
+void ATSInteractionActorBase::DamageDurability(UAbilitySystemComponent* ASC, float DamageAmount)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
 	// 내구도 업데이트
-	ItemInstance.CurrentDurability -= DamageAmount;
+	ItemInstance.CurrentDurability -= (int)DamageAmount;
 
 	// 플레이어면 공격한 아이템 내구도 업데이트
 	if (ASC->GetAvatarActor()->IsA(ATSCharacter::StaticClass()))

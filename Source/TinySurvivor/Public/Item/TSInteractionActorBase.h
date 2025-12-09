@@ -27,7 +27,7 @@ public:
 	virtual void InitializeFromBuildingData(const FBuildingData& BuildingInfo, const int32 StaticDataID);
 
 	// 액터 내구도 업데이트
-	void DamageDurability(UAbilitySystemComponent* ASC, int32 DamageAmount);
+	void DamageDurability(UAbilitySystemComponent* ASC, float DamageAmount);
 
 #pragma region IInteraction
 	virtual void ShowInteractionWidget(ATSCharacter* InstigatorCharacter) override;
