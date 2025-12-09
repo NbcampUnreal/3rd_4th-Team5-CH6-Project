@@ -10,4 +10,9 @@ class TINYSURVIVOR_API ATSGameState : public AGameState
 {
 	GENERATED_BODY()
 	
+public: 
+	void CheckGameOver();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_GameOver();
 };
