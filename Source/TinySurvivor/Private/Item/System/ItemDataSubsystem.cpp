@@ -570,6 +570,7 @@ void UItemDataSubsystem::PrintItemDebugInfo(int32 ItemID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintItemDebugInfo] ItemID %d not found in ItemDataCache."), ItemID);
 		return;
 	}
+	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for ItemID %d =========="), ItemID);
 	FoundData->PrintDebugInfo();
@@ -592,6 +593,7 @@ void UItemDataSubsystem::PrintBuildingDebugInfo(int32 BuildingID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintBuildingDebugInfo] BuildingID %d not found in BuildingDataCache."), BuildingID);
 		return;
 	}
+	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for BuildingID %d =========="), BuildingID);
 	FoundData->PrintDebugInfo();
@@ -614,6 +616,7 @@ void UItemDataSubsystem::PrintResourceDebugInfo(int32 ResourceID) const
 		UE_LOG(LogItemDataSubsystem, Warning, TEXT("[PrintResourceDebugInfo] ResourceID %d not found in ResourceDataCache."), ResourceID);
 		return;
 	}
+	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Display, TEXT("\n========== Debug Info for ResourceID %d =========="), ResourceID);
 	FoundData->PrintDebugInfo();
@@ -639,9 +642,11 @@ void UItemDataSubsystem::RefreshCache()
 	CacheBuildingData();
 	CacheResourceData();
 	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("캐시 새로고침 완료"));
 	// 새로고침 후 캐시 상태 디버그 출력
 	PrintCacheDebugInfo();
+#endif
 }
 
 void UItemDataSubsystem::RunInitializationTests()
@@ -796,6 +801,7 @@ void UItemDataSubsystem::CacheItemData()
 				RowData ? RowData->ItemID : -1);
 		}
 	}
+	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("총 %d개의 아이템 캐싱 완료"), ItemDataCache.Num());
 #endif
@@ -829,6 +835,7 @@ void UItemDataSubsystem::CacheBuildingData()
 				RowData ? RowData->BuildingID : -1);
 		}
 	}
+	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("총 %d개의 건축물 캐싱 완료"), BuildingDataCache.Num());
 #endif
@@ -862,6 +869,7 @@ void UItemDataSubsystem::CacheResourceData()
 				RowData ? RowData->ResourceID : -1);
 		}
 	}
+	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogItemDataSubsystem, Log, TEXT("총 %d개의 자원 캐싱 완료"), ResourceDataCache.Num());
 #endif

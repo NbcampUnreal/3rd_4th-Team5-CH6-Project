@@ -318,20 +318,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="ItemData|Debug")
 	void PrintResourceDebugInfo(int32 ResourceID) const;
 	
-#if WITH_EDITOR
 	/*
-		에디터 전용: 캐시 리프레시
+		캐시 리프레시
 		데이터 테이블 변경 후 에디터에서 실시간 반영용
 	*/
 	UFUNCTION(CallInEditor, Category="ItemData|Editor")
 	void RefreshCache();
 	
 	/*
-		에디터 전용: 초기화 후 자동 테스트
+		초기화 후 자동 테스트
 		InitializeFromAsset() 완료 후 호출됨
 	*/
 	void RunInitializationTests();
-#endif
 #pragma endregion
 
 #pragma region InternalCachingFunctions
