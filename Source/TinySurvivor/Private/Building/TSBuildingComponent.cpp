@@ -4,6 +4,7 @@
 
 #include "Engine/World.h"
 #include "CollisionQueryParams.h"
+#include "AI/Gaint/System/GiantSwitchingResourceArea.h"
 #include "Building/System/BuildingRecipeDataSubsystem.h"
 #include "GameFramework/Pawn.h"
 #include "Inventory/TSInventoryMasterComponent.h"
@@ -134,10 +135,6 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 	// 프리뷰 메시 컴포넌트 생성
 	PreviewMeshComp = NewObject<UStaticMeshComponent>(GetOwner());
 	PreviewMeshComp->RegisterComponent();
-	// PreviewMeshComp->AttachToComponent(
-	// 	GetOwner()->GetRootComponent(),
-	// 	FAttachmentTransformRules::KeepRelativeTransform
-	// );
 
 	// 플레이어 앞쪽에 초기 배치
 	FVector ForwardLocation = GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.f;
@@ -233,7 +230,7 @@ FHitResult UTSBuildingComponent::BuildingLineTrace()
 
 	// 2D 스크린 좌표를 3D 월드 좌표로 변환
 	bool DeprojectScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
-		GetWorld()->GetFirstPlayerController(), ViewportCenter, TraceStart, Forward);
+		PC, ViewportCenter, TraceStart, Forward);
 	if (!DeprojectScreenToWorld)
 	{
 		return FHitResult();
@@ -241,9 +238,16 @@ FHitResult UTSBuildingComponent::BuildingLineTrace()
 
 	FVector TraceEnd = TraceStart + Forward * BuildingRange;
 
-	// 충돌 무시 설정 (플레이어 자신 무시)
+	// 충돌 무시 설정
+	if (CachedIgnoredActors.IsEmpty())
+	{
+		GetIgnoredActors();
+	}
 	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
+	for (const auto& IgnoredActor : CachedIgnoredActors)
+	{
+		QueryParams.AddIgnoredActor(IgnoredActor);
+	}
 
 	FHitResult HitResult;
 	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_GameTraceChannel3, QueryParams);
@@ -501,6 +505,15 @@ bool UTSBuildingComponent::CheckOverlap(const FVector& Location, const FVector& 
 		}
 	}
 	return true;
+}
+
+void UTSBuildingComponent::GetIgnoredActors()
+{
+	CachedIgnoredActors.Empty();
+	// 플레이어 자신 무시
+	CachedIgnoredActors.Add(GetOwner());
+	// GiantSwitchResourceArea 무시
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AGiantSwitchingResourceArea::StaticClass(), CachedIgnoredActors);
 }
 
 bool UTSBuildingComponent::IsInLightSourceRange(const FVector& Location) const

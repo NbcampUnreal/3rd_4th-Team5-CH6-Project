@@ -9,7 +9,6 @@
 #include "ErosionLightSourceSubActor.generated.h"
 
 class UErosionLightSourceComponent;
-class UPointLightComponent;
 
 USTRUCT(BlueprintType)
 struct FLightScaleStep
@@ -101,21 +100,9 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_LightScale)
 	float LightScale = 1.0f;
 
-	// 포인트 라이트 사용 변수
+	// 침식도에 따라 빛 조절 여부
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")
-	bool bUsePointLight = false;
-	
-	// 포인트 라이트 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
-	TObjectPtr<UPointLightComponent> PointLightComponent;
-
-	// 밝기 조절 단계 (포인트 라이트)
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")
-	FLightScaleStep LightScaleStep;
-	
-	// 스태틱 메쉬(라이트 미사용 시)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ErosionLightSource")
-	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
+	bool bSetLightScaleByErosion = true;
 	
 	// 밝기 조절 단계 (스태틱 메쉬 머티리얼)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ErosionLightSource")

@@ -169,6 +169,10 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 		return;
 	}
 
+	// 액터 앞에 드랍
+	FTransform DropTransform = FTransform(
+		GetOwner()->GetActorTransform().GetRotation(),
+		GetOwner()->GetActorTransform().TransformPosition(FVector(100,0,0)));
 	int32 DropQuantity = (Quantity <= 0) ? Slot.CurrentStackSize : FMath::Min(Quantity, Slot.CurrentStackSize);
 	UE_LOG(LogInventoryComp, Log, TEXT("Dropping item: ID=%d x%d, Durability=%d at %s. Owner: %s"), 
 		Slot.ItemData.StaticDataID,
@@ -185,7 +189,7 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 		
 		// TempSlot.ItemData에 내구도 포함됨
 		// WorldItemActor가 이 데이터를 보존해야 함
-		IPS->DropItem(TempSlot, GetOwner()->GetTransform(), GetOwner()->GetActorLocation());
+		IPS->DropItem(TempSlot, DropTransform, GetOwner()->GetActorLocation());
 	}
 
 	Slot.CurrentStackSize -= DropQuantity;
