@@ -1,7 +1,6 @@
 // MonsterSpawnSubsystem.cpp
 
 #include "AI/Common/Spawn/MonsterSpawnSubsystem.h"
-
 #include "AI/Common/Spawn/MonsterSpawnConfig.h"
 #include "Engine/AssetManager.h"
 
