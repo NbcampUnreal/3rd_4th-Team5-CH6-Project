@@ -2,7 +2,6 @@
 
 #include "AI/Monster/MonsterGAS/GA_Mon_Dead.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-#include "GameFramework/Character.h"
 
 void UGA_Mon_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                    const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -11,6 +10,7 @@ void UGA_Mon_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	
 	if (!K2_CommitAbility() || !IsValid(AbilityMontage))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("GA_Mon_Dead::ActivateAbility() AbilityMontage is invalid"));
 		K2_EndAbility();
 		return;
 	}
@@ -21,12 +21,13 @@ void UGA_Mon_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 			AbilityMontage,      // 재생할 몽타주
 			1.0f,                   // 재생 속도
 			NAME_None,              // StartSectionName
-			true,                   // StopWhenAbilityEnds
+			false,                   // StopWhenAbilityEnds
 			1.0f                    // RootMotionTranslationScale
 		);
 	
 	if (!IsValid(Task))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("GA_Mon_Dead::ActivateAbility() Task is invalid"));
 		K2_EndAbility();
 		return;
 	}
