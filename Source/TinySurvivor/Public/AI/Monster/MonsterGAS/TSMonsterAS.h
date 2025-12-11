@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemComponent.h"
 #include "AttributeSet.h"
-#include "AI/Common/MonsterAttributeSet.h"
 #include "TSMonsterAS.generated.h"
 
 #define ATTRIBUTE_ACCESSORS(Classname, PropertyName) \
