@@ -71,7 +71,7 @@ void ATSMonsterSpawnArea::DoSpawnWhenDetectedPlayer(UPrimitiveComponent* Overlap
 
 	UTSMonsterSpawnSystem* SpawnSystem = UTSMonsterSpawnSystem::Get(GetWorld());
 	if (!IsValid(SpawnSystem)) return;
-	SpawnSystem->RequestMonsterSpawn(SpawnTransform, SpawnMonsterTag);
+	SpawnSystem->RequestMonsterSpawn(SpawnTransform, SpawnMonsterTag, OtherActor);
 }
 
 

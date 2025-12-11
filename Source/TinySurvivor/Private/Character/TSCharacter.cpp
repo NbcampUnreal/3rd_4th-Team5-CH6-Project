@@ -377,6 +377,9 @@ void ATSCharacter::InitializeAbilities()
 	
 	// 자원
 	GiveByTag(InteractTag::INTERACTTAG_RESOURCE_STARTINTERACT.GetTag());
+	
+	// Hit 나중에 네이티브로 바꾸셈
+	GiveByTag(FGameplayTag::RequestGameplayTag(FName("Ability.Hit")));
 }
 
 void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

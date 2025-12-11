@@ -19,12 +19,15 @@ class TINYSURVIVOR_API UTSMonsterAS : public UAttributeSet
 {
 	GENERATED_BODY()
 	
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData& Data) override;
+public:
+	UTSMonsterAS();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
 	ATTRIBUTE_ACCESSORS(UTSMonsterAS, Health);
 	ATTRIBUTE_ACCESSORS(UTSMonsterAS, MaxHealth);
 	ATTRIBUTE_ACCESSORS(UTSMonsterAS, AttackDamage);
+	ATTRIBUTE_ACCESSORS(UTSMonsterAS, MonsterSpeed);
 	
 protected:
 	
@@ -40,6 +43,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Stats", ReplicatedUsing = OnRep_AttackDamage)
 	FGameplayAttributeData AttackDamage;
 	
+	// 스피드
+	UPROPERTY(BlueprintReadOnly, Category = "Stats", ReplicatedUsing = OnRep_MonsterSpeed)
+	FGameplayAttributeData MonsterSpeed;
+	
 	UFUNCTION()
 	void OnRep_Health(const FGameplayAttributeData& OldHealth);
 	
@@ -48,5 +55,9 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_AttackDamage(const FGameplayAttributeData& OldAttackDamage);
+	
+	UFUNCTION()
+	void OnRep_MonsterSpeed(const FGameplayAttributeData& OldMonsterSpeed);
+	
 	
 };

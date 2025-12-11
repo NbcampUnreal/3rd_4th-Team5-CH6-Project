@@ -43,12 +43,12 @@ public:
 	//--------------------------------------
 	
 public:
-	// 특정 몬스터 스폰 요청 API (BP)
+	// 몬스터 스폰 요청 API (BP)
 	UFUNCTION(BlueprintCallable)
-	bool RequestSpawnMonsterWithBP(FTransform SpawnParms, FGameplayTag MonsterTag);
+	bool RequestSpawnMonsterWithBP(FTransform SpawnParms, FGameplayTag MonsterTag, AActor* Instigator);
 	
-	// 월드 드랍 아이템 스폰 요청 API (C++)
-	bool RequestMonsterSpawn(FTransform& SpawnParms, FGameplayTag& MonsterTag);
+	// 몬스터 스폰 요청 API (C++)
+	bool RequestMonsterSpawn(FTransform& SpawnParms, FGameplayTag& MonsterTag, AActor* Instigator);
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 	

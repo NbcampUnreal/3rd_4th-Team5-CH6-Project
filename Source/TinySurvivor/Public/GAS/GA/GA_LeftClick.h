@@ -76,4 +76,8 @@ protected:
 
 private:
 	void BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAnimType, int32& ATK);
+	
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability| Monster")
+	FGameplayTag ToSendMonsterAttackTag = FGameplayTag::EmptyTag;
 };
