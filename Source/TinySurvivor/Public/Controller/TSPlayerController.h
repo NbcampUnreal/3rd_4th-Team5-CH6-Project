@@ -103,6 +103,12 @@ public:
 	UFUNCTION(Client, Reliable)
 	void Client_ReceiveItemChunk(const TArray<FSlotStructMaster>& ChunkData, const TArray<FTransform>& ChunkTransforms);
 
+	
+	void ShowDownedUI();
+	void HideDownedUI();
+	
+	void ShowGameOverUI();
+	void HideGameOverUI();
 protected:
 	//~=============================================================================
 	// Lifecycle Overrides
@@ -124,6 +130,21 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
 	UUserWidget* HUDWidget;
 
+	/** 기절 시 표시할 Downed 위젯 클래스 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> DownedWidgetClass;
+	
+	/** 생성된 Downed 위젯 인스턴스*/
+	UPROPERTY(BlueprintReadOnly, Category = "UI")
+	UUserWidget* DownedWidget;
+	
+	/** GameOver 시 표시할 위젯 클래스 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> GameOverWidgetClass;
+	
+	/** 생성된 GameOver 위젯 인스턴스*/
+	UPROPERTY(BlueprintReadOnly, Category = "UI")
+	UUserWidget* GameOverWidget;
 	//~=============================================================================
 	// Container Management
 	//~=============================================================================

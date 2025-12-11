@@ -1,6 +1,7 @@
 #include "GameState/TSGameState.h"
 #include "GameFramework/PlayerState.h"
 #include "Character/TSCharacter.h"
+#include "Controller/TSPlayerController.h"
 #include "Engine/Engine.h"
 
 void ATSGameState::CheckGameOver()
@@ -30,29 +31,24 @@ void ATSGameState::CheckGameOver()
 	}
 	if (!bIsAnyoneAlive)
 	{
-		UE_LOG(LogTemp,Warning,TEXT(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"));
-		UE_LOG(LogTemp,Warning,TEXT(" @@@@@@@@@@@@@@@@@@@@@@@@ GAME OVER @@@@@@@@@@@@@@@@@@@@"));
-		UE_LOG(LogTemp,Warning,TEXT(" @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"));
 		Multicast_GameOver();
 	}
 }
 
 void ATSGameState::Multicast_GameOver_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("@@@@@@@@@GAME OVER@@@@@@@@@@@@@@@@@@@@@@@@@"));
-	//WBP 띄우기
+
 	for (FConstPlayerControllerIterator PCI = GetWorld()->GetPlayerControllerIterator(); PCI; ++PCI)
 	{
-		APlayerController* PC = PCI->Get();
+		ATSPlayerController* PC = Cast<ATSPlayerController>(PCI->Get());
 		
 		if (PC->IsLocalController())
 		{
+			PC->ShowGameOverUI();
 			FInputModeUIOnly InputMode;
 			PC->SetInputMode(InputMode);
 			
 			PC->bShowMouseCursor = true;
 		}
 	}
-	//UIOnly 써서 막기? set input mode( dd);
-	//커서 보이게 하기 bshowmousecursor=true;
 }

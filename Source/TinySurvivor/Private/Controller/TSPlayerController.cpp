@@ -515,3 +515,64 @@ void ATSPlayerController::Client_ReceiveItemChunk_Implementation(const TArray<FS
 		}
 	}
 }
+
+void ATSPlayerController::ShowDownedUI()
+{
+	if (GameOverWidget && GameOverWidget->IsInViewport())
+	{
+		HideDownedUI();
+		return;
+	} 
+	if (DownedWidget)
+	{
+		return;
+	}
+	if (!DownedWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("  DownedWidgetClass is NULL!"));
+		return;
+	}
+	DownedWidget = CreateWidget<UUserWidget>(this, DownedWidgetClass);
+
+	if (DownedWidget)
+	{
+		DownedWidget->AddToViewport();
+	}
+}
+void ATSPlayerController::HideDownedUI()
+{
+	if (DownedWidget)
+	{
+		DownedWidget->RemoveFromParent();
+		DownedWidget = nullptr;
+	}
+}
+
+void ATSPlayerController::ShowGameOverUI()
+{
+	HideDownedUI();
+	CloseAllGameUI();
+	if (GameOverWidget)
+	{
+		return;
+	}
+	if (!GameOverWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("  GameOverWidgetClass is NULL!"));
+		return;
+	}
+	GameOverWidget = CreateWidget<UUserWidget>(this, GameOverWidgetClass);
+	if (GameOverWidget)
+	{
+		GameOverWidget->AddToViewport();
+	}
+}
+
+void ATSPlayerController::HideGameOverUI()
+{
+	if (GameOverWidget)
+	{
+		GameOverWidget->RemoveFromParent();
+		GameOverWidget = nullptr;
+	}
+}
