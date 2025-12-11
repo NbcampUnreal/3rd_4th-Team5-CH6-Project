@@ -1,8 +1,9 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// GA_Hit.cpp
 
 #include "GAS/GA/GA_Hit.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 
 UGA_Hit::UGA_Hit()
 {
@@ -35,6 +36,7 @@ void UGA_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGa
         return;
     }
 
+	// 3. 데미지 이펙트 적용
     FGameplayEffectContextHandle ContextHandle = TargetASC->MakeEffectContext();
     ContextHandle.AddInstigator(AttackerActor, AttackerActor); 
     FGameplayEffectSpecHandle SpecHandle = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, ContextHandle);
@@ -48,6 +50,19 @@ void UGA_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGa
     {
 	    UE_LOG(LogTemp, Warning, TEXT("GA_Hit: Damage Fail3"));
     }
+	
+	//=======================================================================
+	// 방어구 피격 이벤트 전송 (방어구 내구도 감소용)
+	//=======================================================================
+	FGameplayEventData ArmorHitEventData;
+	ArmorHitEventData.Instigator = AttackerActor;
+	ArmorHitEventData.Target = ActorInfo->OwnerActor.Get();
+	ArmorHitEventData.EventMagnitude = IncomingDamage;
+	TargetASC->HandleGameplayEvent(AbilityTags::TAG_Event_Armor_Hit,&ArmorHitEventData);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogTemp, Log, TEXT("GA_Hit: 방어구 피격 이벤트 전송 (Damage=%.1f)"), IncomingDamage);
+#endif
 
     // -----------------------------------------------------------------------
     // 피격 몽타주 재생
