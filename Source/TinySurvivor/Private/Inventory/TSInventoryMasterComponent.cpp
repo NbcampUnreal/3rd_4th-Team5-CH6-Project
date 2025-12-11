@@ -2716,12 +2716,13 @@ void UTSInventoryMasterComponent::TryRegisterEventListeners()
 	/*
 		무기 공격 이벤트 추가
 	*/
-	FGameplayTag WeaponAttackTag = FGameplayTag::RequestGameplayTag("Event.Item.Weapon.Attack");
+	FGameplayTag WeaponAttackTag = ItemTags::TAG_Event_Item_Weapon_Attack;
 	ASC->GenericGameplayEventCallbacks.FindOrAdd(WeaponAttackTag)
 		.AddUObject(this, &UTSInventoryMasterComponent::OnWeaponAttackEvent);
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogInventoryComp, Log, TEXT("무기 공격 이벤트 리스너 등록 완료"));
 #endif
+	
 	/*
 		방어구 피격 이벤트 리스닝
 	*/
