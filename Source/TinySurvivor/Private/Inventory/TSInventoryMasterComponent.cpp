@@ -541,6 +541,11 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_Roll);
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_Jump);
 		CancelTags.AddTag(AbilityTags::TAG_State_Move_Climb);
+		CancelTags.AddTag(AbilityTags::TAG_State_Status_Attack);
+		CancelTags.AddTag(AbilityTags::TAG_State_Status_Downed);
+		CancelTags.AddTag(AbilityTags::TAG_State_Status_Dead);
+		CancelTags.AddTag(AbilityTags::TAG_State_Status_Rescuing);
+		CancelTags.AddTag(AbilityTags::TAG_State_Status_PickUpItem);
 		//CancelTags.AddTag(AbilityTags::TAG_State_Move_Crouch);
 		// TODO: 피격 태그 추가
 		// CancelTags.AddTag(AbilityTags::TAG_State_Combat_Hit); // 예상
