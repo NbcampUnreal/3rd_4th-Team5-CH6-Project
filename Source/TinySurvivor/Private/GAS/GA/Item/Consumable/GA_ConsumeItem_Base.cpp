@@ -60,8 +60,13 @@ UGA_ConsumeItem_Base::UGA_ConsumeItem_Base()
 	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Sprint);
 	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Roll);
 	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Jump);
-	//ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Crouch);
+	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Status_Attack);
+	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Status_Downed);
+	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Status_Dead);
+	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Status_Rescuing);
+	ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Status_PickUpItem);
 	//ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Combat_Hit); // 예상
+	//ActivationBlockedTags.AddTag(AbilityTags::TAG_State_Move_Crouch); // 변경: 앉음 상태는 먹을 수 있음
 	
 	// Ability 활성화에 필요한 태그
 	// ActivationRequiredTags.AddTag(...);
@@ -118,6 +123,11 @@ void UGA_ConsumeItem_Base::ActivateAbility(
 			AbilityTags::TAG_State_Move_Roll,
 			AbilityTags::TAG_State_Move_Jump,
 			AbilityTags::TAG_State_Move_Climb,
+			AbilityTags::TAG_State_Status_Attack,
+			AbilityTags::TAG_State_Status_Downed,
+			AbilityTags::TAG_State_Status_Dead,
+			AbilityTags::TAG_State_Status_Rescuing,
+			AbilityTags::TAG_State_Status_PickUpItem,
 			// TODO: 피격 태그 생성되면 추가
 			//AbilityTags::TAG_State_Combat_Hit (예상)
 		};
