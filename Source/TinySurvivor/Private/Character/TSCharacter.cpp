@@ -27,6 +27,7 @@
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "System/ResourceControl/TSResourceItemInterface.h"
 #include "Components/CapsuleComponent.h"
+#include "Footstep/FootstepComponent.h"
 #include "UI/TSPlayerUIDataControllerSystem.h"
 #include "GameState/TSGameState.h"
 #include "System/Erosion/ErosionLightSourceSubActor.h"
@@ -57,6 +58,7 @@ ATSCharacter::ATSCharacter()
 	// 컴포넌트 생성
 	InventoryMasterComponent = CreateDefaultSubobject<UTSInventoryMasterComponent>(TEXT("InventoryComponent"));
 	BuildingComponent = CreateDefaultSubobject<UTSBuildingComponent>(TEXT("BuildingComponent"));
+	FootstepComponent = CreateDefaultSubobject<UFootstepComponent>(TEXT("FootstepComponent"));
 }
 
 UAbilitySystemComponent* ATSCharacter::GetAbilitySystemComponent() const
@@ -1249,6 +1251,11 @@ void ATSCharacter::Landed(const FHitResult& Hit)
 {
 	float FallingSpeed_Z = GetVelocity().Z;
 	Super::Landed(Hit);
+	// 착지 사운드
+	if (FootstepComponent)
+	{
+		FootstepComponent->PlayFootstepSoundFromHit(Hit);
+	}
 	if (!HasAuthority() || !ASC )
 	{
 		return;
