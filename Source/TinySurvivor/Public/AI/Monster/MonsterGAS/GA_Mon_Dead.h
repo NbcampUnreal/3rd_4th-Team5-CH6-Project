@@ -20,6 +20,13 @@ class TINYSURVIVOR_API UGA_Mon_Dead : public UGA_MonBase
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		const FGameplayEventData* TriggerEventData) override;
 	
+	virtual void EndAbility(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		bool bReplicateEndAbility, bool bWasCancelled) override;
+	
+	
 protected:
 	// 델리게이트로 받을 함수들 오버이드
 	virtual void OnMontageCompleted() override;
@@ -30,4 +37,5 @@ protected:
 
 	virtual void OnMontageBlendOut() override;
 	
+	void RequestSpawnDropItems(AActor* SpawnedMonster);
 };

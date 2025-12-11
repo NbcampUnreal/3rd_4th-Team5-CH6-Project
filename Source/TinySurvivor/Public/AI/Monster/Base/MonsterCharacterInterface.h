@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AI/Monster/TSMonsterTable.h"
 #include "UObject/Interface.h"
 #include "MonsterCharacterInterface.generated.h"
 
@@ -26,4 +27,7 @@ public:
 	virtual void ResetSpeed() = 0;
 	virtual void StopWalk() = 0;
 	virtual void RegainSpeed() = 0;
+	virtual void SetDropRootItems(FTSMonsterTable& MonsterTable) = 0;
+	virtual void RequestSpawnDropRooItems() = 0;
+	virtual void MakeTimeToDead() = 0;
 };

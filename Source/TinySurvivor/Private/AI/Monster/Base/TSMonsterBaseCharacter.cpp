@@ -3,6 +3,7 @@
 #include "AI/Monster/MonsterGAS/TSMonsterASC.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Item/LootComponent.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 	
@@ -15,7 +16,6 @@ ATSMonsterBaseCharacter::ATSMonsterBaseCharacter()
 	PrimaryActorTick.bCanEverTick = false;
 	
 	MonsterAS = CreateDefaultSubobject<UTSMonsterAS>("MonsterAS");
-	
 	MonsterASC = CreateDefaultSubobject<UTSMonsterASC>("MonsterASC");
 	MonsterASC->SetIsReplicated(true);
 	MonsterASC->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
@@ -36,6 +36,9 @@ ATSMonsterBaseCharacter::ATSMonsterBaseCharacter()
 	SetNetUpdateFrequency(60.f);
 	SetMinNetUpdateFrequency(10.f);
 	SetNetCullDistanceSquared(1000000000.0f);
+	
+	// 루트 컴포넌트
+	SpawnedLootComp = CreateDefaultSubobject<ULootComponent>(TEXT("LootComponent"));
 }
 
 void ATSMonsterBaseCharacter::BeginPlay()
@@ -59,6 +62,26 @@ void ATSMonsterBaseCharacter::BeginPlay()
 			MonsterASC->BP_ApplyGameplayEffectToSelf(GiveGE, 1.0f, GameplayEffectContext);
 		}
 	}
+}
+
+void ATSMonsterBaseCharacter::Destroyed()
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+	}
+		
+	Super::Destroyed();
+}
+
+void ATSMonsterBaseCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (IsValid(GetWorld()))
+	{
+		GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
@@ -109,4 +132,67 @@ void ATSMonsterBaseCharacter::StopWalk()
 void ATSMonsterBaseCharacter::RegainSpeed()
 {
 	SetSpeedIncrease();
+}
+
+void ATSMonsterBaseCharacter::SetDropRootItems(FTSMonsterTable& MonsterTable)
+{
+	// 3. 메인 스폰 저장 
+	FLootRule MainLoot;
+	MainLoot.ItemID = MonsterTable.MainDropTableID;
+	MainLoot.DropChance = MonsterTable.MainDropTablePrecent;
+	MainLoot.MaxCount = MonsterTable.MainDropMaxNum;
+	MainLoot.MinCount = MonsterTable.MainDropMinNum;
+	SpawnedLootComp->LootTable.Add(MainLoot);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[MAIN LOOT] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+		MainLoot.ItemID,
+		MainLoot.DropChance,
+		MainLoot.MinCount,
+		MainLoot.MaxCount
+	);
+	UE_LOG(LogTemp, Warning, TEXT("LootTable Count After Main: %d"), SpawnedLootComp->LootTable.Num());
+
+	// 4. 서브 스폰 저장
+	FLootRule SubLoot;
+	SubLoot.ItemID = MonsterTable.SubDropTableID;
+	SubLoot.DropChance = MonsterTable.SubDropTablePrecent;
+	SubLoot.MaxCount = MonsterTable.SubDropMaxNum;
+	SubLoot.MinCount = MonsterTable.SubDropMinNum;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+		SubLoot.ItemID,
+		SubLoot.DropChance,
+		SubLoot.MinCount,
+		SubLoot.MaxCount
+	);
+	
+	SpawnedLootComp->LootTable.Add(SubLoot);
+	UE_LOG(LogTemp, Warning, TEXT("LootTable Count After Sub: %d"), SpawnedLootComp->LootTable.Num());
+	UE_LOG(LogTemp, Error, TEXT("몬스터 드랍 아이템 설정 완료"));
+}
+
+void ATSMonsterBaseCharacter::RequestSpawnDropRooItems()
+{
+	FVector SpawnLocation = GetActorLocation();
+	SpawnLocation.Z += 100.f;
+	bool bSuccess = SpawnedLootComp->SpawnLoot(SpawnLocation);
+	if (false == bSuccess)
+	{
+		UE_LOG(LogTemp, Error, TEXT("몬스터 죽고 드랍 아이템 스폰 실패함"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("몬스터 죽고 드랍 아이템 스폰 성공함"));
+	}
+}
+
+void ATSMonsterBaseCharacter::MakeTimeToDead()
+{
+	FTimerHandle TimerHandle;
+	GetWorldTimerManager().SetTimer(TimerHandle, this, &ThisClass::DeadTime, DelayTimeToDead, false);
+}
+
+void ATSMonsterBaseCharacter::DeadTime()
+{
+	this->Destroy();
 }

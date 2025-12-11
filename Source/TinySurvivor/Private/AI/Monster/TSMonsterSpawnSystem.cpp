@@ -3,6 +3,7 @@
 #include "AI/Monster/TSMonsterSetting.h"
 #include "AI/Monster/TSMonsterTable.h"
 #include "AI/Monster/Base/MonsterAICInterface.h"
+#include "AI/Monster/Base/MonsterCharacterInterface.h"
 #include "GameFramework/Character.h"
 
 DEFINE_LOG_CATEGORY(MonsterManager);
@@ -104,6 +105,14 @@ void UTSMonsterSpawnSystem::Initialize(FSubsystemCollectionBase& Collection)
 			
 			FTSMonsterTable CachingRow;
 			CachingRow.MonsterTag = Row->MonsterTag;
+			CachingRow.MainDropTableID = Row->MainDropTableID;
+			CachingRow.MainDropTablePrecent = Row->MainDropTablePrecent;
+			CachingRow.MainDropMaxNum = Row->MainDropMaxNum;
+			CachingRow.MainDropMinNum = Row->MainDropMinNum;
+			CachingRow.SubDropTableID = Row->SubDropTableID;
+			CachingRow.SubDropTablePrecent = Row->SubDropTablePrecent;
+			CachingRow.SubDropMaxNum = Row->SubDropMaxNum;
+			CachingRow.SubDropMinNum = Row->SubDropMinNum;
 			CachingRow.MonsterClass = Row->MonsterClass;
 			CachingRows.Add(MoveTemp(CachingRow));
 			CachingMonsterMap.Add(CachingRow.MonsterTag, &CachingRows.Last());
@@ -170,6 +179,27 @@ bool UTSMonsterSpawnSystem::RequestMonsterSpawn(FTransform& SpawnParms, FGamepla
 	}
 	else
 	{
+		IMonsterCharacterInterface* MonsterCharacterInterface = Cast<IMonsterCharacterInterface>(SpawnedMonster);
+		if (MonsterCharacterInterface)
+		{
+			
+			UE_LOG(LogTemp, Warning, TEXT("[MAIN LOOT] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+				FoundMonsterData->MainDropTableID,
+				FoundMonsterData->MainDropTablePrecent,
+				FoundMonsterData->MainDropMaxNum,
+				FoundMonsterData->MainDropMinNum
+			);
+			
+			UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+				FoundMonsterData->SubDropTableID,
+				FoundMonsterData->SubDropTablePrecent,
+				FoundMonsterData->SubDropMaxNum,
+				FoundMonsterData->SubDropMinNum
+			);
+			
+			MonsterCharacterInterface->SetDropRootItems(*FoundMonsterData);
+		}
+		
 		AController* SpawnedMonsterAIC = Cast<ACharacter>(SpawnedMonster)->GetController();
 		if (!IsValid(SpawnedMonsterAIC)) return false;
 		
