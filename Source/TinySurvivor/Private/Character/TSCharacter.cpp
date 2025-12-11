@@ -387,6 +387,7 @@ void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ATSCharacter, bIsRescuing);
 	DOREPLIFETIME(ATSCharacter, bIsDownedState);
 	DOREPLIFETIME(ATSCharacter, bIsDeadState);
+	DOREPLIFETIME(ATSCharacter, bIsClimbState);
 }
 
 void ATSCharacter::BecomeDowned()
@@ -431,6 +432,7 @@ void ATSCharacter::BecomeDowned()
 	
 	if (HasAuthority())
 	{
+		OnRep_IsDownedState();
 		if (ATSGameState* GS = GetWorld()->GetGameState<ATSGameState>())
 		{
 			GS->CheckGameOver();
@@ -445,6 +447,23 @@ bool ATSCharacter::IsDowned() const
 		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed);
 	}
 	return false;
+}
+
+void ATSCharacter::OnRep_IsDownedState()
+{
+	if (IsLocallyControlled())
+	{
+		if (ATSPlayerController* TSController = Cast<ATSPlayerController>(Controller))
+		{
+			if (bIsDownedState)
+			{
+				TSController->ShowDownedUI();
+			} else
+			{
+				TSController->HideDownedUI();
+			}
+		}
+	}
 }
 
 void ATSCharacter::Die()
@@ -473,6 +492,7 @@ void ATSCharacter::Die()
 	
 	if (HasAuthority())
 	{
+		OnRep_IsDownedState();
 		if (ATSGameState* GS = GetWorld()->GetGameState<ATSGameState>())
 		{
 			GS->CheckGameOver();
@@ -538,10 +558,10 @@ ATSCharacter* ATSCharacter::DetectReviveTarget()
 	bool bHit = GetWorld()->SweepSingleByObjectType(HitResult, TraceStart, TraceEnd, FQuat::Identity, ObjectParams, Shape, Params);
     
 	// 디버그
-	if (bLineTraceDebugDraw && bHit)
-	{
-		DrawDebugCapsule(GetWorld(), HitResult.Location, 50.0f, 40.0f, FQuat::Identity, FColor::Red, false, 1.0f);
-	}
+	//if (bLineTraceDebugDraw && bHit)
+	//{
+	//	DrawDebugCapsule(GetWorld(), HitResult.Location, 50.0f, 40.0f, FQuat::Identity, FColor::Red, false, 1.0f);
+	//}
 
 	if (bHit)
 	{
@@ -570,6 +590,11 @@ void ATSCharacter::Revive() // Downed된 친구가 부활하는 함수
 	}
 	// 3. 변수 초기화
 	bIsDownedState = false;
+	
+	if (HasAuthority())
+	{
+		OnRep_IsDownedState();
+	}
 }
 
 bool ATSCharacter::IsRescueCharacter() const
@@ -1325,8 +1350,7 @@ void ATSCharacter::OnTogglelinetrace(const struct FInputActionValue& Value)
 
 bool ATSCharacter::IsClimbing()
 {
-	//State.Move.Climb 태그가 있으면 -> 클라이밍 중
-	return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Move_Climb.GetTag());
+	return bIsClimbState;
 }
 
 void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)

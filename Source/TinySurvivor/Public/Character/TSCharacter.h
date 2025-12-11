@@ -109,9 +109,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "State")
 	bool IsDowned() const; // 현재 캐릭터가 Downed 상태인지 확인 (태그로 확인)
 	
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "State")
+	UPROPERTY(ReplicatedUsing = OnRep_IsDownedState, BlueprintReadOnly, Category = "State")
 	bool bIsDownedState = false; // 기절 상태 클라 동기화 함수 
 	
+	UFUNCTION()
+	void OnRep_IsDownedState();
 	// ----------------------------------------------
 	// ------------------ Dead 상태 ------------------
 	// ----------------------------------------------
@@ -294,9 +296,13 @@ private:
 
 #pragma region Climb
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Climb")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Climb")
 	FVector CurrentWallNormal = FVector::ZeroVector;
 	
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Climb")
+	bool bIsClimbState = false;
+	
+	UFUNCTION(BlueprintCallable, Category = "Climb")
 	bool IsClimbing();
 #pragma endregion
 	
