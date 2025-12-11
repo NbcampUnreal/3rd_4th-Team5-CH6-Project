@@ -7,6 +7,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GameplayTags/AbilityGameplayTags.h"
+#include "GameplayTags/ItemGameplayTags.h"
 #include "Item/TSInteractionActorBase.h"
 
 UGA_LeftClick::UGA_LeftClick()
@@ -233,17 +234,60 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 
 			else if (HitActor->ActorHasTag(FName("Enemy")))
 			{
+				// 무기 타입인지 확인
+				bool bIsWeapon =
+					(ItemAnimType == EItemAnimType::WEAPON_MELEE
+					|| ItemAnimType == EItemAnimType::WEAPON_SPEAR);
+				
 				if (EnemyDamageEffectClass) 
 				{
 					UAbilitySystemComponent* MonsterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor);
 					if (MonsterASC)
 					{
+						// 몬스터 피격 처리
 						FGameplayTagContainer MonsterTag;
 						MonsterTag.AddTag(ToSendMonsterAttackTag);
 						MonsterASC->TryActivateAbilitiesByTag(MonsterTag);
 						FGameplayEffectContextHandle ContextHandle = MakeEffectContext(CurrentSpecHandle, CurrentActorInfo);
 						MonsterASC->BP_ApplyGameplayEffectToTarget(EnemyDamageEffectClass, MonsterASC, 1, ContextHandle);
 						UE_LOG(LogTemp, Warning, TEXT("몬스터한테 데미지 적용 후 시각 처리 지시"))
+						
+						//================================
+						// 무기 내구도 감소 이벤트 전송
+						//================================
+						if (bIsWeapon)
+						{
+							FGameplayEventData WeaponEventData;
+							WeaponEventData.EventTag = ItemTags::TAG_Event_Item_Weapon_Attack;
+							WeaponEventData.EventMagnitude = 0.0f;
+							WeaponEventData.Instigator = ASC->GetAvatarActor();
+							WeaponEventData.Target = ASC->GetAvatarActor();
+							ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Weapon_Attack, &WeaponEventData);
+							
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+							UE_LOG(LogTemp, Log,
+								TEXT("[무기] 몬스터 공격 완료 - 무기 내구도 감소 이벤트 전송 (AnimType=%d)"),
+								(int32)ItemAnimType);
+#endif
+						}
+						//================================
+						// 도구로 몬스터 타격 시 (예외 처리)
+						//================================
+						else
+						{
+							FGameplayEventData ToolEventData;
+							ToolEventData.EventTag = ItemTags::TAG_Event_Item_Tool_Harvest;
+							ToolEventData.EventMagnitude = 0.0f;
+							ToolEventData.Instigator = ASC->GetAvatarActor();
+							ToolEventData.Target = ASC->GetAvatarActor();
+							ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &ToolEventData);
+							
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+							UE_LOG(LogTemp, Log,
+								TEXT("[도구] 몬스터 공격 완료 - 도구 내구도 감소 이벤트 전송 (AnimType=%d)"),
+								(int32)ItemAnimType);
+#endif
+						}
 					}
 				}
 			}
