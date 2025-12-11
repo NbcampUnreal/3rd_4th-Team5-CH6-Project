@@ -61,5 +61,6 @@ protected:
 	
 	// 초기 타겟
 	TWeakObjectPtr<AActor> FirstInstigator;
+
 };
 

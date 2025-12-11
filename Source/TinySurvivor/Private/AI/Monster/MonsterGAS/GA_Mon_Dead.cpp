@@ -2,6 +2,7 @@
 
 #include "AI/Monster/MonsterGAS/GA_Mon_Dead.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "AI/Monster/Base/MonsterCharacterInterface.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -48,10 +49,19 @@ void UGA_Mon_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	Task->OnBlendOut.AddDynamic(this, &ThisClass::OnMontageBlendOut);
 	
 	Task->ReadyForActivation();
+	
+	RequestSpawnDropItems(ActorInfo->AvatarActor.Get());
+}
+
+void UGA_Mon_Dead::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 void UGA_Mon_Dead::OnMontageCompleted()
 {
+	
 	K2_EndAbility();
 }
 
@@ -68,4 +78,14 @@ void UGA_Mon_Dead::OnMontageInterrupted()
 void UGA_Mon_Dead::OnMontageBlendOut()
 {
 	K2_EndAbility();
+}
+
+void UGA_Mon_Dead::RequestSpawnDropItems(AActor* SpawnedMonster)
+{
+	IMonsterCharacterInterface* MonsterCharacterInterface = Cast<IMonsterCharacterInterface>(SpawnedMonster);
+	if (MonsterCharacterInterface)
+	{
+		MonsterCharacterInterface->RequestSpawnDropRooItems();
+		MonsterCharacterInterface->MakeTimeToDead();
+	}
 }
