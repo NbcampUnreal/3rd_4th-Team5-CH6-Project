@@ -16,6 +16,8 @@ struct FFootstepSound
 	TObjectPtr<USoundBase> Left = nullptr;
 	UPROPERTY(EditDefaultsOnly, Category = "Footstep")
 	TObjectPtr<USoundBase> Right = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category = "Footstep")
+	TObjectPtr<USoundBase> Climbing = nullptr;
 };
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TINYSURVIVOR_API UFootstepComponent : public UActorComponent
@@ -35,6 +37,10 @@ public:
 	// 착지할 때 소리
 	UFUNCTION(BlueprintCallable, Category = "Footstep")
 	void PlayFootstepSoundFromHit(const FHitResult& Hit);
+	
+	// 벽 타는 소리
+	UFUNCTION(BlueprintCallable, Category = "Footstep")
+	void PlayClimbingSound(const FVector& Location);
 
 protected:
 	// Called when the game starts

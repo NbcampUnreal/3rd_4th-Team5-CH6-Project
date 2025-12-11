@@ -80,6 +80,32 @@ void UFootstepComponent::PlayFootstepSoundFromHit(const FHitResult& Hit)
 	}
 }
 
+void UFootstepComponent::PlayClimbingSound(const FVector& Location)
+{
+	FHitResult HitResult;
+	FVector Start = Location;
+	FVector End = Location + GetOwner()->GetActorForwardVector() * 100.f;
+
+	FCollisionQueryParams Params;
+	Params.bReturnPhysicalMaterial = true;
+
+	GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		Start,
+		End,
+		ECC_Visibility,
+		Params);
+	EPhysicalSurface SurfaceType = EPhysicalSurface::SurfaceType_Default;
+	if (HitResult.PhysMaterial.IsValid())
+	{
+		SurfaceType = HitResult.PhysMaterial->SurfaceType;
+	}
+	if (USoundBase* Sound = FootstepSounds.FindRef(SurfaceType).Climbing)
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Location);
+	}
+}
+
 // Called when the game starts
 void UFootstepComponent::BeginPlay()
 {
@@ -95,6 +121,10 @@ void UFootstepComponent::BeginPlay()
 		if (Pair.Value.Right)
 		{
 			Pair.Value.Right->AddToRoot();
+		}
+		if (Pair.Value.Climbing)
+		{
+			Pair.Value.Climbing->AddToRoot();
 		}
 	}
 }
