@@ -227,7 +227,6 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 				{
 					//함수 불러오기
 					ResourceInterface->GetItemFromResource(ASC, ItemAnimType, ATK, Hit.ImpactPoint, Hit.ImpactNormal, Character->GetActorLocation(), Character->GetActorForwardVector(), true);
-					
 				}
 				return;
 			}
@@ -236,7 +235,16 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 			{
 				if (EnemyDamageEffectClass) 
 				{
-					// 나중에 enemy 데미지 깎기 
+					UAbilitySystemComponent* MonsterASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor);
+					if (MonsterASC)
+					{
+						FGameplayTagContainer MonsterTag;
+						MonsterTag.AddTag(ToSendMonsterAttackTag);
+						MonsterASC->TryActivateAbilitiesByTag(MonsterTag);
+						FGameplayEffectContextHandle ContextHandle = MakeEffectContext(CurrentSpecHandle, CurrentActorInfo);
+						MonsterASC->BP_ApplyGameplayEffectToTarget(EnemyDamageEffectClass, MonsterASC, 1, ContextHandle);
+						UE_LOG(LogTemp, Warning, TEXT("몬스터한테 데미지 적용 후 시각 처리 지시"))
+					}
 				}
 			}
 		}

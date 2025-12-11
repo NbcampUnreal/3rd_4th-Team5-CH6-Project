@@ -2,7 +2,7 @@
 #include "AI/Monster/TSMonsterDataAsset.h"
 #include "AI/Monster/TSMonsterSetting.h"
 #include "AI/Monster/TSMonsterTable.h"
-#include "AI/Monster/Base/MonsterInterface.h"
+#include "AI/Monster/Base/MonsterAICInterface.h"
 #include "GameFramework/Character.h"
 
 DEFINE_LOG_CATEGORY(MonsterManager);
@@ -148,13 +148,15 @@ UTSMonsterSpawnSystem* UTSMonsterSpawnSystem::Get(const UObject* WorldContextObj
 	// 스폰 요청 API
 	//--------------------------------------
 
-bool UTSMonsterSpawnSystem::RequestSpawnMonsterWithBP(FTransform SpawnParms, FGameplayTag MonsterTag)
+bool UTSMonsterSpawnSystem::RequestSpawnMonsterWithBP(FTransform SpawnParms, FGameplayTag MonsterTag, AActor* Instigator)
 {
-	return RequestMonsterSpawn(SpawnParms, MonsterTag);
+	if (!IsValid(Instigator)) return false;
+	return RequestMonsterSpawn(SpawnParms, MonsterTag, Instigator);
 }
 
-bool UTSMonsterSpawnSystem::RequestMonsterSpawn(FTransform& SpawnParms, FGameplayTag& MonsterTag)
+bool UTSMonsterSpawnSystem::RequestMonsterSpawn(FTransform& SpawnParms, FGameplayTag& MonsterTag, AActor* Instigator)
 {
+	if (!IsValid(Instigator)) return false;
 	FTSMonsterTable* FoundMonsterData = CachingMonsterMap.FindRef(MonsterTag);
 	if (!FoundMonsterData) return false;
 	if (!IsValid(FoundMonsterData->MonsterClass)) return false;
@@ -171,12 +173,12 @@ bool UTSMonsterSpawnSystem::RequestMonsterSpawn(FTransform& SpawnParms, FGamepla
 		AController* SpawnedMonsterAIC = Cast<ACharacter>(SpawnedMonster)->GetController();
 		if (!IsValid(SpawnedMonsterAIC)) return false;
 		
-		IMonsterInterface* MonsterAICInterface = Cast<IMonsterInterface>(SpawnedMonsterAIC);
+		IMonsterAICInterface* MonsterAICInterface = Cast<IMonsterAICInterface>(SpawnedMonsterAIC);
 		if (MonsterAICInterface)
 		{
 			MonsterAICInterface->SetSpawningPoint(SpawnParms.GetLocation());
+			MonsterAICInterface->SetInstigator(Instigator);
 			MonsterAICInterface->StartLogic();
-			UE_LOG(MonsterManager, Log, TEXT("RequestMonsterSpawn: %s"), *SpawnedMonster->GetName());
 			return true;
 		}
 		else

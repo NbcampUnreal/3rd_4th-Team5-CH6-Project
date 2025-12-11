@@ -1,0 +1,33 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GA_MonBase.h"
+#include "GA_Mon_Dead.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class TINYSURVIVOR_API UGA_Mon_Dead : public UGA_MonBase
+{
+	GENERATED_BODY()
+	
+	virtual void ActivateAbility(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		const FGameplayEventData* TriggerEventData) override;
+	
+protected:
+	// 델리게이트로 받을 함수들 오버이드
+	virtual void OnMontageCompleted() override;
+
+	virtual void OnMontageCancelled() override;
+
+	virtual void OnMontageInterrupted() override;
+
+	virtual void OnMontageBlendOut() override;
+	
+};

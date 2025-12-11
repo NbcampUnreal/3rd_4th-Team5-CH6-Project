@@ -12,7 +12,7 @@
 	
 ATSMonsterBaseCharacter::ATSMonsterBaseCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	
 	MonsterAS = CreateDefaultSubobject<UTSMonsterAS>("MonsterAS");
 	
@@ -35,7 +35,7 @@ ATSMonsterBaseCharacter::ATSMonsterBaseCharacter()
 	
 	SetNetUpdateFrequency(60.f);
 	SetMinNetUpdateFrequency(10.f);
-	SetNetCullDistanceSquared(1000000.0f);
+	SetNetCullDistanceSquared(1000000000.0f);
 }
 
 void ATSMonsterBaseCharacter::BeginPlay()
@@ -61,7 +61,52 @@ void ATSMonsterBaseCharacter::BeginPlay()
 	}
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+	
+	//--------------------------------------
+	// ATSMonsterBaseCharacter 기타 
+	//--------------------------------------
+
 UAbilitySystemComponent* ATSMonsterBaseCharacter::GetAbilitySystemComponent() const
 {
 	return MonsterASC;
+}
+
+void ATSMonsterBaseCharacter::SetSpeedIncrease()
+{
+	++CurrentSpeedIncreaseLevel;
+	
+	if (CurrentSpeedIncreaseLevel > 2)
+	{
+		CurrentSpeedIncreaseLevel = 2;
+	}
+	
+	if (CurrentSpeedIncreaseLevel == 0)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 800.f;
+	}
+	if (CurrentSpeedIncreaseLevel == 1)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 1000.f;
+	}
+	if (CurrentSpeedIncreaseLevel == 2)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 1200.f;
+	}
+}
+
+void ATSMonsterBaseCharacter::ResetSpeed()
+{
+	CurrentSpeedIncreaseLevel = 0;
+	GetCharacterMovement()->MaxWalkSpeed = 600.f;
+}
+
+void ATSMonsterBaseCharacter::StopWalk()
+{
+	GetCharacterMovement()->MaxWalkSpeed = 0.f;
+}
+
+void ATSMonsterBaseCharacter::RegainSpeed()
+{
+	SetSpeedIncrease();
 }

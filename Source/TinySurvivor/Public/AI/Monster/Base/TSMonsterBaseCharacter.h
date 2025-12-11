@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "MonsterCharacterInterface.h"
 #include "GameFramework/Character.h"
 #include "TSMonsterBaseCharacter.generated.h"
 
@@ -11,14 +12,14 @@ class UTSMonsterAS;
 class UTSMonsterASC;
 
 UCLASS()
-class TINYSURVIVOR_API ATSMonsterBaseCharacter : public ACharacter, public IAbilitySystemInterface
+class TINYSURVIVOR_API ATSMonsterBaseCharacter : public ACharacter, public IAbilitySystemInterface, public IMonsterCharacterInterface
 {
 	GENERATED_BODY()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 	
 	//---------------------------------------
-	// UTSMonsterSpawnSystem 라이프 사이클
+	// ATSMonsterBaseCharacter 라이프 사이클
 	//--------------------------------------
 	
 public:
@@ -28,7 +29,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 	
 	//--------------------------------------
-	// UTSMonsterSpawnSystem 라이프 사이클
+	// ATSMonsterBaseCharacter 기타 
 	//--------------------------------------
 
 public:
@@ -36,7 +37,15 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	// ~ IAbilitySystemInterface
 	
+	// IMonsterCharacterInterface ~ 
+	virtual void SetSpeedIncrease() override;
+	virtual void ResetSpeed() override;
+	virtual void StopWalk() override;
+	virtual void RegainSpeed() override;
+	// ~ IMonsterCharacterInterface
+	
 protected:
+	int32 CurrentSpeedIncreaseLevel = 0;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster")
 	TObjectPtr<UTSMonsterASC> MonsterASC;
