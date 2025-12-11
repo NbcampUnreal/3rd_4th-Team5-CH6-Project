@@ -46,6 +46,10 @@ void UGA_JumpOrClimb::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	Character->CurrentWallNormal = FVector::ZeroVector;
 	Character->StopJumping();
 	
+	if (bWasClimbing && Character->HasAuthority())
+	{
+		Character->bIsClimbState = false;
+	}
 	
 	if (StaminaDelegateHandle.IsValid())
 	{
@@ -143,7 +147,10 @@ void UGA_JumpOrClimb::StartClimb()
 	Character->GetCharacterMovement()->MaxFlySpeed = 200.0f;
 	Character->GetCharacterMovement()->BrakingDecelerationFlying = 2000.0f;
 	Character->GetCharacterMovement()->StopMovementImmediately();
-	
+	if (Character->HasAuthority())
+	{
+		Character->bIsClimbState = true;
+	}
 	// 벽 상태 감시 타이머 시작 (0.05마다 )
 	GetWorld()->GetTimerManager().SetTimer(ClimbableCheckTimerHandle, this, &UGA_JumpOrClimb::CheckClimbingState, 0.05f, true);
 }
