@@ -441,6 +441,7 @@ void ATSCharacter::BecomeDowned()
 		if (ATSGameState* GS = GetWorld()->GetGameState<ATSGameState>())
 		{
 			GS->CheckGameOver();
+			GS->DecreaseSanityToAll(false);
 		}
 	}
 }
@@ -501,6 +502,7 @@ void ATSCharacter::Die()
 		if (ATSGameState* GS = GetWorld()->GetGameState<ATSGameState>())
 		{
 			GS->CheckGameOver();
+			GS->DecreaseSanityToAll(true);
 		}
 	}
 }
