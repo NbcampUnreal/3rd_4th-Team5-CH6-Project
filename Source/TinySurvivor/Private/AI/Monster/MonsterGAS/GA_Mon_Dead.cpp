@@ -7,6 +7,13 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+UGA_Mon_Dead::UGA_Mon_Dead()
+{
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
+	NetSecurityPolicy = EGameplayAbilityNetSecurityPolicy::ClientOrServer;
+}
+
 void UGA_Mon_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                    const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
@@ -49,6 +56,8 @@ void UGA_Mon_Dead::ActivateAbility(const FGameplayAbilitySpecHandle Handle, cons
 	Task->OnBlendOut.AddDynamic(this, &ThisClass::OnMontageBlendOut);
 	
 	Task->ReadyForActivation();
+	
+	SendErosionChangeToErosionSystem();
 	
 	RequestSpawnDropItems(ActorInfo->AvatarActor.Get());
 }

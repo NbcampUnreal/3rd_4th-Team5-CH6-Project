@@ -1,19 +1,18 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AI/Monster/MonsterGAS/GA_Mon_Hit.h"
+#include "AI/Monster/MonsterGAS/GA_Mon_Hit_CanMove.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-#include "AI/Monster/Base/MonsterCharacterInterface.h"
 #include "AbilitySystemComponent.h"
 #include "AI/Monster/MonsterGAS/TSMonsterAS.h"
 
-UGA_Mon_Hit::UGA_Mon_Hit()
+UGA_Mon_Hit_CanMove::UGA_Mon_Hit_CanMove()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	NetSecurityPolicy = EGameplayAbilityNetSecurityPolicy::ClientOrServer;
 }
 
-void UGA_Mon_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+void UGA_Mon_Hit_CanMove::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
                                   const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
@@ -25,18 +24,6 @@ void UGA_Mon_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 	}
 	
 	UE_LOG(LogTemp, Warning, TEXT("몬스터한테 데미지 적용 후 시각 처리 지시 수신1"))
-	
-#pragma region 속도_처리
-	IMonsterCharacterInterface* MonsterInterface = Cast<IMonsterCharacterInterface>(ActorInfo->AvatarActor.Get());
-	if (!MonsterInterface) 
-	{
-		UE_LOG(LogTemp, Warning, TEXT("몬스터한테 데미지 적용 후 시각 처리 지시 수신2	"))
-		K2_EndAbility();
-		return;
-	}
-	MonsterInterface->StopWalk();
-	CachingMonster = ActorInfo->AvatarActor.Get();
-#pragma endregion
 	
 	UAbilitySystemComponent* ThisMonsterASC = ActorInfo->AbilitySystemComponent.Get();
 	if (!ThisMonsterASC)
@@ -80,48 +67,38 @@ void UGA_Mon_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 		Task->OnBlendOut.AddDynamic(this, &ThisClass::OnMontageBlendOut);
 	
 		UE_LOG(LogTemp, Warning, TEXT("몬스터한테 데미지 적용 후 시각 처리 지시 수신"))
-	
+		
 		Task->ReadyForActivation();
 #pragma endregion
 	}
 }
 
-void UGA_Mon_Hit::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+void UGA_Mon_Hit_CanMove::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	
-	IMonsterCharacterInterface* MonsterInterface = Cast<IMonsterCharacterInterface>(CachingMonster);
-	if (MonsterInterface)
-	{
-		MonsterInterface->RegainSpeed();
-	}
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-void UGA_Mon_Hit::OnMontageCompleted()
+void UGA_Mon_Hit_CanMove::OnMontageCompleted()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendFinishMontageEventToStateTree(MonsterHitNoticeTag);
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
-void UGA_Mon_Hit::OnMontageCancelled()
+void UGA_Mon_Hit_CanMove::OnMontageCancelled()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendReceiveHitToStateTree(MonsterHitNoticeTag);
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
-void UGA_Mon_Hit::OnMontageInterrupted()
+void UGA_Mon_Hit_CanMove::OnMontageInterrupted()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendReceiveHitToStateTree(MonsterHitNoticeTag);
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
-void UGA_Mon_Hit::OnMontageBlendOut()
+void UGA_Mon_Hit_CanMove::OnMontageBlendOut()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendReceiveHitToStateTree(MonsterHitNoticeTag);
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
