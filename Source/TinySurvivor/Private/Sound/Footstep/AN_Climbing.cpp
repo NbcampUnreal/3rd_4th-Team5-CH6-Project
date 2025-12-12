@@ -1,9 +1,9 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Footstep/AN_Climbing.h"
+#include "Sound/Footstep/AN_Climbing.h"
 
-#include "Footstep/FootstepComponent.h"
+#include "Sound/Footstep/FootstepComponent.h"
 
 void UAN_Climbing::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                           const FAnimNotifyEventReference& EventReference)
