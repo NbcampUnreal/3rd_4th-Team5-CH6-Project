@@ -9,6 +9,7 @@
 #include "GameplayTags/AbilityGameplayTags.h"
 #include "GameplayTags/ItemGameplayTags.h"
 #include "Item/TSInteractionActorBase.h"
+#include "Sound/Hit/HitComponent.h"
 
 UGA_LeftClick::UGA_LeftClick()
 {
@@ -180,6 +181,7 @@ void UGA_LeftClick::ReceivedNotify(FGameplayEventData EventData)
 void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAnimType, int32& ATK)
 {
 	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
+	UHitComponent* HitComponent = Character->FindComponentByClass<UHitComponent>();
 	
 	//================================
 	// AnimType에 따른 공격 범위 계산
@@ -205,6 +207,12 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 			if (!HitActor)
 			{
 				continue;
+			}
+			
+			// 타격 사운드 재생
+			if (HitComponent)
+			{
+				HitComponent->PlayHitSound(Hit);
 			}
 			
 			ATSInteractionActorBase* InteractionActorBase = Cast<ATSInteractionActorBase>(HitActor);

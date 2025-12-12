@@ -9,6 +9,7 @@
 #include "Item/Data/Common/ItemCommonEnums.h"
 #include "TSCharacter.generated.h"
 
+class UHitComponent;
 class UFootstepComponent;
 class UTSBuildingComponent;
 class UTSInventoryMasterComponent;
@@ -317,6 +318,9 @@ public:
 	// Footstep 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UFootstepComponent> FootstepComponent;
+	// Hit 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UHitComponent> HitComponent;
 #pragma endregion
 	
 private:

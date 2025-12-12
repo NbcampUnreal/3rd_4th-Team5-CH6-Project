@@ -27,9 +27,10 @@
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "System/ResourceControl/TSResourceItemInterface.h"
 #include "Components/CapsuleComponent.h"
-#include "Footstep/FootstepComponent.h"
+#include "Sound/Footstep/FootstepComponent.h"
 #include "UI/TSPlayerUIDataControllerSystem.h"
 #include "GameState/TSGameState.h"
+#include "Sound/Hit/HitComponent.h"
 #include "System/Erosion/ErosionLightSourceSubActor.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
@@ -59,6 +60,7 @@ ATSCharacter::ATSCharacter()
 	InventoryMasterComponent = CreateDefaultSubobject<UTSInventoryMasterComponent>(TEXT("InventoryComponent"));
 	BuildingComponent = CreateDefaultSubobject<UTSBuildingComponent>(TEXT("BuildingComponent"));
 	FootstepComponent = CreateDefaultSubobject<UFootstepComponent>(TEXT("FootstepComponent"));
+	HitComponent = CreateDefaultSubobject<UHitComponent>(TEXT("HitComponent"));
 }
 
 UAbilitySystemComponent* ATSCharacter::GetAbilitySystemComponent() const
