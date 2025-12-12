@@ -36,6 +36,7 @@
 #include "IDetailTreeNode.h"
 #endif
 #include "Character/TSCharacter.h"
+#include "Components/BoxComponent.h"
 #include "Components/TextBlock.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "Item/System/WorldItemPoolSubsystem.h"
@@ -52,6 +53,14 @@ AWorldItem::AWorldItem()
 	// 시작시 물리 시뮬레이션 비활성화 (풀에서 꺼낼 때 켤 수 있음)
 	MeshComponent->SetSimulatePhysics(false);
 	MeshComponent->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+	
+	DetectionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("DetectionBox"));
+	DetectionBox->SetupAttachment(RootComponent);
+	DetectionBox->SetBoxExtent(FVector(60.0f, 60.0f, 60.0f));
+	DetectionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	DetectionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	DetectionBox->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	DetectionBox->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
 	
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
 	InteractionWidget->SetupAttachment(MeshComponent);
