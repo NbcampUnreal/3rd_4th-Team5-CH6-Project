@@ -30,6 +30,11 @@ public:
 	// 스폰 요청 API
 	//--------------------------------------
 	
+public:	
+	
+	UFUNCTION(BlueprintCallable)
+	FGameplayTag GetSpawnMonsterTag() const { return SpawnMonsterTag; }
+	
 protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(Category = "SpawnSystem", DisplayName = "소환할 몬스터", Categories = "Monster"))
