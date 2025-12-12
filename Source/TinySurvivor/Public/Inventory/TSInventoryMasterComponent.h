@@ -49,6 +49,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBagSizeChanged, int32, NewSize);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryInitialized);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, int32, ItemID, int32, Quantity);
+
 UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
 class TINYSURVIVOR_API UTSInventoryMasterComponent : public UActorComponent
 {
@@ -124,6 +126,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
 	FOnInventoryInitialized OnInventoryInitialized;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
+	FOnItemAdded OnItemAdded;
 
 	// ========================================
 	// 리플리케이션 콜백
@@ -140,6 +145,14 @@ public:
 
 	UFUNCTION()
 	void OnRep_ActiveHotkeyIndex();
+	
+	// ========================================
+	// Client RPC
+	// ========================================
+	// 아이템 습득 HUD 표시용 이벤트 브로드캐스트
+	UFUNCTION(CLient, Reliable, BlueprintCallable, Category = "Inventory|RPC")
+	void ClientNotifyItemAdded(
+		int32 ItemID, int32 Quantity);
 
 	// ========================================
 	// Server RPC
