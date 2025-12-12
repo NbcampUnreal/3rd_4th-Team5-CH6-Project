@@ -4,6 +4,7 @@
 #include "GameFramework/GameState.h"
 #include "TSGameState.generated.h"
 
+class UGameplayEffect;
 
 UCLASS()
 class TINYSURVIVOR_API ATSGameState : public AGameState
@@ -13,6 +14,14 @@ class TINYSURVIVOR_API ATSGameState : public AGameState
 public: 
 	void CheckGameOver();
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sanity")
+	TSubclassOf<UGameplayEffect> OtherPlayerDownedSanityEffectClass;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sanity")
+	TSubclassOf<UGameplayEffect> OtherPlayerDeadSanityEffectClass;
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_GameOver();
+	
+	void DecreaseSanityToAll(bool bIsDeath);
 };

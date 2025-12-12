@@ -30,7 +30,9 @@ public class TinySurvivor : ModuleRules
 			"rdInst",
 			"ActorPoolManager",
 			// DeveloperSettings 모듈 링크 (UDeveloperSettings 관련)
-			"DeveloperSettings"
+			"DeveloperSettings",
+			// SoundsByMaterial
+			"PhysicsCore"
 		});
 
 #if WITH_EDITOR

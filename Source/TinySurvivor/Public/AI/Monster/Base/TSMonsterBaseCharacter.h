@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "TSMonsterBaseCharacter.generated.h"
 
+class ULootComponent;
 class UGameplayEffect;
 class UGameplayAbility;
 class UTSMonsterAS;
@@ -25,6 +26,8 @@ class TINYSURVIVOR_API ATSMonsterBaseCharacter : public ACharacter, public IAbil
 public:
 	ATSMonsterBaseCharacter();
 	virtual void BeginPlay() override;
+	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 	
@@ -42,7 +45,12 @@ public:
 	virtual void ResetSpeed() override;
 	virtual void StopWalk() override;
 	virtual void RegainSpeed() override;
+	virtual void SetDropRootItems(FTSMonsterTable& MonsterTable) override;
+	virtual void RequestSpawnDropRooItems() override;
+	virtual void MakeTimeToDead() override;
 	// ~ IMonsterCharacterInterface
+	
+	void DeadTime();
 	
 protected:
 	int32 CurrentSpeedIncreaseLevel = 0;
@@ -58,4 +66,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster")
 	TArray<TSubclassOf<UGameplayEffect>> GiveGameplayEffects;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Monster")
+	float DelayTimeToDead = 10.0f;
+	
+	UPROPERTY()
+	TObjectPtr<ULootComponent> SpawnedLootComp;
+
 };
