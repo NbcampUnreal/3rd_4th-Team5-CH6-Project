@@ -39,7 +39,6 @@ ATSInteractionActorBase::ATSInteractionActorBase()
 
 void ATSInteractionActorBase::BeginPlay()
 {
-	Super::BeginPlay();
 	// 레벨 배치 액터 초기화 (서버에서만)
 	if (HasAuthority() && ItemInstance.StaticDataID != 0 && ItemInstance.CurrentDurability == -1)
 	{
@@ -57,6 +56,8 @@ void ATSInteractionActorBase::BeginPlay()
 	}
 	float WidgetHeight = MeshComponent->Bounds.GetBox().GetExtent().Z;
 	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, WidgetHeight));
+	
+	Super::BeginPlay();
 }
 
 void ATSInteractionActorBase::PostInitializeComponents()
