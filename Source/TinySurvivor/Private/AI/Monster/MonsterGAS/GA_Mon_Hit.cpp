@@ -100,28 +100,24 @@ void UGA_Mon_Hit::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGam
 
 void UGA_Mon_Hit::OnMontageCompleted()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendFinishMontageEventToStateTree(MonsterHitNoticeTag);
+	SendFinishMontageEventToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
 void UGA_Mon_Hit::OnMontageCancelled()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendReceiveHitToStateTree(MonsterHitNoticeTag);
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
 void UGA_Mon_Hit::OnMontageInterrupted()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendReceiveHitToStateTree(MonsterHitNoticeTag);
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
 void UGA_Mon_Hit::OnMontageBlendOut()
 {
-	// SendFinishMontageEventToStateTree(MontageEndTag);
-	// SendReceiveHitToStateTree(MonsterHitNoticeTag);
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
