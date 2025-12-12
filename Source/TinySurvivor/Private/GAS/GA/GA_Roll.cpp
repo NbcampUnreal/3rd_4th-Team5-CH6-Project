@@ -3,6 +3,7 @@
 #include "GameplayEffect.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Character/TSCharacter.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
 
 UGA_Roll::UGA_Roll()
@@ -16,6 +17,11 @@ bool UGA_Roll::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 	}
 	const UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	if (!ASC)
+	{
+		return false;
+	}
+	const ACharacter* Character = Cast<ACharacter>(ActorInfo->AvatarActor.Get());
+	if (Character && Character->GetCharacterMovement()->IsFalling())
 	{
 		return false;
 	}
