@@ -16,6 +16,10 @@ public:
 	// Sets default values for this component's properties
 	USoundComponent();
 protected:
+	// Default Attenuation
+	UPROPERTY(EditDefaultsOnly, Category = "Sound")
+	TObjectPtr<USoundAttenuation> DefaultAttenuation = nullptr;
+	
 	// 아래 방향 표면 타입 검출
 	UFUNCTION(BlueprintCallable, Category = "Sound")
 	EPhysicalSurface GetSurfaceTypeBelow(const FVector& Location, float TraceLength = 50.f) const;
@@ -29,4 +33,5 @@ protected:
 	EPhysicalSurface GetSurfaceTypeFromHit(const FHitResult& Hit) const;
 	
 	bool LineTrace(const FVector& Start, const FVector& End, FHitResult& OutHit) const;
+	void PlaySoundAtLocation(USoundBase* Sound, const FVector& Location) const;
 };

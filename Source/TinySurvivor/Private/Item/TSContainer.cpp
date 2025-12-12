@@ -25,6 +25,14 @@ void ATSContainer::InitializeFromBuildingData(const FBuildingData& BuildingInfo,
 		// 가방 슬롯 개수 설정
 		InventoryComp->MaxBagSlotCount = BuildingInfo.StorageSlots;
 		InventoryComp->InitialBagSlotCount = BuildingInfo.StorageSlots;
+		
+		// 명시적으로 가방 인벤토리 초기화
+		InventoryComp->BagInventory.InventorySlotContainer.SetNum(BuildingInfo.StorageSlots);
+        
+		for (int32 i = 0; i < BuildingInfo.StorageSlots; ++i)
+		{
+			InventoryComp->BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
+		}
 	}
 }
 

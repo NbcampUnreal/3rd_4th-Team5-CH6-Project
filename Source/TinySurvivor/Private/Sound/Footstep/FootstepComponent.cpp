@@ -28,10 +28,8 @@ void UFootstepComponent::PlayFootstepSound(const FVector& Location, bool& IsLeft
 	}
 
 	USoundBase* Sound = IsLeft ? Sounds->Left : Sounds->Right;
-	if (Sound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Location);
-	}
+
+	PlaySoundAtLocation(Sound, Location);
 }
 
 void UFootstepComponent::PlayFootstepSoundFromHit(const FHitResult& Hit)
@@ -48,14 +46,9 @@ void UFootstepComponent::PlayFootstepSoundFromHit(const FHitResult& Hit)
 		Sounds = &DefaultFootstepSound;
 	}
 
-	if (Sounds->Left)
-	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sounds->Left, Hit.ImpactPoint);
-	}
-	if (Sounds->Right)
-	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sounds->Right, Hit.ImpactPoint);
-	}
+	PlaySoundAtLocation(Sounds->Left, Hit.ImpactPoint);
+
+	PlaySoundAtLocation(Sounds->Right, Hit.ImpactPoint);
 }
 
 void UFootstepComponent::PlayClimbingSound(const FVector& Location)
@@ -69,8 +62,5 @@ void UFootstepComponent::PlayClimbingSound(const FVector& Location)
 	}
 
 	USoundBase* Sound = Sounds->Climbing;
-	if (Sound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Location);
-	}
+	PlaySoundAtLocation(Sound, Location);
 }

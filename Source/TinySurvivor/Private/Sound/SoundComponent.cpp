@@ -3,6 +3,8 @@
 
 #include "Sound/SoundComponent.h"
 
+#include "Kismet/GameplayStatics.h"
+
 
 // Sets default values for this component's properties
 USoundComponent::USoundComponent()
@@ -19,7 +21,7 @@ EPhysicalSurface USoundComponent::GetSurfaceTypeBelow(const FVector& Location, f
 	FHitResult HitResult;
 	FVector Start = Location;
 	FVector End = Location - FVector(0.f, 0.f, TraceLength);
-	
+
 	if (LineTrace(Start, End, HitResult))
 	{
 		if (HitResult.PhysMaterial.IsValid())
@@ -30,12 +32,13 @@ EPhysicalSurface USoundComponent::GetSurfaceTypeBelow(const FVector& Location, f
 	return EPhysicalSurface::SurfaceType_Default;
 }
 
-EPhysicalSurface USoundComponent::GetSurfaceTypeFront(const FVector& Location, const FVector& ForwardVector, float TraceLength) const
+EPhysicalSurface USoundComponent::GetSurfaceTypeFront(const FVector& Location, const FVector& ForwardVector,
+                                                      float TraceLength) const
 {
 	FHitResult HitResult;
 	FVector Start = Location;
 	FVector End = Location + ForwardVector * TraceLength;
-	
+
 	if (LineTrace(Start, End, HitResult))
 	{
 		if (HitResult.PhysMaterial.IsValid())
@@ -50,8 +53,8 @@ EPhysicalSurface USoundComponent::GetSurfaceTypeFromHit(const FHitResult& Hit) c
 {
 	FHitResult HitResult;
 	FVector Start = Hit.ImpactPoint + Hit.ImpactPoint * 10.f;
-	FVector End =  Hit.ImpactPoint - Hit.ImpactPoint * 200.f;
-	
+	FVector End = Hit.ImpactPoint - Hit.ImpactPoint * 200.f;
+
 	if (LineTrace(Start, End, HitResult))
 	{
 		if (HitResult.PhysMaterial.IsValid())
@@ -75,3 +78,13 @@ bool USoundComponent::LineTrace(const FVector& Start, const FVector& End, FHitRe
 		Params);
 }
 
+void USoundComponent::PlaySoundAtLocation(USoundBase* Sound, const FVector& Location) const
+{
+	if (Sound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, Location,
+		                                      FRotator::ZeroRotator,
+		                                      1.f, 1.f, 0.f,
+		                                      DefaultAttenuation);
+	}
+}

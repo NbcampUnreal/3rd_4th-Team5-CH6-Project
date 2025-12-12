@@ -18,10 +18,6 @@ UHitComponent::UHitComponent()
 
 void UHitComponent::PlayHitSound(const FHitResult& HitResult)
 {
-	// if (!HitResult.IsValidBlockingHit())
-	// {
-	// 	return;
-	// }
 	EPhysicalSurface SurfaceType = GetSurfaceTypeFromHit(HitResult);
 	
 	USoundBase* Sound = HitSounds.FindRef(SurfaceType);
@@ -30,8 +26,5 @@ void UHitComponent::PlayHitSound(const FHitResult& HitResult)
 		Sound = DefaultHitSound;
 	}
     
-	if (Sound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), Sound, HitResult.ImpactPoint);
-	}
+	PlaySoundAtLocation(Sound, HitResult.ImpactPoint);
 }
