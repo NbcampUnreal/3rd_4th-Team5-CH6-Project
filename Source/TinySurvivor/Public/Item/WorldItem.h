@@ -30,6 +30,7 @@
 #include "Item/Interface/IInteraction.h"
 #include "WorldItem.generated.h"
 
+class UBoxComponent;
 class UStaticMeshComponent;
 class ATSCharacter;
 
@@ -55,6 +56,8 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UBoxComponent* DetectionBox;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_ItemData, Category = "Item")
 	FSlotStructMaster ItemData;
 
