@@ -45,6 +45,10 @@ public:
 	UFUNCTION()
 	virtual void OnMontageCompleted();
 	
+	// 순찰 중 맞았을 때 보내는 이벤트 태그
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability|Montage", meta = (Categories = "Monster.Behavior"))
+	FGameplayTag MonsterHitNoticeTag = FGameplayTag::EmptyTag;
+	
 	// 몽타주 재생 이후 호출 보낼 이벤트 태그
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability|Montage", meta = (Categories = "Monster.Behavior"))
 	FGameplayTag MontageEndTag = FGameplayTag::EmptyTag;
@@ -59,4 +63,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void SendFinishMontageEventToStateTree(const FGameplayTag& InSendTag);
+	void SendReceiveHitToStateTree(const FGameplayTag& InSendTag);
+
+	UFUNCTION(BlueprintCallable)
+	void SendErosionChangeToErosionSystem();
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability| ErsionChangeRate")
+	float ErosionChangeRate = 0.0f;
+	
 };

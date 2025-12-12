@@ -9,7 +9,7 @@
 UGA_Mon_Hit::UGA_Mon_Hit()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	NetSecurityPolicy = EGameplayAbilityNetSecurityPolicy::ClientOrServer;
 }
 
@@ -17,6 +17,12 @@ void UGA_Mon_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
                                   const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	
+	if (!K2_CommitAbility() || !IsValid(AbilityMontage))
+	{
+		K2_EndAbility();
+		return;
+	}
 	
 	UE_LOG(LogTemp, Warning, TEXT("몬스터한테 데미지 적용 후 시각 처리 지시 수신1"))
 	
@@ -94,20 +100,24 @@ void UGA_Mon_Hit::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGam
 
 void UGA_Mon_Hit::OnMontageCompleted()
 {
+	SendFinishMontageEventToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
 void UGA_Mon_Hit::OnMontageCancelled()
 {
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
 void UGA_Mon_Hit::OnMontageInterrupted()
 {
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }
 
 void UGA_Mon_Hit::OnMontageBlendOut()
 {
+	SendReceiveHitToStateTree(MonsterHitNoticeTag);
 	K2_EndAbility();
 }

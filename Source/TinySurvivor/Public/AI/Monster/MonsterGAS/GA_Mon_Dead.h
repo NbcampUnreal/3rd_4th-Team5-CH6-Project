@@ -14,6 +14,7 @@ class TINYSURVIVOR_API UGA_Mon_Dead : public UGA_MonBase
 {
 	GENERATED_BODY()
 	
+	UGA_Mon_Dead();
 	virtual void ActivateAbility(
 		const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,

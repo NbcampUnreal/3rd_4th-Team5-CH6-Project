@@ -2,6 +2,7 @@
 
 #include "AI/Monster/MonsterGAS/GA_MonBase.h"
 #include "AI/Monster/Base/MonsterAICInterface.h"
+#include "System/Erosion/TSErosionSubSystem.h"
 
 UGA_MonBase::UGA_MonBase()
 {
@@ -47,6 +48,27 @@ void UGA_MonBase::SendFinishMontageEventToStateTree(const FGameplayTag& InSendTa
 	{
 		GiantStateTreeComponent()->SendStateTreeEvent(MontageEndTag);
 	}
+}
+
+void UGA_MonBase::SendReceiveHitToStateTree(const FGameplayTag& InSendTag)
+{
+	if (!IsValid(GiantStateTreeComponent())) return;
+	
+	if (MonsterHitNoticeTag == FGameplayTag::EmptyTag)
+	{
+		GiantStateTreeComponent()->SendStateTreeEvent(InSendTag);
+	}
+	else
+	{
+		GiantStateTreeComponent()->SendStateTreeEvent(MonsterHitNoticeTag);
+	}
+}
+
+void UGA_MonBase::SendErosionChangeToErosionSystem()
+{
+	UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);
+	if (!IsValid(ErosionSubSystem)) return;
+	ErosionSubSystem->AddOrSubtractErosion(ErosionChangeRate);
 }
 
 UStateTreeAIComponent* UGA_MonBase::GiantStateTreeComponent()
