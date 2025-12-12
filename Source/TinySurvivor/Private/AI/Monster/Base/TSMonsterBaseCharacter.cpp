@@ -39,6 +39,10 @@ ATSMonsterBaseCharacter::ATSMonsterBaseCharacter()
 	
 	// 루트 컴포넌트
 	SpawnedLootComp = CreateDefaultSubobject<ULootComponent>(TEXT("LootComponent"));
+	
+	GetCharacterMovement()->bUseRVOAvoidance = true;
+	GetCharacterMovement()->AvoidanceConsiderationRadius = 300.f;
+	GetCharacterMovement()->AvoidanceWeight = 0.5f;
 }
 
 void ATSMonsterBaseCharacter::BeginPlay()
@@ -61,6 +65,8 @@ void ATSMonsterBaseCharacter::BeginPlay()
 			GameplayEffectContext.AddSourceObject(this);
 			MonsterASC->BP_ApplyGameplayEffectToSelf(GiveGE, 1.0f, GameplayEffectContext);
 		}
+		
+		GetCharacterMovement()->bUseRVOAvoidance = true;
 	}
 }
 
