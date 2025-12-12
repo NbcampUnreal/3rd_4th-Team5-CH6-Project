@@ -94,7 +94,7 @@ protected:
 	UWidgetComponent* InteractionWidget;
 	// 상호작용 텍스트
 	UPROPERTY(EditAnywhere, Category = "Interaction")
-	FText DefaultInteractionText = FText::FromString(TEXT("상호작용[E]"));
+	FText DefaultInteractionText = FText::FromString(TEXT("줍기"));
 
 public:
 	// 이 액터가 유래된 HISM 인스턴스 인덱스 (-1이면 순수 액터)

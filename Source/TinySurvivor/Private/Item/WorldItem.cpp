@@ -55,7 +55,7 @@ AWorldItem::AWorldItem()
 	
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
 	InteractionWidget->SetupAttachment(MeshComponent);
-	InteractionWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	InteractionWidget->SetWidgetSpace(EWidgetSpace::World);
 	// TODO: 루트 컴포넌트에 붙이고 위젯 컴포넌트 위치 설정 추가
 	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, 150.f));
 	InteractionWidget->SetDrawSize(FVector2D(300.f, 60.f));
@@ -486,7 +486,7 @@ void AWorldItem::UpdateDebugText()
 	if (!DebugTextComp) return;
 
 	FString DebugString = FString::Printf(TEXT("ID: %d"), ItemData.ItemData.StaticDataID);
-    
+    DebugString.Append(FString::Printf(TEXT("\nStack : %d"), ItemData.CurrentStackSize));
 	bool bIsRealDecayItem = false;
 	
 	UGameInstance* GI = GetWorld()->GetGameInstance();
@@ -541,20 +541,28 @@ void AWorldItem::Interact(ATSCharacter* InstigatorCharacter)
 		return;
 	
 	int32 RemainingQuantity = 0;
-	int32 Amount = 1;
+	int32 Quantity = (ItemData.CurrentStackSize > 0) ? ItemData.CurrentStackSize : 1;
 	
 	// 인벤토리 추가 시도
-	bool bCanAdd = InventoryComp->AddItem(ItemData.ItemData, Amount, RemainingQuantity);
+	bool bCanAdd = InventoryComp->AddItem(ItemData.ItemData, Quantity, RemainingQuantity);
 	
 	if (bCanAdd)
 	{
-		if (UWorldItemPoolSubsystem* PoolSys = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>())
+		if (RemainingQuantity <= 0)
 		{
-			PoolSys->ReleaseItemActor(this);
+			if (UWorldItemPoolSubsystem* PoolSys = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>())
+			{
+				PoolSys->ReleaseItemActor(this);
+			}
+			else
+			{
+				Destroy();
+			}
 		}
-		else
+		else if (RemainingQuantity < Quantity)
 		{
-			Destroy();
+			ItemData.CurrentStackSize = RemainingQuantity;
+			UpdateDebugText();
 		}
 	}
 }
