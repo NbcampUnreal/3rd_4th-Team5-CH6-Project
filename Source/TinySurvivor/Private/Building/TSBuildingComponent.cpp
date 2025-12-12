@@ -285,12 +285,15 @@ bool UTSBuildingComponent::ValidatePlacement(FHitResult HitResult)
 		return false;
 	}
 
-	// LightSource 범위 체크
-	if (!IsInLightSourceRange(HitResult.Location))
+	// LightSource 범위 체크 / 라이팅 빌딩 제외
+	if (BuildingData.BuildingType != EBuildingType::LIGHT)
 	{
-		return false;
+		if (!IsInLightSourceRange(HitResult.Location))
+		{
+			return false;
+		}
 	}
-
+	
 	return true;
 }
 

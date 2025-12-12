@@ -145,6 +145,11 @@ void UTSInventoryMasterComponent::OnRep_ActiveHotkeyIndex()
 {
 	HandleActiveHotkeyIndexChanged();
 }
+
+void UTSInventoryMasterComponent::ClientNotifyItemAdded_Implementation(int32 ItemID, int32 Quantity)
+{
+	OnItemAdded.Broadcast(ItemID, Quantity);
+}
 #pragma endregion
 
 #pragma region ServerRPC
@@ -859,12 +864,14 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	if (bInventoryChanged)
 	{
 		HandleInventoryChanged();
+		// 아이템 습득 HUD 표시용 이벤트 브로드캐스트
+		ClientNotifyItemAdded(ItemData.StaticDataID, Quantity - OutRemainingQuantity);
 	}
 	if (bAddedToActiveSlot)
 	{
 		HandleActiveHotkeyIndexChanged();
 	}
-
+	
 	return OutRemainingQuantity == 0;
 }
 #pragma endregion
