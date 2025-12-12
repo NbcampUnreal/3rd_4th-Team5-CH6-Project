@@ -4,17 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "GA_MonBase.h"
-#include "GA_Mon_Dead.generated.h"
+#include "GA_Mon_PrayErosionChange.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class TINYSURVIVOR_API UGA_Mon_Dead : public UGA_MonBase
+class TINYSURVIVOR_API UGA_Mon_PrayErosionChange : public UGA_MonBase
 {
 	GENERATED_BODY()
 	
-	UGA_Mon_Dead();
+public:
+	UGA_Mon_PrayErosionChange();
 	virtual void ActivateAbility(
 		const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,
@@ -27,7 +28,6 @@ class TINYSURVIVOR_API UGA_Mon_Dead : public UGA_MonBase
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool bReplicateEndAbility, bool bWasCancelled) override;
 	
-	
 protected:
 	// 델리게이트로 받을 함수들 오버이드
 	virtual void OnMontageCompleted() override;
@@ -38,5 +38,6 @@ protected:
 
 	virtual void OnMontageBlendOut() override;
 	
-	void RequestSpawnDropItems(AActor* SpawnedMonster);
+	UPROPERTY()
+	TWeakObjectPtr<AActor> CachingMonster;
 };
