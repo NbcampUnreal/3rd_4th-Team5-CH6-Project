@@ -26,7 +26,7 @@ protected:
 	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass; // EndAbility 후 1초 딜레이  
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
-	float TraceDistance = 120.f;
+	float TraceDistance = 50.f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb") 
 	float TraceRadius = 30.f;
@@ -49,9 +49,9 @@ private:
 	//Delegate Handle
 	FDelegateHandle StaminaDelegateHandle;
 	
-	bool ClimbableActor(); // 클라이밍 가능한 액터가 있는지
+	bool ClimbableActor(FHitResult& OutHit); // 클라이밍 가능한 액터가 있는지
 	void StartJump();
-	void StartClimb();
+	void StartClimb(const FHitResult& TargetHit);
 	void CheckClimbingState();
 	void OnAttributeChanged(const FOnAttributeChangeData& Data); //스태미나 변하는거 감지하는 함수
 };
