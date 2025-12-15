@@ -41,4 +41,7 @@ protected:
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CachingMonster;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	TSubclassOf<UGameplayEffect> DamageEffect;
+	
 };
