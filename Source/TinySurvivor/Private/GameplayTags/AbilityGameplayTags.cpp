@@ -81,6 +81,9 @@ namespace AbilityTags
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Montage_HitCheck, "Event.Montage.HitCheck");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Armor_Hit, "Event.Armor.Hit");
+	
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Enemy_Damage, "Enemy.Damage");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Hit, "Ability.Hit");
 }
 
 namespace MonsterTags
