@@ -204,25 +204,45 @@ void ATSResourceBaseActor::InitFromResourceData(FResourceData& Data)
 	if (bShowDebug) UE_LOG(LogTemp, Warning, TEXT("Init Resource %d at Actor %s"), Data.ResourceID, *GetName());
 }
 
-void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EItemAnimType& RequiredToolType, int32& ATK, FVector& HitPoint, FVector& HitNormal, FVector PlayerLocation, FVector ForwardVector, bool IsLeftMouseClicked)
+void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EItemAnimType& InRequiredToolType, int32& ATK, FVector& HitPoint, FVector& HitNormal, FVector PlayerLocation, FVector ForwardVector, bool IsLeftMouseClicked)
 {
 #pragma region 검사
+	
 	if (!HasAuthority())
 	{
 		UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] HasAuthority is fail"));
 		return;
 	}
+	
 	if (!IsValid(ASC))
 	{
 		UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] ASC is Null"));
 		return;
 	}
-	if (ResourceRuntimeData.RequiredToolType != RequiredToolType)
+	
+	bool IsFoundAnyMatchType = false;
+	bool IsFoundMatchTypeNone = false;
+	
+	for (auto RequiredToolType : ResourceRuntimeData.RequiredToolTypes)
+	{
+		if (InRequiredToolType == RequiredToolType)
+		{
+			IsFoundAnyMatchType = true;
+		}
+		
+		if (InRequiredToolType == EItemAnimType::INTERACT)
+		{
+			IsFoundMatchTypeNone = true;
+		}
+	}
+	
+	if (IsFoundAnyMatchType == false)
 	{
 		UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] RequiredToolID is NOT matching"));
 		return;
 	}
-	if (ResourceRuntimeData.RequiredToolType == EItemAnimType::NONE && IsLeftMouseClicked)
+	
+	if (ResourceRuntimeData.RequiredToolTypes.Contains(EItemAnimType::INTERACT) && IsLeftMouseClicked)
 	{
 		UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] EItemAnimType::NONE 입니다. 왼쪽 마우스 클릭으로는 호출할 수 없습니다."));
 		return;
@@ -253,12 +273,15 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("GetItemFromResource 시작"));
 	
-	if (ResourceRuntimeData.RequiredToolType == EItemAnimType::NONE)
+	// none 타입의 경우 시간 차로 얻어야 함.
+	if (IsFoundMatchTypeNone)
 	{
 		bool NoHealth = false;
 		DoHarvestLogic(ASC, ATK,PlayerLocation, FinalSpawnLocation, NoHealth);
 	}
-	else
+	
+	// none 타입이 아닌 경우 (펀치 등등 다른 모든 타입)
+	if (IsFoundAnyMatchType == true)
 	{
 		bool YesHealth = true;
 		float CurrentHPPercent = CurrentResourceHealth / ResourceRuntimeData.ResourceHealth;

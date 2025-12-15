@@ -57,7 +57,6 @@ public:
 		, Name_EN(FText::FromString(TEXT("")))            // 영어 이름 초기화 (빈 문자열)
 		, Rarity(EItemRarity::NONE)                       // 등급 초기화 (기본값: NONE)
 		, NodeType(ENodeType::JUNK)                       // 노드 타입 초기화 (기본값: JUNK)
-		, RequiredToolType(EItemAnimType::NONE)           // 자원 채집에 필요한 도구 타입 초기화 (NONE = 없음)
 		, NodeTier(ENodeTier::T1)                         // 노드 등급 초기화 (기본값: T1)
 		, TotalYield(1)                                   // 총 채집 가능량 초기화 (기본값: 1)
 		, MainDropTableID(0)                              // 메인 드롭 테이블 초기화 (0 = 없음)
@@ -110,8 +109,8 @@ public:
 	
 	// 필수 도구 타입 (None이면 도구 불필요)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-		meta=(DisplayName="Required Tool Type", ToolTip="필수 도구 타입 (None이면 도구 불필요)"))
-	EItemAnimType RequiredToolType;
+		meta=(DisplayName="Required Tool Types", ToolTip="필수 도구 타입들 (None이면 도구 불필요)"))
+	TArray<EItemAnimType> RequiredToolTypes;
 	
 	// 티어
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",

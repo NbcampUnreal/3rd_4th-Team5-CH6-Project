@@ -36,6 +36,7 @@ UENUM(BlueprintType)
 enum class EItemAnimType : uint8
 {
 	NONE          UMETA(DisplayName = "None", ToolTip="애니메이션 없음"),
+	INTERACT	  UMETA(DisplayName = "Interact", ToolTip="상호작용 전용"),
 	PICK          UMETA(DisplayName = "Pick", ToolTip="곡괭이 타입 도구"),
 	AXE           UMETA(DisplayName = "Axe", ToolTip="도끼 타입 도구"),
 	HAMMER        UMETA(DisplayName = "Hammer", ToolTip="망치 타입 도구"),
