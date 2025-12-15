@@ -4,6 +4,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "AbilitySystemComponent.h"
 #include "AI/Monster/MonsterGAS/TSMonsterAS.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 
 UGA_Mon_Hit_CanMove::UGA_Mon_Hit_CanMove()
 {
@@ -16,6 +17,30 @@ void UGA_Mon_Hit_CanMove::ActivateAbility(const FGameplayAbilitySpecHandle Handl
                                   const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	
+	UAbilitySystemComponent* MonsterASC = ActorInfo->AbilitySystemComponent.Get();
+	if (MonsterASC)
+	{
+		if (TriggerEventData)
+		{
+			if (DamageEffect)
+			{
+				if (TriggerEventData->EventMagnitude > 0.f)
+				{
+					UE_LOG(LogTemp, Log, TEXT("캐릭터 무기 공격력 : %f"), 
+						TriggerEventData->EventMagnitude);
+					FGameplayEffectContextHandle ContextHandle = MonsterASC->MakeEffectContext();
+					ContextHandle.AddInstigator(ActorInfo->AvatarActor.Get(), ActorInfo->AvatarActor.Get()); 
+					FGameplayEffectSpecHandle SpecHandle = MonsterASC->MakeOutgoingSpec(DamageEffect, 1.f, ContextHandle);
+					if (SpecHandle.IsValid())
+					{
+						SpecHandle.Data.Get()->SetSetByCallerMagnitude(AbilityTags::TAG_Enemy_Damage, -TriggerEventData->EventMagnitude);
+						MonsterASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
+			}
+		}
+	}
 	
 	if (!K2_CommitAbility() || !IsValid(AbilityMontage))
 	{

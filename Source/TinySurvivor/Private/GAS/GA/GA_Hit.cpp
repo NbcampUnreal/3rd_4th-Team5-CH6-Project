@@ -15,6 +15,18 @@ UGA_Hit::UGA_Hit()
 void UGA_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	// ----------------- 구르기 무적 판정 ------------------
+	// 0. 구르기 태그 갖고있으면 피해 안입음
+	UAbilitySystemComponent* CharacterASC = GetAbilitySystemComponentFromActorInfo();
+	if (CharacterASC)
+	{
+		if (CharacterASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Move_Roll))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("구르기 태그 갖고있어서 못 때림"));
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+			return;
+		}
+	}
 	
 	// 1. Payload 유효성 검사
     if (!TriggerEventData)

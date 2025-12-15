@@ -5,6 +5,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameplayTags/AbilityGameplayTags.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
+#include "Components/CapsuleComponent.h"
 
 UGA_JumpOrClimb::UGA_JumpOrClimb()
 {
@@ -15,9 +16,10 @@ void UGA_JumpOrClimb::ActivateAbility(const FGameplayAbilitySpecHandle Handle, c
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-	if ( ClimbableActor())
+	FHitResult HitResult;
+	if ( ClimbableActor(HitResult))
 	{
-		StartClimb(); // 스태미나 소모 O
+		StartClimb(HitResult); // 스태미나 소모 O
 		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Move_Climb);
 	} else
 	{
@@ -87,24 +89,44 @@ void UGA_JumpOrClimb::EndAbility(const FGameplayAbilitySpecHandle Handle, const 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-bool UGA_JumpOrClimb::ClimbableActor()
+bool UGA_JumpOrClimb::ClimbableActor(FHitResult& OutHit)
 {
 	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
 	const FVector Start = Character->GetActorLocation();
 	const FVector Forward = Character->GetActorForwardVector();
 	const FVector End = Start + ( Forward * TraceDistance );
 	
-	FHitResult Hit;
 	TArray<AActor*> Ignored;
 	Ignored.Add(Character);
 	
-	bool bHit = UKismetSystemLibrary::SphereTraceSingle(this ,Start, End, TraceRadius, UEngineTypes::ConvertToTraceType(ECC_Visibility),false, Ignored, EDrawDebugTrace::None, Hit,true);
+	bool bHit = UKismetSystemLibrary::SphereTraceSingle(this ,Start, End, TraceRadius, UEngineTypes::ConvertToTraceType(ECC_Visibility),false, Ignored, EDrawDebugTrace::None, OutHit,true);
 	if (bHit)
 	{
-		AActor* HitActor = Hit.GetActor();
+		AActor* HitActor = OutHit.GetActor();
+		
+		// 벽 기울기 검사 (바닥이나 천장이면 false)
+		if (FMath::Abs(OutHit.ImpactNormal.Z) > 0.2f) // 벽 기울기 검사 (경사나 바닥)
+		{
+			UE_LOG(LogTemp,Warning,TEXT("벽이 너무 기울어져 있음"));
+			return false;
+		}
+		// 정면 판정 (캐릭터가 벽을 정면으로 보고 있는가?)
+		float FacingDot = FVector::DotProduct(Forward, -OutHit.ImpactNormal);
+		if (FacingDot < 0.6f )
+		{
+			UE_LOG(LogTemp,Warning,TEXT("벽을 정면으로 보고있지않음"));
+			return false;
+		}
+		// 거리 제한 (벽이 너무 멀면 false)
+		float DistanceToWall = (OutHit.ImpactPoint - Start).Size();
+		if (DistanceToWall > 80.f)
+		{
+			UE_LOG(LogTemp,Warning,TEXT("벽이 너무 멀리있음"));
+			return false;
+		}
 		if (HitActor && HitActor->ActorHasTag(ClimbableTagName))
 		{
-			Character->CurrentWallNormal = Hit.ImpactNormal;
+			Character->CurrentWallNormal = OutHit.ImpactNormal;
 			return true;
 		}
 	}
@@ -121,13 +143,33 @@ void UGA_JumpOrClimb::StartJump()
 	}
 }
 
-void UGA_JumpOrClimb::StartClimb()
+void UGA_JumpOrClimb::StartClimb(const FHitResult& TargetHit)
 {
 	//State.Climb 태그 부여
 	UE_LOG(LogTemp,Error,TEXT("Climbable 태그가진 액터 발견 -> Climb 시작 "));
 	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
-	
+	if (Character->HasAuthority())
+	{
+		float CapsuleRadius = 0.f;
+		if (Character->GetCapsuleComponent())
+		{
+			CapsuleRadius = Character->GetCapsuleComponent()->GetScaledCapsuleRadius();
+		}
+		// 클라이밍 시작 시 1. 벽에 찰싹 붙기, 2. 벽 정면으로 보고있지 않으면 캐릭터 회전시키기
+		// 1. 달라붙을 벽 위치 계산 : 벽 표면에서 캡슐 반지름만큼 떨어트리기 (좀 더 달라붙게 -1 함)
+		FVector SnapLocation = TargetHit.ImpactPoint + (TargetHit.ImpactNormal * (CapsuleRadius - 1.0f));
+		SnapLocation.Z = Character->GetActorLocation().Z; //z 값은 유지
+		
+		// 2. 벽 정면 회전
+		FRotator TargetRotator = (-TargetHit.ImpactNormal).Rotation(); //정면 방향 : -ImpactNormal 법선 벡터
+		TargetRotator.Pitch = 0.0f;
+		TargetRotator.Roll = 0.0f;
+		FHitResult SweepHit;
+		Character->SetActorLocationAndRotation(SnapLocation, TargetRotator, true, &SweepHit, ETeleportType::TeleportPhysics);
+		Character->bIsClimbState = true;
+	}
+	Character->CurrentWallNormal = TargetHit.ImpactNormal;
 	// Stamina
 	StaminaDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(UTSAttributeSet::GetStaminaAttribute()).AddUObject(this, &UGA_JumpOrClimb::OnAttributeChanged);
 
@@ -141,16 +183,13 @@ void UGA_JumpOrClimb::StartClimb()
 			CostHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
+	
 	// 물리 모드 변경 (Flying : 중력 무시해서 벽타도록 )
 	Character->GetCharacterMovement()->SetMovementMode(MOVE_Flying);
-	//
+
 	Character->GetCharacterMovement()->MaxFlySpeed = 200.0f;
 	Character->GetCharacterMovement()->BrakingDecelerationFlying = 2000.0f;
 	Character->GetCharacterMovement()->StopMovementImmediately();
-	if (Character->HasAuthority())
-	{
-		Character->bIsClimbState = true;
-	}
 	// 벽 상태 감시 타이머 시작 (0.05마다 )
 	GetWorld()->GetTimerManager().SetTimer(ClimbableCheckTimerHandle, this, &UGA_JumpOrClimb::CheckClimbingState, 0.05f, true);
 }

@@ -92,6 +92,10 @@ namespace AbilityTags
 	//================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Montage_HitCheck);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Armor_Hit);
+	
+	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Enemy_Damage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Hit);
 }
 
 namespace MonsterTags
