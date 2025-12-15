@@ -131,7 +131,7 @@ void UGA_Resourceinteract::OnCancelInteract(FGameplayEventData Payload)
 void UGA_Resourceinteract::DoInteract()
 {
 	int32 ATK = 1;
-	EItemAnimType ItemAnimType = EItemAnimType::NONE;
+	EItemAnimType ItemAnimType = EItemAnimType::INTERACT;
 	if (!TargetResource || !CachedASC.IsValid()) return;
 	
 	TargetResource->GetItemFromResource(
