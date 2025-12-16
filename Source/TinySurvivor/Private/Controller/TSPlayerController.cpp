@@ -219,8 +219,6 @@ void ATSPlayerController::ToggleInventory()
 		return;
 	}
 
-	UpdateInputMode();
-
 	UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
 		GetPawn()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
 
@@ -240,6 +238,7 @@ void ATSPlayerController::ToggleInventory()
 		{
 			IIWidgetActivation::Execute_SetContainerData(ActiveWidget, GetPawn(), ContainerInventory);
 		}
+		UpdateInputMode();
 	}
 }
 
