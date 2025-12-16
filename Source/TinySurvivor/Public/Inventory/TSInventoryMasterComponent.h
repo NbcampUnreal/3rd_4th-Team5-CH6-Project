@@ -86,6 +86,9 @@ public:
 	// ========================================
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	ESlotAccessType SlotAccessType = ESlotAccessType::ReadWrite ;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
 	int32 HotkeySlotCount = 10;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")

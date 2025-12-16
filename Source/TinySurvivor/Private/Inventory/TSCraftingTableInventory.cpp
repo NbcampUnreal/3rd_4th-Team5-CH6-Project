@@ -10,6 +10,7 @@ UTSCraftingTableInventory::UTSCraftingTableInventory()
 	PrimaryComponentTick.bCanEverTick = false;
 	HotkeySlotCount = 0;
 	InitialBagSlotCount = MAX_CRAFTING_SLOTS;
+	SlotAccessType = ESlotAccessType::ReadOnly;
 }
 
 void UTSCraftingTableInventory::BeginPlay()

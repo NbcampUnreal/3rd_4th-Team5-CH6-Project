@@ -34,6 +34,17 @@ enum class ESlotType : uint8
 };
 
 /**
+ * 슬롯 접근 타입 열거형 데이터
+ */
+UENUM(Blueprintable, BlueprintType)
+enum class ESlotAccessType : uint8
+{
+	ReadWrite UMETA(DisplayName = "ReadWrite"),
+	ReadOnly UMETA(DisplayName = "ReadOnly"),
+	WriteOnly UMETA(DisplayName = "WriteOnly"),
+};
+
+/**
  * 슬롯 정보 데이터
  */
 USTRUCT(Blueprintable, BlueprintType)
@@ -41,6 +52,10 @@ struct TINYSURVIVOR_API FSlotStructMaster
 {
 	GENERATED_BODY()
 
+	// 슬롯 타입 정보
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SlotAccessType")
+	ESlotAccessType SlotAccessType = ESlotAccessType::ReadWrite;
+	
 	// 슬롯 타입 정보
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "SlotType")
 	ESlotType SlotType = ESlotType::Any;

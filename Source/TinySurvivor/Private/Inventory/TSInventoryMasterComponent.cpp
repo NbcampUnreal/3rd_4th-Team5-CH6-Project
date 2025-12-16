@@ -77,6 +77,7 @@ void UTSInventoryMasterComponent::BeginPlay()
 		HotkeyInventory.InventorySlotContainer.SetNum(HotkeySlotCount);
 		for (int32 i = 0; i < HotkeySlotCount; ++i)
 		{
+			HotkeyInventory.InventorySlotContainer[i].SlotAccessType = SlotAccessType;
 			HotkeyInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
 		}
 
@@ -87,6 +88,7 @@ void UTSInventoryMasterComponent::BeginPlay()
 		int32 idx = 0;
 		for (const auto& Pair : EquipmentSlotTypes)
 		{
+			EquipmentInventory.InventorySlotContainer[idx].SlotAccessType = SlotAccessType;
 			EquipmentInventory.InventorySlotContainer[idx].SlotType = Pair.Key;
 			EquippedArmors[idx].SlotType = Pair.Value;
 			++idx;
@@ -100,6 +102,7 @@ void UTSInventoryMasterComponent::BeginPlay()
 			BagInventory.InventorySlotContainer.SetNum(InitialBagSlotCount);
 			for (int32 i = 0; i < InitialBagSlotCount; ++i)
 			{
+				BagInventory.InventorySlotContainer[i].SlotAccessType = SlotAccessType;
 				BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
 			}
 			UE_LOG(LogTemp, Log, TEXT("Inventory initialized: Hotkey=%d, Equipment=%d, Bag=%d"),
@@ -334,6 +337,10 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		if (bIsFullStack)
 		{
 			bAddedToActiveSlot = true;
+			// SlotAccessType 백업
+			ESlotAccessType FromSlotAccessType = FromSlot.SlotAccessType;
+			ESlotAccessType ToSlotAccessType = ToSlot.SlotAccessType;
+			
 			// SlotType 백업
 			ESlotType FromSlotType = FromSlot.SlotType;
 			ESlotType ToSlotType = ToSlot.SlotType;
@@ -343,6 +350,10 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 			FromSlot = ToSlot;
 			ToSlot = Temp;
 
+			// SlotAccessType 복원
+			FromSlot.SlotAccessType = FromSlotAccessType;
+			ToSlot.SlotAccessType = ToSlotAccessType;
+			
 			// SlotType 복원
 			FromSlot.SlotType = FromSlotType;
 			ToSlot.SlotType = ToSlotType;
@@ -991,6 +1002,12 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 		return false;
 	}
 
+	// 슬롯 접근 타입 확인
+	if (GetSlot(InventoryType, SlotIndex).SlotAccessType==ESlotAccessType::ReadOnly)
+	{
+		return false;
+	}
+	
 	FItemData ItemInfo;
 	if (!GetItemData(StaticDataID, ItemInfo))
 	{
