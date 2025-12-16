@@ -11,8 +11,8 @@ FGameplayTag FBuildingDataProvider::GetCategoryTag() const
 	{
 	case EBuildingType::CRAFTING:
 		return ItemTags::TAG_Category_Crafting;
-	case EBuildingType::DEFENSE:
-		return ItemTags::TAG_Category_Defense;
+	case EBuildingType::STRUCT:
+		return ItemTags::TAG_Category_Struct;
 	case EBuildingType::LIGHT:
 		return ItemTags::TAG_Category_Lighting;
 	case EBuildingType::STORAGE:
@@ -96,7 +96,7 @@ int32 FBuildingDataProvider::GetEnumValue(const FGameplayTag& EnumTag) const
 	// Defense 등급
 	if (EnumTag == ItemTags::TAG_Display_Stat_Rarity)
 	{
-		if (BuildingData.BuildingType == EBuildingType::DEFENSE)
+		if (BuildingData.BuildingType == EBuildingType::STRUCT)
 		{
 			return static_cast<int32>(BuildingData.Rarity);
 		}
