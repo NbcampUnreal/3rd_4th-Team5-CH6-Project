@@ -173,7 +173,12 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	{
 		return;
 	}
-
+	
+	//===============================================================
+	//드롭되는 슬롯이 현재 활성화된 핫키 슬롯인지 미리 확인
+	//===============================================================
+	bool bIsActiveHotkeySlot = (InventoryType == EInventoryType::HotKey && SlotIndex == ActiveHotkeyIndex);
+	
 	// 액터 앞에 드랍
 	FTransform DropTransform = FTransform(
 		GetOwner()->GetActorTransform().GetRotation(),
@@ -204,6 +209,21 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(
 	}
 
 	HandleInventoryChanged();
+	
+	//===============================================================
+	// 활성화된 슬롯이 비워졌으면 메시 제거
+	//===============================================================
+	if (bIsActiveHotkeySlot && Slot.CurrentStackSize <= 0)
+	{
+		// 이 함수가 UnequipCurrentItem()을 호출하여 메시 제거
+		HandleActiveHotkeyIndexChanged();
+		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogInventoryComp, Log,
+			TEXT("활성화된 핫키 슬롯(#%d)의 아이템이 드롭되어 장착 해제됨"),
+			SlotIndex);
+#endif
+	}
 }
 
 bool UTSInventoryMasterComponent::ServerDropItemToWorld_Validate(
