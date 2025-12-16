@@ -72,7 +72,7 @@ void ATSPlayerController::ServerTransferItem_Implementation(AActor* SourceActor,
 		UE_LOG(LogTemp, Warning, TEXT("ServerTransferItemBetweenActors: Missing inventory components"));
 		return;
 	}
-	
+
 	// Internal 함수 호출
 	SourceInventory->Internal_TransferItem(
 		SourceInventory,
@@ -218,25 +218,28 @@ void ATSPlayerController::ToggleInventory()
 	{
 		return;
 	}
+
+	UpdateInputMode();
+
+	UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
+		GetPawn()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+
+	if (!ContainerInventory || ContainerInventory->GetCurrentBagSlotCount() <= 0)
+	{
+		return;
+	}
+
 	UWidgetSwitcher* Switcher = Cast<UWidgetSwitcher>(HUDWidget->GetWidgetFromName(TEXT("WidgetSwitcher_Backpack")));
 	if (Switcher)
 	{
 		int32 ActiveIndex = Switcher->GetActiveWidgetIndex();
 		Switcher->SetActiveWidgetIndex(ActiveIndex == 0 ? 1 : 0);
 		UWidget* ActiveWidget = Switcher->GetActiveWidget();
-		UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
-			GetPawn()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
 
-		if (!ContainerInventory)
-		{
-			return;
-		}
 		if (ActiveWidget && ActiveWidget->Implements<UIWidgetActivation>())
 		{
 			IIWidgetActivation::Execute_SetContainerData(ActiveWidget, GetPawn(), ContainerInventory);
 		}
-
-		UpdateInputMode();
 	}
 }
 
@@ -522,7 +525,7 @@ void ATSPlayerController::ShowDownedUI()
 	{
 		HideDownedUI();
 		return;
-	} 
+	}
 	if (DownedWidget)
 	{
 		return;
@@ -539,6 +542,7 @@ void ATSPlayerController::ShowDownedUI()
 		DownedWidget->AddToViewport();
 	}
 }
+
 void ATSPlayerController::HideDownedUI()
 {
 	if (DownedWidget)
