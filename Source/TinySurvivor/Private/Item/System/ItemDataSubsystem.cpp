@@ -485,7 +485,7 @@ void UItemDataSubsystem::PrintCacheDebugInfo() const
 			FString TypeName;
 			switch (Pair.Key)
 			{
-				case EBuildingType::DEFENSE: TypeName = TEXT("Defense"); break;
+			case EBuildingType::STRUCT: TypeName = TEXT("Struct"); break;
 				case EBuildingType::CRAFTING: TypeName = TEXT("Crafting"); break;
 				case EBuildingType::LIGHT: TypeName = TEXT("Light"); break;
 				case EBuildingType::STORAGE: TypeName = TEXT("Storage"); break;
