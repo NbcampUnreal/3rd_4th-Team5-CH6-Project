@@ -1165,12 +1165,14 @@ void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Value)
 		BuildingComponent->ServerRotateBuilding(Value.Get<float>());
 		return;
 	}
-	// 가스 안쓸거임
+	const float WheelValue = Value.Get<float>() * -10.f;
+	const float NewTargetArmLength = FMath::Clamp(SpringArmComponent->TargetArmLength + WheelValue, 100.f, 450.f);
+	SpringArmComponent->TargetArmLength = NewTargetArmLength;
 }
 
 void ATSCharacter::OnEsc(const struct FInputActionValue& Vaule)
 {	
-	UE_LOG(LogTemp, Log, TEXT("wheel scroll pressed"));
+	UE_LOG(LogTemp, Log, TEXT("ESC pressed"));
 	// 빌딩 모드인지 확인
 	if (BuildingComponent && BuildingComponent->IsBuildingMode())
 	{
@@ -1560,7 +1562,7 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		
 		EnhancedInputComponent->BindAction(InputDataAsset->PingAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnPing);
-		EnhancedInputComponent->BindAction(InputDataAsset->WheelScrollAction, ETriggerEvent::Started, this,
+		EnhancedInputComponent->BindAction(InputDataAsset->WheelScrollAction, ETriggerEvent::Triggered, this,
 		                                   &ATSCharacter::OnWheelScroll);
 		EnhancedInputComponent->BindAction(InputDataAsset->LeftClickAction, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnLeftClick);
