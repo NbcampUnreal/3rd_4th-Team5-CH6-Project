@@ -105,11 +105,12 @@ bool UGA_JumpOrClimb::ClimbableActor(FHitResult& OutHit)
 		AActor* HitActor = OutHit.GetActor();
 		
 		// 벽 기울기 검사 (바닥이나 천장이면 false)
-		if (FMath::Abs(OutHit.ImpactNormal.Z) > 0.2f) // 벽 기울기 검사 (경사나 바닥)
-		{
-			UE_LOG(LogTemp,Warning,TEXT("벽이 너무 기울어져 있음"));
-			return false;
-		}
+		//if (FMath::Abs(OutHit.ImpactNormal.Z) > 0.2f) // 벽 기울기 검사 (경사나 바닥)
+		//{
+		//	UE_LOG(LogTemp,Warning,TEXT("벽이 너무 기울어져 있음"));
+		//	return false;
+		//}
+		
 		// 정면 판정 (캐릭터가 벽을 정면으로 보고 있는가?)
 		float FacingDot = FVector::DotProduct(Forward, -OutHit.ImpactNormal);
 		if (FacingDot < 0.6f )
@@ -156,17 +157,12 @@ void UGA_JumpOrClimb::StartClimb(const FHitResult& TargetHit)
 		{
 			CapsuleRadius = Character->GetCapsuleComponent()->GetScaledCapsuleRadius();
 		}
-		// 클라이밍 시작 시 1. 벽에 찰싹 붙기, 2. 벽 정면으로 보고있지 않으면 캐릭터 회전시키기
-		// 1. 달라붙을 벽 위치 계산 : 벽 표면에서 캡슐 반지름만큼 떨어트리기 (좀 더 달라붙게 -1 함)
+		// 클라이밍 시작 시 1. 벽에 찰싹 붙기
+		// 달라붙을 벽 위치 계산 : 벽 표면에서 캡슐 반지름만큼 떨어트리기 (좀 더 달라붙게 -1 함)
 		FVector SnapLocation = TargetHit.ImpactPoint + (TargetHit.ImpactNormal * (CapsuleRadius - 1.0f));
 		SnapLocation.Z = Character->GetActorLocation().Z; //z 값은 유지
-		
-		// 2. 벽 정면 회전
-		FRotator TargetRotator = (-TargetHit.ImpactNormal).Rotation(); //정면 방향 : -ImpactNormal 법선 벡터
-		TargetRotator.Pitch = 0.0f;
-		TargetRotator.Roll = 0.0f;
 		FHitResult SweepHit;
-		Character->SetActorLocationAndRotation(SnapLocation, TargetRotator, true, &SweepHit, ETeleportType::TeleportPhysics);
+		Character->SetActorLocation(SnapLocation, true, &SweepHit, ETeleportType::TeleportPhysics);
 		Character->bIsClimbState = true;
 	}
 	Character->CurrentWallNormal = TargetHit.ImpactNormal;
@@ -213,6 +209,18 @@ void UGA_JumpOrClimb::CheckClimbingState()
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false );
 		return;
 	}
+	
+	FRotator ControlRot = Character->GetControlRotation();
+	ControlRot.Pitch = 0.0f;
+	ControlRot.Roll = 0.0f;
+	const FVector CharacterForward = ControlRot.Vector();
+	const float FacingDot = FVector::DotProduct(CharacterForward, -Hit.ImpactNormal);
+	if (FacingDot <0.7f) //숫자 내릴수록 판정 널널
+	{
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false );
+		return;
+	}
+	
 	// 눈높이에서 쏘는 트레이스 (난간? 감지) 
 	const FVector EyeStart = Character->GetActorLocation() + FVector(0, 0, EyeHeight);
 	const FVector EyeEnd = EyeStart + (Forward * TraceDistance);
