@@ -183,6 +183,6 @@ namespace ItemTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Storage, "Category.Building.Storage");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Lighting, "Category.Building.Lighting");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Crafting, "Category.Building.Crafting");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Defense, "Category.Building.Defense");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Category_Struct, "Category.Building.Struct");
 #pragma endregion
 }

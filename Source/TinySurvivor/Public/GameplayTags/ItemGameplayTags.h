@@ -194,6 +194,6 @@ namespace ItemTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Storage);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Lighting);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Crafting);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Defense);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Struct);
 #pragma endregion
 }

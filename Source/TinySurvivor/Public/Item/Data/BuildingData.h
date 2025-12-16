@@ -14,10 +14,10 @@
 UENUM(BlueprintType)
 enum class EBuildingType : uint8
 {
-	DEFENSE    UMETA(DisplayName = "Defense"),
-	CRAFTING   UMETA(DisplayName = "Crafting"),
-	LIGHT      UMETA(DisplayName = "Light"),
-	STORAGE    UMETA(DisplayName = "Storage")
+	STRUCT   UMETA(DisplayName = "Struct",    ToolTip = "구조물 건물"),
+	CRAFTING UMETA(DisplayName = "Crafting",  ToolTip = "제작용 건물"),
+	LIGHT    UMETA(DisplayName = "Light",     ToolTip = "조명 건물"),
+	STORAGE  UMETA(DisplayName = "Storage",   ToolTip = "저장소 건물")
 };
 
 /*
@@ -26,9 +26,9 @@ enum class EBuildingType : uint8
 UENUM(BlueprintType)
 enum class ETier : uint8
 {
-	T1  UMETA(DisplayName = "T1"),
-	T2  UMETA(DisplayName = "T2"),
-	T3  UMETA(DisplayName = "T3")
+	T1 UMETA(DisplayName = "T1", ToolTip = "T1"),
+	T2 UMETA(DisplayName = "T2", ToolTip = "T2"),
+	T3 UMETA(DisplayName = "T3", ToolTip = "T3")
 };
 #pragma endregion
 
@@ -68,7 +68,7 @@ struct FBuildingData : public FTableRowBase
 		, Name_KR(FText::GetEmpty())              // 한국어 이름 초기화 (빈 텍스트)
 		, Name_EN(FText::GetEmpty())              // 영어 이름 초기화 (빈 텍스트)
 		, Rarity(EItemRarity::NONE)                  // 등급 초기화 (NONE = 기본값)
-		, BuildingType(EBuildingType::DEFENSE)       // 건축물 유형 초기화 (기본값: 방어용)
+		, BuildingType(EBuildingType::STRUCT)       // 건축물 유형 초기화 (기본값: 구조물)
 		, RequiredTier(ETier::T1)                    // 제작 요구 등급 초기화 (Tier 1 = 기본값)
 		, MaxDurability(100)                         // 최대 내구도 초기화 (기본값: 100)
 		, IsErosionController(false)                 // 침식 관리 기능 여부 초기화 (기본: 없음)
