@@ -18,6 +18,8 @@ class TINYSURVIVOR_API ATSPlayerState : public APlayerState, public IAbilitySyst
 public:
 	ATSPlayerState();
 
+	virtual void BeginPlay() override;
+	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UTSAttributeSet* GetAttributeSet() const; 
 

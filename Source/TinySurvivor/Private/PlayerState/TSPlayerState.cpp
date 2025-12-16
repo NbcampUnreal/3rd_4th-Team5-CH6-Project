@@ -12,6 +12,13 @@ ATSPlayerState::ATSPlayerState()
 
 	Attributes = CreateDefaultSubobject<UTSAttributeSet>(TEXT("Attributes"));
 }
+
+void ATSPlayerState::BeginPlay()
+{
+	Super::BeginPlay();
+	SetNetUpdateFrequency(100.f);
+}
+
 UAbilitySystemComponent* ATSPlayerState::GetAbilitySystemComponent() const
 {
 	return ASC;
@@ -20,6 +27,3 @@ UTSAttributeSet* ATSPlayerState::GetAttributeSet() const
 {
 	return Attributes;
 }
-
-//비긴 플레이에 HasAuthority () GiveAbilities 함수해줘야하나?
-
