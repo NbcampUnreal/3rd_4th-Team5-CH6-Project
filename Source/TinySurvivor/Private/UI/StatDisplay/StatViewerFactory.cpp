@@ -63,7 +63,7 @@ UStatViewer* UStatViewerFactory::CreateBuilderForTag(const FGameplayTag& Categor
 	{
 		return NewObject<ULightingStatViewer>(this);
 	}
-	else if (CategoryTag == ItemTags::TAG_Category_Defense)
+	else if (CategoryTag == ItemTags::TAG_Category_Struct)
 	{
 		return NewObject<UDefenseStatViewer>(this);
 	}
