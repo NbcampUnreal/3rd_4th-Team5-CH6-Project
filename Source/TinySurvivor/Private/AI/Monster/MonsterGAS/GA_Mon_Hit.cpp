@@ -19,6 +19,8 @@ void UGA_Mon_Hit::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 	
+	UE_LOG(LogTemp, Warning, TEXT("몬스터한테 데미지 적용 후 시각 처리 지시 수신1"))
+	
 	UAbilitySystemComponent* MonsterASC = ActorInfo->AbilitySystemComponent.Get();
 	if (MonsterASC)
 	{

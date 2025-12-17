@@ -35,6 +35,7 @@ void ATSAICBase::BeginPlay()
 	if (IsValid(ThisAIPerceptionComponent))
 	{
 		ThisAIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ATSAICBase::OnTargetPerceptionUpdated);
+		ThisAIPerceptionComponent->OnTargetPerceptionForgotten.AddDynamic(this, &ATSAICBase::OnTargetPerceptionForgotten);
 	}
 }
 
@@ -76,4 +77,24 @@ void ATSAICBase::OnTargetPerceptionUpdated(AActor* SensedActor, FAIStimulus Stim
 	{
 		ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_NEED_TO_FIND_TARGET);
 	}
+	else
+	{
+		ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_LOST_TARGET);
+	}
+}
+
+void ATSAICBase::OnTargetPerceptionForgotten(AActor* Actor)
+{
+	// 현재 시야 안에 감지되고 있는 대상 목록
+	TArray<AActor*> CurrentlyPerceived;
+	ThisAIPerceptionComponent->GetCurrentlyPerceivedActors(UAISense_Sight::StaticClass(), CurrentlyPerceived);
+
+	// 감지 대상이 남아있으면 체킹만
+	if (CurrentlyPerceived.Num() > 0)
+	{
+		ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_CHECKING_TARGET);
+	}
+	
+	// 없으면 로스트
+	ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_FORGET_TARGET);
 }
