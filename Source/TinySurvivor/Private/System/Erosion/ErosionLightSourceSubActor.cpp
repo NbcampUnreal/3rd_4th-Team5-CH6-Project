@@ -108,7 +108,7 @@ void AErosionLightSourceSubActor::ChangeLightScaleByErosion(float CurrentErosion
 
 void AErosionLightSourceSubActor::SetLightScale(float scale)
 {
-	LightScale = scale + 0.01f;
+	LightScale = scale;
 
 	int32 MatIndex = MeshComponent->GetMaterialIndex("Light");
 	if (MatIndex == INDEX_NONE)
