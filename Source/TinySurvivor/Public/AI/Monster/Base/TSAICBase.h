@@ -17,6 +17,7 @@ class TINYSURVIVOR_API ATSAICBase : public AAIController, public IAbilitySystemI
 
 public:
 	ATSAICBase();
+
 	virtual void BeginPlay() override;
 	
 	// IAbilitySystemInterface ~ 
@@ -44,8 +45,12 @@ public:
 	// ~ IMonsterAICInterface
 	
 protected:
+	
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+	
+	UFUNCTION()
+	void OnTargetPerceptionForgotten(AActor* Actor);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	TObjectPtr<UAIPerceptionComponent> ThisAIPerceptionComponent;
