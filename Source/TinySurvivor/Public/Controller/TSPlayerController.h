@@ -16,6 +16,7 @@
  * - 컨테이너 거리 체크 및 자동 닫기
  */
 
+class UTSInventoryMasterComponent;
 class UTSCraftingTableInventory;
 class ATSCraftingTable;
 enum class EInventoryType : uint8;
@@ -56,7 +57,10 @@ public:
 		EInventoryType ToInventoryType,
 		int32 ToSlotIndex,
 		bool bIsFullStack = true);
-
+	/** 컨테이너에서 아이템 버리기 (서버 권한) */
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory")
+	void ServerDropItemToWorld(
+			UTSInventoryMasterComponent* Inventory, EInventoryType InventoryType, int32 SlotIndex, int32 Quantity);
 	/** 제작 요청 서버로 전달 */
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Crafting")
 	void ServerRequestCraft(ATSCraftingTable* CraftingTable, int32 RecipeID);

@@ -144,6 +144,23 @@ void ATSPlayerController::ServerNotifyCraftingTableClosed_Implementation(UTSCraf
 	}
 }
 
+void ATSPlayerController::ServerDropItemToWorld_Implementation(UTSInventoryMasterComponent* Inventory,
+                                                               EInventoryType InventoryType, int32 SlotIndex,
+                                                               int32 Quantity)
+{
+	Inventory->ServerDropItemToWorld(InventoryType, SlotIndex, Quantity);
+}
+
+bool ATSPlayerController::ServerDropItemToWorld_Validate(UTSInventoryMasterComponent* Inventory,
+                                                         EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
+{
+	if (!Inventory)
+	{
+		return false;
+	}
+	return true;
+}
+
 void ATSPlayerController::InitializePlayerHUD()
 {
 	if (HUDWidget)
