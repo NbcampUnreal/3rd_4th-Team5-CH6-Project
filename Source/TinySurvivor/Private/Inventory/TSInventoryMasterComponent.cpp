@@ -35,6 +35,7 @@ void UTSInventoryMasterComponent::GetLifetimeReplicatedProps(TArray<FLifetimePro
 	DOREPLIFETIME(UTSInventoryMasterComponent, ActiveHotkeyIndex);
 	DOREPLIFETIME(UTSInventoryMasterComponent, CurrentEquippedItem);
 	DOREPLIFETIME(UTSInventoryMasterComponent, EquippedArmors);
+	DOREPLIFETIME(UTSInventoryMasterComponent, EquippedItemScale); // ■ 소모품 회복약 사이즈 조정 관련 내용 추가
 }
 #pragma endregion
 
@@ -1058,6 +1059,23 @@ bool UTSInventoryMasterComponent::ExpandBagInventory(int32 AdditionalSlots)
 }
 #pragma endregion
 
+#pragma region OnRep_CurrentEquippedItem
+void UTSInventoryMasterComponent::OnRep_CurrentEquippedItem()
+{
+	// 클라이언트에서 CurrentEquippedItem이 리플리케이션되면 호출됨
+	if (CurrentEquippedItem && CurrentEquippedItem->MeshComp && EquippedItemScale != FVector(1.0f))
+	{
+		CurrentEquippedItem->MeshComp->SetRelativeScale3D(EquippedItemScale);
+		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogInventoryComp, Log,
+			TEXT("[Client] OnRep: 메시 스케일 적용 %.2f"),
+			EquippedItemScale.X);
+#endif
+	}
+}
+#pragma endregion
+
 #pragma region HotkeyEquipItem
 FSlotStructMaster UTSInventoryMasterComponent::GetActiveHotkeySlot() const
 {
@@ -1151,28 +1169,19 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
 	if (TSCharacter)
 	{
-		/*
-			도구 전용 처리:
-			- 캐릭터 파트 요청에 따라 도구만 왼손(Ws_l) 소켓에 장착.
-			- 기획 파트 요청에 따라 도구만 스케일을 1.75로 확대. (도구 에셋이 작게 보여서)
-			- 단, 현재 횃불(예: JunkTorch)은 에셋 크기가 이미 커서 스케일 확대 제외.
-			  추후 횃불 에셋이 다른 도구와 동일한 크기로 조정되면 스케일 1.75 확대 적용 예정.
-		*/
 		if (ItemInfo.Category == EItemCategory::TOOL)
 		{
+			/*
+				도구 전용 처리:
+				- 캐릭터 파트 요청에 따라 도구만 왼손(Ws_l) 소켓에 장착.
+			*/
 			CurrentEquippedItem->AttachToComponent(
 				TSCharacter->GetMesh(),
 				FAttachmentTransformRules::SnapToTargetIncludingScale,
 				TEXT("Ws_l"));
 			
-			// 스케일 조정 제외 대상(예: 횃불)
-			const int32 JunkTorchToolID = 202;
-			
-			// 특정 도구 제외하고 스케일 확대
-			if (ItemInfo.ItemID != JunkTorchToolID)
-			{
-				CurrentEquippedItem->SetActorScale3D(FVector(1.75f));
-			}
+			// 도구는 기본 스케일
+			EquippedItemScale = FVector(1.0f);
 		}
 		else
 		{
@@ -1180,6 +1189,33 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 				TSCharacter->GetMesh(),
 				FAttachmentTransformRules::SnapToTargetIncludingScale,
 				TEXT("Ws_r"));
+			
+			/*
+				회복약 전용 처리:
+				- 소모품 회복약만 스케일을 0.3 축소. (회복약 에셋이 큰 문제로)
+			*/
+			// 스케일 조정 대상
+			const int32 HealPotionID = 303;
+			
+			// 회복약만 스케일 축소
+			if (ItemInfo.ItemID == HealPotionID)
+			{
+				// 스케일 값 저장 (리플리케이션됨)
+				EquippedItemScale = FVector(0.5f);
+				
+				// 서버에서 즉시 적용
+				// CurrentEquippedItem->SetActorScale3D(EquippedItemScale);
+				
+				// 메시 컴포넌트에 직접 적용
+				if (CurrentEquippedItem->MeshComp)
+				{
+					CurrentEquippedItem->MeshComp->SetRelativeScale3D(EquippedItemScale);
+				}
+			}
+			else
+			{
+				EquippedItemScale = FVector(1.0f);
+			}
 		}
 		
 		TSCharacter->SetAnimType(ItemInfo.AnimType);
@@ -1230,10 +1266,13 @@ void UTSInventoryMasterComponent::UnequipCurrentItem()
 		CurrentEquippedItem = nullptr;
 	}
 	
-	// 4. 캐싱 초기화 (제일 마지막에)
+	// 4. 스케일 초기화
+	EquippedItemScale = FVector(1.0f);
+	
+	// 5. 캐싱 초기화
 	CachedEquippedItemID = 0;
 	
-	// 5. 애니메이션 타입 초기화
+	// 6. 애니메이션 타입 초기화
 	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
 	if (TSCharacter)
 	{
