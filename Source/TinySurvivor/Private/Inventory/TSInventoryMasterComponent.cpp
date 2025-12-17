@@ -728,9 +728,9 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		{
 			FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[i];
 
-			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
+			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < Slot.MaxStackSize)
 			{
-				int32 CanAdd = FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
+				int32 CanAdd = FMath::Min(OutRemainingQuantity, Slot.MaxStackSize - Slot.CurrentStackSize);
 				// 부패 만료 시각 업데이트
 				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
 					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
@@ -752,7 +752,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 					break;
 				}
 			}
-			else if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
+			else if (Slot.ItemData.StaticDataID == 0 /*|| Slot.CurrentStackSize <= 0*/)
 			{
 				EmptyHotkeySlots.Add(i);
 			}
@@ -780,9 +780,9 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		{
 			FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[i];
 
-			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < ItemInfo.MaxStack)
+			if (Slot.ItemData.StaticDataID == ItemData.StaticDataID && Slot.CurrentStackSize < Slot.MaxStackSize)
 			{
-				int32 CanAdd = FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack - Slot.CurrentStackSize);
+				int32 CanAdd = FMath::Min(OutRemainingQuantity, Slot.MaxStackSize - Slot.CurrentStackSize);
 				// 부패 만료 시각 업데이트
 				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()
 					                      ? UpdateExpirationTime(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd,
@@ -801,7 +801,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 					break;
 				}
 			}
-			else if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0)
+			else if (Slot.ItemData.StaticDataID == 0 /*|| Slot.CurrentStackSize <= 0*/)
 			{
 				EmptyBagSlots.Add(i);
 			}
@@ -995,7 +995,7 @@ int32 UTSInventoryMasterComponent::FindEmptySlot(EInventoryType InventoryType) c
 bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 	int32 StaticDataID,
 	EInventoryType InventoryType,
-	int32 SlotIndex) const
+	int32 SlotIndex)
 {
 	if (StaticDataID == 0 || !IsValidSlotIndex(InventoryType, SlotIndex))
 	{
@@ -1486,8 +1486,10 @@ void UTSInventoryMasterComponent::ConvertToDecayedItem(EInventoryType InventoryT
 #pragma region Slot
 void UTSInventoryMasterComponent::ClearSlot(FSlotStructMaster& Slot)
 {
+	ESlotAccessType PreservedSlotAccessType = Slot.SlotAccessType; // 백업
 	ESlotType PreservedSlotType = Slot.SlotType; // 백업
 	Slot = FSlotStructMaster(); // 전체 초기화
+	Slot.SlotAccessType = PreservedSlotAccessType;
 	Slot.SlotType = PreservedSlotType;
 }
 
@@ -1524,7 +1526,7 @@ bool UTSInventoryMasterComponent::TryStackSlots(
 	if (!ItemInfo.IsStackable())
 		return false;
 
-	int32 MaxStack = ItemInfo.MaxStack;
+	int32 MaxStack = ToSlot.MaxStackSize;
 
 	if (bIsFullStack)
 	{

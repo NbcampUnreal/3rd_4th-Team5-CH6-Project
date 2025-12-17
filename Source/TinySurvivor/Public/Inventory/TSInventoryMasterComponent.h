@@ -144,7 +144,7 @@ public:
 	void OnRep_EquipmentInventory();
 
 	UFUNCTION()
-	void OnRep_BagInventory();
+	virtual void OnRep_BagInventory();
 
 	UFUNCTION()
 	void OnRep_ActiveHotkeyIndex();
@@ -176,7 +176,7 @@ public:
 	// ========================================
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
-	void Internal_TransferItem(
+	virtual void Internal_TransferItem(
 		UTSInventoryMasterComponent* SourceInventory,
 		UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
@@ -214,10 +214,10 @@ public:
 	// ========================================
 
 	UFUNCTION(BlueprintPure, Category = "Inventory")
-	bool CanPlaceItemInSlot(
+	virtual bool CanPlaceItemInSlot(
 		int32 StaticDataID,
 		EInventoryType InventoryType,
-		int32 SlotIndex) const;
+		int32 SlotIndex);
 
 	// ========================================
 	// 가방 시스템
@@ -287,7 +287,7 @@ protected:
 	// ========================================
 	// 헬퍼 함수 - 슬롯 조작
 	// ========================================
-	static void ClearSlot(FSlotStructMaster& Slot);
+	virtual void ClearSlot(FSlotStructMaster& Slot);
 	static void CopySlotData(const FSlotStructMaster& Source, FSlotStructMaster& Target, int32 Quantity = -1);
 	bool TryStackSlots(FSlotStructMaster& FromSlot, FSlotStructMaster& ToSlot, bool bIsFullStack);
 
