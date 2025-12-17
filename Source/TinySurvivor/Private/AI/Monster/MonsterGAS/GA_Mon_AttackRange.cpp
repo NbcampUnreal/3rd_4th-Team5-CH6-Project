@@ -67,6 +67,7 @@ void UGA_Mon_AttackRange::OnReceived(FGameplayEventData Payload)
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("OnReceived"));
 	
 	// 플레이어 검증
+	if (!IsValid(Payload.Target)) return;
 	ACharacter* PlayerChar = Cast<ACharacter>(Payload.Target);
 	if (!PlayerChar) return;
 	APlayerController* ThePlayerController = Cast<APlayerController>(PlayerChar->GetController()); 
