@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "PingSystem/TSPingTypes.h"
 #include "TSPlayerController.generated.h"
 
 /**
@@ -114,6 +115,14 @@ public:
 	
 	void ShowGameOverUI();
 	void HideGameOverUI();
+	
+	void ShowPingUI();
+	ETSPingType HidePingUI();
+	
+	UFUNCTION(BlueprintCallable, Category = "Ping")
+	void SetCurrentPingType(ETSPingType Ping);
+	
+	ETSPingType CurrentPing = ETSPingType::NONE;
 protected:
 	//~=============================================================================
 	// Lifecycle Overrides
@@ -150,6 +159,15 @@ protected:
 	/** 생성된 GameOver 위젯 인스턴스*/
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
 	UUserWidget* GameOverWidget;
+	
+	/** Ping 시 표시할 위젯 클래스 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> PingWidgetClass;
+	
+	/** 생성된 Ping 위젯 인스턴스*/
+	UPROPERTY(BlueprintReadOnly, Category = "UI")
+	UUserWidget* PingWidget;
+	
 	//~=============================================================================
 	// Container Management
 	//~=============================================================================
