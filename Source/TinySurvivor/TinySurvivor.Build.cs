@@ -32,7 +32,11 @@ public class TinySurvivor : ModuleRules
 			// DeveloperSettings 모듈 링크 (UDeveloperSettings 관련)
 			"DeveloperSettings",
 			// SoundsByMaterial
-			"PhysicsCore"
+			"PhysicsCore",
+			// 스팀 + 보이스
+			"OnlineSubsystem", 
+			"OnlineSubsystemSteam",
+			"AdvancedSessions",
 		});
 
 #if WITH_EDITOR
