@@ -68,7 +68,7 @@ void UGA_Mon_AttackRange::OnReceived(FGameplayEventData Payload)
 	
 	// 플레이어 검증
 	if (!IsValid(Payload.Target)) return;
-	ACharacter* PlayerChar = Cast<ACharacter>(Payload.Target);
+	const ACharacter* PlayerChar = Cast<ACharacter>(Payload.Target);
 	if (!IsValid(PlayerChar)) return;
 	APlayerController* ThePlayerController = Cast<APlayerController>(PlayerChar->GetController()); 
 	if (!IsValid(ThePlayerController)) return;
