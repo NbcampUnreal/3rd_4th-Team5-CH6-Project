@@ -54,8 +54,6 @@ void ATSInteractionActorBase::BeginPlay()
 	{
 		InteractionWidget->SetWidgetClass(InteractionWidgetClass);
 	}
-	float WidgetHeight = MeshComponent->Bounds.GetBox().GetExtent().Z;
-	InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, WidgetHeight));
 	
 	Super::BeginPlay();
 }
@@ -113,16 +111,10 @@ void ATSInteractionActorBase::InitializeFromBuildingData(const FBuildingData& Bu
 		ItemInstance.CurrentDurability = BuildingInfo.MaxDurability;
 		// 생성 시간 설정
 		ItemInstance.CreationServerTime = GetWorld()->GetTimeSeconds();
+		// 메쉬 설정
+		InitializeMesh(BuildingInfo);
 	}
-	// 메쉬 설정
-	if (MeshComponent && !BuildingInfo.WorldMesh.IsNull())
-	{
-		UStaticMesh* Mesh = BuildingInfo.WorldMesh.LoadSynchronous();
-		if (Mesh)
-		{
-			MeshComponent->SetStaticMesh(Mesh);
-		}
-	}
+
 }
 
 void ATSInteractionActorBase::DamageDurability(UAbilitySystemComponent* ASC, float DamageAmount)
@@ -224,6 +216,9 @@ void ATSInteractionActorBase::InitializeMesh(const FBuildingData& BuildingInfo)
 		{
 			MeshComponent->SetStaticMesh(Mesh);
 		}
+		// 메시 높이에 따라 위젯 위치 설정
+		float WidgetHeight = MeshComponent->Bounds.GetBox().GetExtent().Z;
+		InteractionWidget->SetRelativeLocation(FVector(0.f, 0.f, WidgetHeight));
 	}
 }
 
