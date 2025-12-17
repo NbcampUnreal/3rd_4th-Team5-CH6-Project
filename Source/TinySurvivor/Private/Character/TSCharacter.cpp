@@ -838,14 +838,6 @@ void ATSCharacter::BeginPlay()
 			}
 		}
 	}
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-	// TODO: 독 상태이상 디버깅 용도 - 테스트 종료시 반드시 제거
-	// 아직은 테스트 중이라 적용 상태로 올림
-	// 초기 독 상태 태그 추가
-	if (!ASC) return;
-	ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Poison);
-	UE_LOG(LogTemp, Error, TEXT("초기 독 상태 태그 적용!"));
-#endif
 }
 
 void ATSCharacter::Move(const FInputActionValue& Value)

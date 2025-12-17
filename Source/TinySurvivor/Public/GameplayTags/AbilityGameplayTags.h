@@ -60,13 +60,25 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Rescuing); // 친구를 살려주고 있는가
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_PickUpItem);
 	
-	// Poison 관련 태그
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_Poison); // 독 면역 (해독제)
-	
 	// 아이템 사용 관련 태그
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Item);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Item_Consuming); // 아이템 사용 중
+	
+	//================================
+	// State / Status 관련 상태이상
+	//================================
+	
+	// Poison 관련 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_Poison);	// 독 면역 (해독제)
+	
+	// Temperature 관련 상태이상 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Temperature_Increase);	// 온도 상승 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Temperature_Decrease);	// 온도 감소 상태이상
+	
+	// Temperature 면역 관련 상태이상 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_Temperature_Increase);	// 온도 상승 면역
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_Temperature_Decrease);	// 온도 감소 면역
 	
 	//================================
 	// State Modifier (방어구 효과)

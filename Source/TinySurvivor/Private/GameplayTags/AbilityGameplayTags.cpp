@@ -49,13 +49,25 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Rescuing, "State.Status.Rescuing");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_PickUpItem, "State.Status.PickUpItem");
 	
+	// 아이템 사용 관련 태그
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Item, "State.Item");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Item_Consuming, "State.Item.Consuming"); // 아이템 사용 중
+	
+	//================================
+	// State / Status 관련 상태이상
+	//================================
+	
 	// Poison 관련 태그
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Poison, "State.Status.Poison");					// 독 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_Poison, "State.Status.Immune.Poison");	// 독 면역
 	
-	// 아이템 사용 관련 태그
-	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Item, "State.Item");
-	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Item_Consuming, "State.Item.Consuming"); // 아이템 사용 중
+	// Temperature 관련 태그
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Temperature_Increase, "State.Status.Temperature.Increase");  // 온도 상승 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Temperature_Decrease, "State.Status.Temperature.Decrease");  // 온도 감소 상태이상
+
+	// Temperature 면역 관련 태그
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_Temperature_Increase, "State.Status.Immune.Temperature.Increase"); // 온도 상승 면역
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_Temperature_Decrease, "State.Status.Immune.Temperature.Decrease"); // 온도 감소 면역
 	
 	//================================
 	// State Modifier (방어구 효과)
