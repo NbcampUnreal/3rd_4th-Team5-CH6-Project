@@ -30,8 +30,10 @@
 #include "Sound/Footstep/FootstepComponent.h"
 #include "UI/TSPlayerUIDataControllerSystem.h"
 #include "GameState/TSGameState.h"
+#include "PingSystem/TSPingActor.h"
 #include "Sound/Hit/HitComponent.h"
 #include "System/Erosion/ErosionLightSourceSubActor.h"
+#include "PingSystem/TSPingTypes.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -1133,7 +1135,7 @@ void ATSCharacter::OnRightClick(const struct FInputActionValue& Value)
 	}
 }
 
-void ATSCharacter::OnPing(const struct FInputActionValue& Value)
+void ATSCharacter::OnPingStarted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("wheel pressed"));
 	// 빌딩 모드인지 확인
@@ -1141,11 +1143,69 @@ void ATSCharacter::OnPing(const struct FInputActionValue& Value)
 	{
 		return;
 	}
-	const FGameplayTag PingTag = AbilityTags::TAG_Ability_Interact_Ping.GetTag();
-	if (ASC && PingTag.IsValid())
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetController());
+	if (PC)
 	{
-		ASC->TryActivateAbilitiesByTag(PingTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+		PC->ShowPingUI();
 	}
+}
+
+void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT("Wheel Click Completed"));
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+	ETSPingType NowPingType = PC->HidePingUI();
+	if (NowPingType == ETSPingType::NONE)
+	{
+		return;
+	}
+	FVector SpawnLocation = FVector::ZeroVector;
+	if (NowPingType == ETSPingType::MYLOCATION || NowPingType == ETSPingType::GATHERING)
+	{
+		// 내 위치 || 집합 -> 캐릭터 위치에 핑 찍기
+		SpawnLocation = GetActorLocation();
+		
+	} else
+	{
+		// 위험 || 자원 알림이면 라인 트레이스 -> 힛 부분에 찍기
+		// 라인트레이스 쏘고 힛 부분 or 끝부분에 핑 찍기
+		if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
+		FVector2D ViewPortSize = FVector2D::ZeroVector;
+		GEngine->GameViewport->GetViewportSize(ViewPortSize);
+		const FVector2D ViewportCenter = ViewPortSize / 2.f;
+		
+		FVector TraceStart;
+		FVector Forward;
+		bool bDeprojectSuccess = UGameplayStatics::DeprojectScreenToWorld(
+				PC,              // GetFirstPlayerController 대신 PC 사용 (더 안전)
+				ViewportCenter, 
+				TraceStart, 
+				Forward
+			);
+		if (!bDeprojectSuccess)
+		{
+			return;
+		}
+		const FVector TraceEnd = TraceStart + (Forward * 50000.0f);
+		FHitResult HitResult;
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+		
+		bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, Params);
+		if (bHit)
+		{
+			SpawnLocation = HitResult.Location;
+		} else
+		{
+			SpawnLocation = TraceEnd;
+		}
+		
+	}
+	ServerSpawnPing(NowPingType, SpawnLocation);
 }
 
 void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Value)
@@ -1361,6 +1421,21 @@ bool ATSCharacter::IsClimbing()
 	return bIsClimbState;
 }
 
+void ATSCharacter::ServerSpawnPing_Implementation(ETSPingType PingType, FVector Location)
+{
+	if ( !PingActorClass)
+	{
+		return;
+	}
+	FTransform SpawnPingTransform(FRotator::ZeroRotator, Location);
+	ATSPingActor* Ping = GetWorld()->SpawnActorDeferred<ATSPingActor>(PingActorClass, SpawnPingTransform, this, nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	if (Ping)
+	{
+		Ping->PingType = PingType;
+		UGameplayStatics::FinishSpawningActor(Ping, SpawnPingTransform);
+	}
+}
+
 void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 {
 	// 빌딩 모드인지 확인
@@ -1553,7 +1628,9 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 										   &ATSCharacter::OnStopInteract);
 		
 		EnhancedInputComponent->BindAction(InputDataAsset->PingAction, ETriggerEvent::Started, this,
-		                                   &ATSCharacter::OnPing);
+		                                   &ATSCharacter::OnPingStarted);
+		EnhancedInputComponent->BindAction(InputDataAsset->PingAction, ETriggerEvent::Completed, this,
+										   &ATSCharacter::OnPingCompleted);
 		EnhancedInputComponent->BindAction(InputDataAsset->WheelScrollAction, ETriggerEvent::Triggered, this,
 		                                   &ATSCharacter::OnWheelScroll);
 		EnhancedInputComponent->BindAction(InputDataAsset->LeftClickAction, ETriggerEvent::Started, this,

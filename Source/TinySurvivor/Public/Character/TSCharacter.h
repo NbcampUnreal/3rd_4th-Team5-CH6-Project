@@ -254,7 +254,8 @@ protected:
 	void OnStopInteract(const struct FInputActionValue& Value);
 	void OnLeftClick(const struct FInputActionValue& Value); //얘넨 모르겠다 (한 키에 여러가지 함수?)
 	void OnRightClick(const struct FInputActionValue& Value); // 얘넨 모르겠다.
-	void OnPing(const struct FInputActionValue& Value);
+	void OnPingStarted(const struct FInputActionValue& Value);
+	void OnPingCompleted(const struct FInputActionValue& Value);
 	void OnWheelScroll(const struct FInputActionValue& Vaule);
 	void OnEsc(const struct FInputActionValue& Vaule);
 	
@@ -306,6 +307,16 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Climb")
 	bool IsClimbing();
+#pragma endregion
+	
+#pragma region Ping
+	UPROPERTY(EditAnywhere, BlueprintReadOnly ,Category = "Ping")
+	TSubclassOf<AActor> PingActorClass;
+	
+	UFUNCTION(Server, Reliable) 
+	void ServerSpawnPing(ETSPingType PingType, FVector Location);
+	
+	
 #pragma endregion
 	
 #pragma region Component
