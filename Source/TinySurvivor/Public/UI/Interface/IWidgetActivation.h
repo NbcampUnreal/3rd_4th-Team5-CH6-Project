@@ -29,5 +29,12 @@ public:
 	// 컨테이너 UI 닫기
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Container")
 	void OnCloseContainerUI();
+	
+	// 컨텐츠 위젯 열기
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Contents")
+	void SetContentsData();
+	// 컨텐츠 위젯 닫기
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Contents")
+	void OnCloseContentsUI();
 
 };

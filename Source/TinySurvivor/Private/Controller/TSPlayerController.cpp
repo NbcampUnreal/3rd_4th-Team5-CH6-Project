@@ -315,6 +315,14 @@ void ATSPlayerController::ToggleContentsWidget(EContentWidgetIndex NewIndex)
 	else
 	{
 		SetContentWidgetIndex(Switcher, NewIndex);
+		UWidget* ActiveWidget = Switcher->GetActiveWidget();
+		if (ActiveWidget)
+		{
+			if (ActiveWidget->Implements<UIWidgetActivation>())
+			{
+				IIWidgetActivation::Execute_SetContentsData(ActiveWidget);
+			}
+		}
 	}
 	// 현재 열려있는 위젯이 설정 위젯인지 확인
 	bIsSettingsOpen = Switcher->GetActiveWidgetIndex() == static_cast<int32>(EContentWidgetIndex::Settings);

@@ -30,8 +30,8 @@ enum class EContentWidgetIndex : uint8
 	Container = 1 UMETA(DisplayName="Container"),
 	CraftingMode = 2 UMETA(DisplayName="Crafting Mode"),
 	BuildingMode = 3 UMETA(DisplayName="Building Mode"),
-	FuelMode = 5 UMETA(DisplayName="Fuel Mode"),
-	Settings = 4 UMETA(DisplayName="Settings")
+	FuelMode = 4 UMETA(DisplayName="Fuel Mode"),
+	Settings = 5 UMETA(DisplayName="Settings")
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftComplete, int32, SlotIndex);
