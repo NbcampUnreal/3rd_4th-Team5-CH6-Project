@@ -31,7 +31,7 @@ struct FEquippedArmor
 		현재 장착된 방어구의 스탯 이펙트 핸들
 	*/
 	FActiveGameplayEffectHandle ArmorCommonEffectHandle;	// HealthBonus용
-	FActiveGameplayEffectHandle ArmorEffectHandle;		// EffectTag용
+	FActiveGameplayEffectHandle ArmorEffectHandle;			// EffectTag용
 	
 };
 
@@ -229,10 +229,23 @@ public:
 	// ========================================
 	// 핫키 아이템 장착 시스템
 	// ========================================
-
-	UPROPERTY(Replicated)
+	
+	// ■ 소모품 회복약 사이즈 조정 관련 내용 추가
+	//=======================================================
+	// ReplicatedUsing 추가
+	// UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentEquippedItem)
 	ATSEquippedItem* CurrentEquippedItem = nullptr;
-
+	
+	// 현재 장착 아이템의 스케일 값
+	UPROPERTY(Replicated)
+	FVector EquippedItemScale = FVector(1.0f);
+	
+	// OnRep 함수
+	UFUNCTION()
+	void OnRep_CurrentEquippedItem();
+	//=======================================================
+	
 	UFUNCTION(BlueprintPure, Category = "Inventory|Hotkey")
 	int32 GetActiveHotkeyIndex() const { return ActiveHotkeyIndex; }
 
