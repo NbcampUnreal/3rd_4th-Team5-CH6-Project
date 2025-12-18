@@ -7,7 +7,7 @@
 #include "ErosionStateInfo.generated.h"
 
 // UI 업데이트용 델리게이트 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnErosionChangedUIDelegate, float, FinalValue);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnErosionChangedUIDelegate, float FinalValue);
 
 /*
  * 침식도 UI info 클래스
@@ -38,6 +38,7 @@ public:
 	// 서버 전용 set (Subsystem에서 호출)
 	void ServerSetErosion(float NewValue);
 
+	float GetCurrentErosion() const { return CurrentErosion; }
 protected:
 	// 현재 침식도 값 (서버에서만 수정, 클라로 복제)
 	UPROPERTY(ReplicatedUsing=OnRep_CurrentErosion)
@@ -55,7 +56,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
 	bool bShowDebug = false;
 
-	UPROPERTY(BlueprintAssignable)
 	FOnErosionChangedUIDelegate OnErosionChangedUIDelegate;
 
 protected:

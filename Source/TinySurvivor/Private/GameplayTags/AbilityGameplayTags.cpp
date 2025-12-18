@@ -79,6 +79,11 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Modifier_MOVE_SPEED, "State.Modifier.MOVE_SPEED");				// 이동 속도 증가
 	
 	//================================
+	// GameplayCue 관련 태그 정의
+	//================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_GameplayCue_Status_Poisoned, "GameplayCue.Status.Poisoned");
+	
+	//================================
 	// Input 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Input_HotKey, "Input.HotKey");

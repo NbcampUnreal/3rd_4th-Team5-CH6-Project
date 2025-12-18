@@ -90,6 +90,11 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Modifier_MOVE_SPEED);			// 이동 속도 증가
 	
 	//================================
+	// GameplayCue 관련 태그 정의
+	//================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GameplayCue_Status_Poisoned);
+	
+	//================================
 	// Input 관련 태그
 	//================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Input_HotKey);
