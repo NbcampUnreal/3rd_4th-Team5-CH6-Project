@@ -103,28 +103,7 @@ void UTSMonsterSpawnSystem::Initialize(FSubsystemCollectionBase& Collection)
 			if (Row->MonsterTag == FGameplayTag::EmptyTag) continue;
 			if (!IsValid(Row->MonsterClass)) continue;
 			
-			FTSMonsterTable CachingRow;
-			CachingRow.MonsterTag = Row->MonsterTag;
-			
-			CachingRow.MainDropTableID = Row->MainDropTableID;
-			CachingRow.MainDropTablePrecent = Row->MainDropTablePrecent;
-			CachingRow.MainDropMaxNum = Row->MainDropMaxNum;
-			CachingRow.MainDropMinNum = Row->MainDropMinNum;
-			
-			CachingRow.SubDrop1TableID = Row->SubDrop1TableID;
-			CachingRow.SubDrop1TablePrecent = Row->SubDrop1TablePrecent;
-			CachingRow.SubDrop1MaxNum = Row->SubDrop1MaxNum;
-			CachingRow.SubDrop1MinNum = Row->SubDrop1MinNum;
-			
-			CachingRow.SubDrop2TableID = Row->SubDrop2TableID;
-			CachingRow.SubDrop2TablePrecent = Row->SubDrop2TablePrecent;
-			CachingRow.SubDrop2MaxNum = Row->SubDrop2MaxNum;
-			CachingRow.SubDrop2MinNum = Row->SubDrop2MinNum;
-			
-			CachingRow.MonsterClass = Row->MonsterClass;
-			
-			CachingRows.Add(MoveTemp(CachingRow));
-			CachingMonsterMap.Add(CachingRow.MonsterTag, &CachingRows.Last());
+			CachingMonsterMap.Add(Row->MonsterTag, Row);
 		}
 	}
 }

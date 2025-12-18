@@ -1,8 +1,11 @@
 ﻿#include "AI/Monster/Base/TSAICBase.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AI/Monster/MonsterTag.h"
 #include "Components/StateTreeAIComponent.h"
 #include "GameFramework/Character.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 
@@ -75,7 +78,19 @@ void ATSAICBase::OnTargetPerceptionUpdated(AActor* SensedActor, FAIStimulus Stim
 
 	if (Stimulus.WasSuccessfullySensed())
 	{
-		ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_NEED_TO_FIND_TARGET);
+		// 살아있는 놈만 체크 
+		UAbilitySystemComponent* PerceivedActorASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(SensedCharacter);
+		if (IsValid(PerceivedActorASC))
+		{
+			FGameplayTagContainer DeadTags;
+			DeadTags.AddTag(AbilityTags::TAG_State_Status_Downed);
+			DeadTags.AddTag(AbilityTags::TAG_State_Status_Dead);
+			bool bIsAnyDeadTags = PerceivedActorASC->HasAnyMatchingGameplayTags(DeadTags);
+			if (false == bIsAnyDeadTags)
+			{
+				ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_NEED_TO_FIND_TARGET);
+			}
+		}
 	}
 	else
 	{
@@ -92,9 +107,27 @@ void ATSAICBase::OnTargetPerceptionForgotten(AActor* Actor)
 	// 감지 대상이 남아있으면 체킹만
 	if (CurrentlyPerceived.Num() > 0)
 	{
-		ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_CHECKING_TARGET);
+		// 살아있는 놈만 체크 
+		for (AActor* PerceivedActor : CurrentlyPerceived)
+		{
+			UAbilitySystemComponent* PerceivedActorASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(PerceivedActor);
+			if (IsValid(PerceivedActorASC))
+			{
+				FGameplayTagContainer DeadTags;
+				DeadTags.AddTag(AbilityTags::TAG_State_Status_Downed);
+				DeadTags.AddTag(AbilityTags::TAG_State_Status_Dead);
+				bool bIsAnyDeadTags = PerceivedActorASC->HasAnyMatchingGameplayTags(DeadTags);
+				if (false == bIsAnyDeadTags)
+				{
+					ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_CHECKING_TARGET);
+					return;
+				}
+			}
+		}
 	}
-	
-	// 없으면 로스트
-	ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_FORGET_TARGET);
+	else
+	{
+		// 없으면 로스트
+		ThisStateTreeAIComponent->SendStateTreeEvent(TSMoonsterTag::TP_MONSTER_FORGET_TARGET);
+	}
 }
