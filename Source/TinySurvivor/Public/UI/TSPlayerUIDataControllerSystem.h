@@ -26,6 +26,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FSanityChangeDelegate, float, Sanit
 // 6. Temperature (체온)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTemperatureChangeDelegate, float, Temperature, float, MaxTemperature);
 
+// 7. 침식도
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FErosionChangeDelegate, float, Erosion, float, MaxErosion);
+
 /**
  * 
  */
@@ -69,6 +72,9 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FTemperatureChangeDelegate TemperatureChangeDelegate;
 	
+	// 7. 침식도 
+	UPROPERTY(BlueprintAssignable)
+	FErosionChangeDelegate ErosionChangeDelegate;
 	
 protected:
 	// 1. Health (체력)
@@ -95,7 +101,11 @@ protected:
 	void UpdateTemperature(const FOnAttributeChangeData& Data);
 	void UpdateMaxTemperature(const FOnAttributeChangeData& Data);
 	
+	UFUNCTION()
+	void UpdateErosion(float NewValue);
 	
+	UFUNCTION()
+	void UpdateMaxErosion(float NewValue);
 	
 	// 1. Health (체력)
 	float Health = 0.0f;
@@ -120,4 +130,8 @@ protected:
 	// 6. Temperature (체온)
 	float Temperature =	0.0f;
 	float MaxTemperature = 0.0f;
+	
+	// 6. 침식도
+	float Erosion =	0.0f;
+	float MaxErosion = 0.0f;
 };
