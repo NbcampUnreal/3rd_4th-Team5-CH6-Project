@@ -39,26 +39,32 @@ void ULightingStatViewer::ShowStatList(UListView* ListView, const IDisplayDataPr
 		FText StatUnit = DisplaySystem->GetUnit(StatTag);
 		AddStatToList(ListView, StatName, StatValue, StatUnit);
 	}
-	// // 최대 동작 시간
-	// {
-	// 	StatTag = ItemTags::TAG_Display_Stat_MaxMaintenance;
-	// 	float FloatValue = DataProvider.GetStatValue(StatTag);
-	// 	FText StatName = DisplaySystem->GetDisplayName_KR(StatTag);
-	// 	FText StatValue = FText::AsNumber(FloatValue);
-	// 	FText StatUnit = DisplaySystem->GetUnit(StatTag);
-	// 	AddStatToList(ListView, StatName, StatValue, StatUnit);
-	// }
-	// // 연료 재료/소모 간격
-	// {
-	// 	StatTag = ItemTags::TAG_Display_Stat_MaintenanceInterval;
-	// 	float FloatValue = DataProvider.GetStatValue(StatTag);
-	// 	FText StatName = DisplaySystem->GetDisplayName_KR(StatTag);
-	// 	FText StatValue = FText::Format(FText::FromString("{0} | {1}"),
-	// 	                                DataProvider.GetItemName(StatTag),
-	// 	                                FText::AsNumber(FloatValue));
-	// 	FText StatUnit = DisplaySystem->GetUnit(StatTag);
-	// 	AddStatToList(ListView, StatName, StatValue, StatUnit);
-	// }
+	// 모닥불: 최대 동작 시간
+	{
+		StatTag = ItemTags::TAG_Display_Stat_MaxMaintenance;
+		float FloatValue = DataProvider.GetStatValue(StatTag);
+		if (FloatValue > 0.f)
+		{
+			FText StatName = DisplaySystem->GetDisplayName_KR(StatTag);
+			FText StatValue = FText::AsNumber(FloatValue);
+			FText StatUnit = DisplaySystem->GetUnit(StatTag);
+			AddStatToList(ListView, StatName, StatValue, StatUnit);
+		}
+	}
+	// 연료 재료/소모 간격
+	{
+		if (DataProvider.GetMaintenanceCostID() > 0)
+		{
+			StatTag = ItemTags::TAG_Display_Stat_MaintenanceInterval;
+			float FloatValue = DataProvider.GetStatValue(StatTag);
+			FText StatName = DisplaySystem->GetDisplayName_KR(StatTag);
+			FText StatValue = FText::Format(FText::FromString("{0} | {1}"),
+			                                DataProvider.GetItemName(StatTag),
+			                                FText::AsNumber(FloatValue));
+			FText StatUnit = DisplaySystem->GetUnit(StatTag);
+			AddStatToList(ListView, StatName, StatValue, StatUnit);
+		}
+	}
 	// 내구도
 	{
 		StatTag = ItemTags::TAG_Display_Stat_Durability;
