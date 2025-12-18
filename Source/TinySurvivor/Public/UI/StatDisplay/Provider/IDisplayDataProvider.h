@@ -14,14 +14,20 @@ class TINYSURVIVOR_API IDisplayDataProvider
 public:
 	virtual ~IDisplayDataProvider() = default;
 
-	virtual	FGameplayTag GetCategoryTag() const = 0;
+	virtual FGameplayTag GetCategoryTag() const = 0;
 	virtual float GetStatValue(const FGameplayTag& StatTag) const = 0;
 	virtual FGameplayTagContainer GetTagContainer(const FGameplayTag& ContainerTag) const = 0;
 	virtual FGameplayTag GetEffectTag() const = 0;
 	virtual int32 GetEnumValue(const FGameplayTag& EnumTag) const = 0;
+
 	virtual FText GetItemName(const FGameplayTag& StatTag) const
 	{
 		return FText::FromString(TEXT("알 수 없음"));
 	};
-	virtual void SetWorldContext(const UObject* InWorldContext){};
+
+	virtual void SetWorldContext(const UObject* InWorldContext)
+	{
+	}
+
+	virtual int32 GetMaintenanceCostID() const { return -1; }
 };

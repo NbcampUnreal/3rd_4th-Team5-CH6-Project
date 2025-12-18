@@ -128,3 +128,12 @@ FText FBuildingDataProvider::GetItemName(const FGameplayTag& StatTag) const
 	}
 	return FText::FromString(TEXT("알 수 없음"));
 }
+
+int32 FBuildingDataProvider::GetMaintenanceCostID() const
+{
+	if (BuildingData.BuildingType == EBuildingType::LIGHT)
+	{
+		return BuildingData.MaintenanceCostID;
+	}
+	return -1;
+}

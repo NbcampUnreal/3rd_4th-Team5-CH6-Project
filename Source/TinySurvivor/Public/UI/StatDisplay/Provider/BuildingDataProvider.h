@@ -25,6 +25,8 @@ public:
 	{
 		WorldContext = InWorldContext;
 	}
+	
+	virtual int32 GetMaintenanceCostID() const override;
 
 private:
 	const FBuildingData& BuildingData;
