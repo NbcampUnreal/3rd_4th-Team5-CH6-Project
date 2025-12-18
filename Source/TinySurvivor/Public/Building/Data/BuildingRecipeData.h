@@ -16,7 +16,7 @@ enum class EBuildingCategory : uint8
 	NONE     UMETA(DisplayName = "None", ToolTip="미분류"),
 	CRAFTING UMETA(DisplayName = "Crafting", ToolTip="제작"),
 	LIGHTING UMETA(DisplayName = "Lighting", ToolTip="조명"),
-	DEFENSE  UMETA(DisplayName = "Defense", ToolTip="방어 시설"),
+	STRUCT   UMETA(DisplayName = "Struct", ToolTip="구조물"),
 	STORAGE  UMETA(DisplayName = "Storage", ToolTip="보관함")
 };
 #pragma endregion

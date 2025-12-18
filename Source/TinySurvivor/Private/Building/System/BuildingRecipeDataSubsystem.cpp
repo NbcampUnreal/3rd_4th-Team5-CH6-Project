@@ -342,7 +342,7 @@ void UBuildingRecipeDataSubsystem::PrintCacheDebugInfo() const
 				case EBuildingCategory::NONE: CategoryName = TEXT("None"); break;
 				case EBuildingCategory::CRAFTING: CategoryName = TEXT("Crafting"); break;
 				case EBuildingCategory::LIGHTING: CategoryName = TEXT("lighting"); break;
-				case EBuildingCategory::DEFENSE: CategoryName = TEXT("Defense"); break;
+				case EBuildingCategory::STRUCT: CategoryName = TEXT("Struct"); break;
 				case EBuildingCategory::STORAGE: CategoryName = TEXT("Storage"); break;
 				default: CategoryName = TEXT("Unknown"); break;
 			}
@@ -454,9 +454,9 @@ void UBuildingRecipeDataSubsystem::RunInitializationTests()
 	TArray<int32> CraftingRecipes = GetRecipeIDsByCategory(EBuildingCategory::CRAFTING);
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("제작(CRAFTING) 레시피 개수: %d"), CraftingRecipes.Num());
 	
-	// DEFENSE
-	TArray<int32> DefenseRecipes = GetRecipeIDsByCategory(EBuildingCategory::DEFENSE);
-	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("방어 시설(DEFENSE) 레시피 개수: %d"), DefenseRecipes.Num());
+	// STRUCT
+	TArray<int32> StructRecipes = GetRecipeIDsByCategory(EBuildingCategory::STRUCT);
+	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("구조물(STRUCT) 레시피 개수: %d"), StructRecipes.Num());
 	
 	// STORAGE
 	TArray<int32> StorageRecipes = GetRecipeIDsByCategory(EBuildingCategory::STORAGE);
