@@ -161,7 +161,7 @@ void AGimmickZoneBase::OnZoneBeginOverlap(
 	if (bShowDebugInfo)
 	{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogGimmickZoneBase, Warning, TEXT("[%s] Actor Entered: %s"),
+		UE_LOG(LogGimmickZoneBase, Warning, TEXT("[%s] 기믹 존 진입 감지 - 액터: %s"),
 			*GetName(), *OtherActor->GetName());
 #endif
 	}
@@ -192,7 +192,7 @@ void AGimmickZoneBase::OnZoneEndOverlap(
 	if (bShowDebugInfo)
 	{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogGimmickZoneBase, Warning, TEXT("[%s] Actor Exited: %s"),
+		UE_LOG(LogGimmickZoneBase, Warning, TEXT("[%s] 기믹 존 이탈 감지 - 액터: %s"),
 			*GetName(), *OtherActor->GetName());
 #endif
 	}
@@ -232,7 +232,7 @@ void AGimmickZoneBase::ApplyZoneEffects(AActor* TargetActor)
 			if (bShowDebugInfo)
 			{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-				UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Target is immune to effect: %s"),
+				UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] 대상이 해당 효과에 면역 상태입니다: %s"),
 					*GetName(), *Config.GameplayEffectClass->GetName());
 #endif
 			}
@@ -247,7 +247,9 @@ void AGimmickZoneBase::ApplyZoneEffects(AActor* TargetActor)
 				if (bShowDebugInfo)
 				{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-					UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] OnEnter effect on cooldown"), *GetName());
+					UE_LOG(LogGimmickZoneBase, Log,
+						TEXT("[%s] 진입(OnEnter) 효과가 아직 쿨타임이라 적용되지 않습니다"),
+						*GetName());
 #endif
 				}
 				continue;
@@ -302,6 +304,44 @@ void AGimmickZoneBase::ApplySingleEffect(UAbilitySystemComponent* TargetASC, con
 		return;
 	}
 	
+	AActor* TargetActor = TargetASC->GetAvatarActor();
+	if (!TargetActor)
+	{
+		return;
+	}
+	
+	// *** OnEnter 타입일 때 기존 활성 GE가 있으면 먼저 제거 (중복 방지) ***
+	if (Config.EffectType == EGimmickZoneEffectType::OnEnter)
+	{
+		TMap<TSubclassOf<UGameplayEffect>, FActiveGameplayEffectHandle>* HandleMap =
+			OnEnterEffectHandles.Find(TargetActor);
+		
+		if (HandleMap)
+		{
+			FActiveGameplayEffectHandle* OldHandle = HandleMap->Find(Config.GameplayEffectClass);
+			if (OldHandle && OldHandle->IsValid())
+			{
+				const FActiveGameplayEffect* ActiveGE = TargetASC->GetActiveGameplayEffect(*OldHandle);
+				if (ActiveGE)
+				{
+					// 아직 활성 상태인 GE가 있으면 제거
+					TargetASC->RemoveActiveGameplayEffect(*OldHandle);
+					
+					if (bShowDebugInfo)
+					{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+						UE_LOG(LogGimmickZoneBase, Warning,
+							TEXT("[%s] 이전 활성 GE 제거 후 재적용: %s"),
+							*GetName(), *Config.GameplayEffectClass->GetName());
+#endif
+					}
+				}
+				// 무효화된 Handle은 그냥 덮어씀
+				HandleMap->Remove(Config.GameplayEffectClass);
+			}
+		}
+	}
+	
 	FGameplayEffectContextHandle ContextHandle = TargetASC->MakeEffectContext();
 	ContextHandle.AddSourceObject(this);
 	
@@ -321,33 +361,24 @@ void AGimmickZoneBase::ApplySingleEffect(UAbilitySystemComponent* TargetASC, con
 	// WhileInZone 타입이면 Handle 저장 (나중에 제거용)
 	if (Config.EffectType == EGimmickZoneEffectType::WhileInZone && ActiveHandle.IsValid())
 	{
-		AActor* TargetActor = TargetASC->GetAvatarActor();
-		if (TargetActor)
-		{
-			ActiveEffectHandles.FindOrAdd(TargetActor).Add(ActiveHandle);
-		}
+		ActiveEffectHandles.FindOrAdd(TargetActor).Add(ActiveHandle);
 	}
 	
 	// OnEnter 타입일 때 Handle과 시간 모두 기록
 	if (Config.EffectType == EGimmickZoneEffectType::OnEnter && ActiveHandle.IsValid())
 	{
-		AActor* TargetActor = TargetASC->GetAvatarActor();
-		if (TargetActor)
-		{
-			// Handle 저장 (나중에 제거용)
-			OnEnterEffectHandles.FindOrAdd(TargetActor).Add(
-				Config.GameplayEffectClass, ActiveHandle);
-			
-			// 시간 저장 (재적용 판단용)
-			LastEnterTimes.FindOrAdd(TargetActor).Add(
-				Config.GameplayEffectClass, GetWorld()->GetTimeSeconds());
-		}
+		// Handle 저장
+		OnEnterEffectHandles.FindOrAdd(TargetActor).Add(Config.GameplayEffectClass, ActiveHandle);
+		
+		// 시간 저장 (로그용)
+		LastEnterTimes.FindOrAdd(TargetActor).Add(
+			Config.GameplayEffectClass, GetWorld()->GetTimeSeconds());
 	}
 	
 	if (bShowDebugInfo)
 	{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Applied GE: %s (Type: %d)"),
+		UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] GE 적용 완료: %s (타입: %d)"),
 			*GetName(),
 			*Config.GameplayEffectClass->GetName(),
 			(int32)Config.EffectType);
@@ -383,7 +414,7 @@ void AGimmickZoneBase::RemoveWhileInZoneEffects(UAbilitySystemComponent* TargetA
 			if (bShowDebugInfo)
 			{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-				UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Removed WhileInZone GE from %s"),
+				UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] WhileInZone GE 제거: %s"),
 					*GetName(), *TargetActor->GetName());
 #endif
 			}
@@ -415,7 +446,7 @@ void AGimmickZoneBase::RemoveOnEnterEffects(UAbilitySystemComponent* TargetASC, 
 			if (bShowDebugInfo)
 			{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-				UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Removed OnEnter GE from %s"),
+				UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] OnEnter GE 제거: %s"),
 					*GetName(), *TargetActor->GetName());
 #endif
 			}
@@ -535,67 +566,67 @@ void AGimmickZoneBase::PeriodicCheck()
 			// 면역 체크
 			bool bIsImmune = IsImmuneToEffect(TargetASC, Config);
 			
+			// 기존 Handle 확인
+			TMap<TSubclassOf<UGameplayEffect>, FActiveGameplayEffectHandle>* HandleMap =
+				OnEnterEffectHandles.Find(Actor);
+			
+			FActiveGameplayEffectHandle* ExistingHandle = HandleMap ? HandleMap->Find(Config.GameplayEffectClass) : nullptr;
+			
 			// 면역 상태가 되었으면 기존 GE 제거
 			if (bIsImmune)
 			{
-				TMap<TSubclassOf<UGameplayEffect>, FActiveGameplayEffectHandle>* HandleMap =
-					OnEnterEffectHandles.Find(Actor);
-				
-				if (HandleMap)
+				if (ExistingHandle && ExistingHandle->IsValid())
 				{
-					FActiveGameplayEffectHandle* ExistingHandle = HandleMap->Find(Config.GameplayEffectClass);
-					if (ExistingHandle && ExistingHandle->IsValid())
+					TargetASC->RemoveActiveGameplayEffect(*ExistingHandle);
+					HandleMap->Remove(Config.GameplayEffectClass);
+					
+					if (bShowDebugInfo)
 					{
-						TargetASC->RemoveActiveGameplayEffect(*ExistingHandle);
-						HandleMap->Remove(Config.GameplayEffectClass);
-						
-						if (bShowDebugInfo)
-						{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-							UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Removed GE due to immunity: %s from %s"),
-								*GetName(), *Config.GameplayEffectClass->GetName(), *Actor->GetName());
+						UE_LOG(LogGimmickZoneBase, Log,
+							TEXT("[%s] 면역으로 인해 GE 제거: %s (대상: %s)"),
+							*GetName(), *Config.GameplayEffectClass->GetName(), *Actor->GetName());
 #endif
-						}
 					}
 				}
 				continue; // 면역이면 재적용하지 않음
 			}
-			
-			// 면역이 아닐 때 재적용 로직
-			// 마지막 적용 시간 확인
-			const TMap<TSubclassOf<UGameplayEffect>, float>* ActorEnterTimes = LastEnterTimes.Find(Actor);
-			const float* LastTime = ActorEnterTimes ? ActorEnterTimes->Find(Config.GameplayEffectClass) : nullptr;
-			
-			// 적용해야 하는 조건:
-			// 1. 면역이 아니고
-			// 2. (처음 적용이거나 || Duration 간격만큼 시간이 지났을 때)
-			bool bShouldApply = false;
-			
-			if (!LastTime)
-			{// 처음 적용
-				bShouldApply = true;
-			}
-			else
+		
+			// *** 핵심 수정: ASC에서 실제로 GE가 활성 상태인지 확인 ***
+			bool bGEIsActive = false;
+		
+			if (ExistingHandle && ExistingHandle->IsValid())
 			{
-				// Duration 간격 체크 (GE Duration과 동일하게 설정)
-				float TimeSinceLastApply = GetWorld()->GetTimeSeconds() - *LastTime;
-					
-				// Config의 ReEnterCooldown을 Duration으로 사용
-				// (ReEnterCooldown = GE Duration과 동일하게 BP에서 설정)
-				if (Config.ReEnterCooldown > 0.0f && TimeSinceLastApply >= Config.ReEnterCooldown)
+				// ASC에서 해당 Handle의 GE가 실제로 존재하는지 확인
+				const FActiveGameplayEffect* ActiveGE = TargetASC->GetActiveGameplayEffect(*ExistingHandle);
+				bGEIsActive = (ActiveGE != nullptr);
+				
+				if (!bGEIsActive)
 				{
-					bShouldApply = true;
+					// Handle은 유효하지만 GE가 실제로는 제거됨 (Duration 종료)
+					HandleMap->Remove(Config.GameplayEffectClass);
+					
+					if (bShowDebugInfo)
+					{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+						UE_LOG(LogGimmickZoneBase, Log,
+							TEXT("[%s] GE 만료 (지속시간 종료): %s"),
+							*GetName(), *Config.GameplayEffectClass->GetName());
+#endif
+					}
 				}
 			}
 			
-			if (bShouldApply)
+			// GE가 활성 상태가 아니면 재적용
+			if (!bGEIsActive)
 			{
 				ApplySingleEffect(TargetASC, Config);
 				
 				if (bShowDebugInfo)
 				{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-					UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Periodic reapply: %s to %s"),
+					UE_LOG(LogGimmickZoneBase, Log,
+						TEXT("[%s] 주기적 재적용: %s → %s"),
 						*GetName(), *Config.GameplayEffectClass->GetName(), *Actor->GetName());
 #endif
 				}
@@ -635,7 +666,7 @@ void AGimmickZoneBase::StartPeriodicCheck()
 	if (bShowDebugInfo)
 	{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Started periodic check (Interval: %.2fs)"),
+		UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Periodic 체크 시작 - Interval: %.2fs"),
 			*GetName(), MinInterval);
 #endif
 	}
@@ -719,7 +750,7 @@ void AGimmickZoneBase::CheckImmuneActorsOutsideZone()
 				{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 					UE_LOG(LogGimmickZoneBase, Log,
-						TEXT("[%s] Removed GE due to immunity (outside zone): %s from %s"),
+						TEXT("[%s] 면역으로 인해 GE 제거 (zone 외부): %s (출처: %s)"),
 						*GetName(), *Config.GameplayEffectClass->GetName(), *Actor->GetName());
 #endif
 				}
