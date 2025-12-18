@@ -123,7 +123,6 @@ void ATSStreetLamp::UseFuel()
 		LampInventory->ConsumeItem(MaintenanceCostID, 1);
 		ChangeLightScaleByErosion(ErosionSubSystem->GetCurrentErosion());
 		StartTime = GetWorld()->GetTimeSeconds();
-		return;
 	}
 	else
 	{
