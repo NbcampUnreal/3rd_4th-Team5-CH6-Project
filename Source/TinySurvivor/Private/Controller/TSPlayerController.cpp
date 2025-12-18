@@ -604,3 +604,58 @@ void ATSPlayerController::HideGameOverUI()
 		GameOverWidget = nullptr;
 	}
 }
+
+void ATSPlayerController::ShowPingUI()
+{
+	CurrentPing = ETSPingType::NONE;
+	if (PingWidget)
+	{
+		return;
+	}
+	if (!PingWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("  PingWidgetClass is NULL!"));
+		return;
+	}
+	PingWidget = CreateWidget<UUserWidget>(this, PingWidgetClass);
+	if (PingWidget)
+	{
+		PingWidget->AddToViewport();
+		// 커서 나타내기
+		bShowMouseCursor = true;
+		
+		int32 ViewportX, ViewportY;
+		GetViewportSize(ViewportX, ViewportY);
+		SetMouseLocation(ViewportX/2, ViewportY/2);
+		
+		// UI 위에 마우스 올려서 이벤트 발생하게 하기
+		bEnableClickEvents = true;
+		bEnableMouseOverEvents = true;
+		
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(nullptr);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+	}
+}
+
+ETSPingType ATSPlayerController::HidePingUI()
+{
+	if (PingWidget)
+	{
+		PingWidget->RemoveFromParent();
+		PingWidget = nullptr;
+	}
+	bShowMouseCursor = false;
+	
+	bEnableClickEvents = false;
+	bEnableMouseOverEvents = false;
+	
+	SetInputMode(FInputModeGameOnly());
+	return CurrentPing;
+}
+
+void ATSPlayerController::SetCurrentPingType(ETSPingType Ping)
+{
+	CurrentPing = Ping;
+}
