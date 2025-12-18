@@ -82,8 +82,6 @@ private:
 	UFUNCTION()
 	void OnRep_IsBuildingMode();
 	UPROPERTY(Replicated)
-	bool bCanPlace = false;
-	UPROPERTY(Replicated)
 	int32 CurrentRecipeID = 0;
 	UPROPERTY(Replicated)
 	int32 CurrentBuildingDataID = 0;
@@ -102,6 +100,7 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> CachedDynamicMaterials;
 
+	bool bCanPlace = false;
 	bool bLastCanPlace = false;
 
 	mutable UItemDataSubsystem* CachedIDS = nullptr;
