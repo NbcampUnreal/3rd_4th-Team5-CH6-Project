@@ -30,7 +30,6 @@ void UTSBuildingComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(UTSBuildingComponent, bIsBuildingMode);
 	DOREPLIFETIME(UTSBuildingComponent, CurrentRecipeID);
 	DOREPLIFETIME(UTSBuildingComponent, CurrentBuildingDataID);
-	DOREPLIFETIME(UTSBuildingComponent, bCanPlace);
 	DOREPLIFETIME(UTSBuildingComponent, RotationYaw);
 }
 
@@ -77,6 +76,8 @@ void UTSBuildingComponent::ServerStartBuildingMode_Implementation(int32 RecipeID
 	bIsBuildingMode = true;
 	CurrentRecipeID = RecipeID;
 	CurrentBuildingDataID = BuildingDataID;
+	bCanPlace = false;
+	bLastCanPlace = false;
 
 	// 호스트 플레이어인 경우 로컬에서도 프리뷰 메시 생성
 	if (GetOwner()->GetInstigatorController() && GetOwner()->GetInstigatorController()->IsLocalController())
@@ -95,6 +96,7 @@ void UTSBuildingComponent::ServerEndBuildingMode_Implementation()
 {
 	bIsBuildingMode = false;
 	bCanPlace = false;
+	bLastCanPlace = false;
 	CurrentRecipeID = 0;
 	CurrentBuildingDataID = 0;
 	RotationYaw = 0.f;
@@ -149,6 +151,9 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 		PreviewMeshComp->SetStaticMesh(PreviewMesh);
 	}
 
+	// CachedDynamicMaterials 비우기
+	CachedDynamicMaterials.Empty();
+
 	// DynamicMaterial 생성
 	if (PreviewMaterial)
 	{
@@ -200,11 +205,8 @@ void UTSBuildingComponent::UpdatePreviewMesh(float DeltaTime)
 	// 설치 가능 여부 변경 시 프리뷰 메시 색상 변경
 	if (bCanPlace != bLastCanPlace && CachedDynamicMaterials.Num() > 0)
 	{
-		int32 MaterialCount = PreviewMeshComp->GetNumMaterials();
-		for (int32 i = 0; i < MaterialCount; ++i)
+		for (UMaterialInstanceDynamic* DynamicMaterial : CachedDynamicMaterials)
 		{
-			UMaterialInstanceDynamic* DynamicMaterial = PreviewMeshComp->CreateDynamicMaterialInstance(
-				i, PreviewMaterial);
 			DynamicMaterial->SetVectorParameterValue(FName("Color"),
 			                                         bCanPlace ? FLinearColor::Green : FLinearColor::Red);
 		}
@@ -293,7 +295,7 @@ bool UTSBuildingComponent::ValidatePlacement(FHitResult HitResult)
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
