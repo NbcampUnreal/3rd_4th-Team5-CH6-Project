@@ -13,11 +13,11 @@ UENUM(BlueprintType)
 enum class ECraftingCategory : uint8
 {
 	NONE        UMETA(DisplayName = "None", ToolTip="미분류"),
+	MATERIAL    UMETA(DisplayName = "Material", ToolTip="재료"),
 	TOOL        UMETA(DisplayName = "Tool", ToolTip="도구"),
 	WEAPON      UMETA(DisplayName = "Weapon", ToolTip="무기"),
 	ARMOR       UMETA(DisplayName = "Armor", ToolTip="방어구"),
 	CONSUMABLE  UMETA(DisplayName = "Consumable", ToolTip="소모품"),
-	//BUILDING    UMETA(DisplayName = "Building", ToolTip="건축")
 };
 #pragma endregion
 
