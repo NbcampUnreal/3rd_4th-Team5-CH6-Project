@@ -139,7 +139,7 @@ void UTSErosionSubSystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	// 처음 시작 시 현재 침식도 레벨 브로드 캐스트
 	FTimerHandle FirstTimeUpdateErosionStage;
-	GetWorld()->GetTimerManager().SetTimer(FirstTimeUpdateErosionStage,this,&UTSErosionSubSystem::FirstTimeStageStabilize,1.0f,	false);
+	GetWorld()->GetTimerManager().SetTimer(FirstTimeUpdateErosionStage,this,&UTSErosionSubSystem::FirstTimeStageStabilize,3.0f,	false);
 }
 
 void UTSErosionSubSystem::Deinitialize()
