@@ -159,20 +159,34 @@ void ATSMonsterBaseCharacter::SetDropRootItems(FTSMonsterTable& MonsterTable)
 	UE_LOG(LogTemp, Warning, TEXT("LootTable Count After Main: %d"), SpawnedLootComp->LootTable.Num());
 
 	// 4. 서브 스폰 저장
-	FLootRule SubLoot;
-	SubLoot.ItemID = MonsterTable.SubDropTableID;
-	SubLoot.DropChance = MonsterTable.SubDropTablePrecent;
-	SubLoot.MaxCount = MonsterTable.SubDropMaxNum;
-	SubLoot.MinCount = MonsterTable.SubDropMinNum;
+	FLootRule Sub1Loot;
+	Sub1Loot.ItemID = MonsterTable.SubDrop1TableID;
+	Sub1Loot.DropChance = MonsterTable.SubDrop1TablePrecent;
+	Sub1Loot.MaxCount = MonsterTable.SubDrop1MaxNum;
+	Sub1Loot.MinCount = MonsterTable.SubDrop1MinNum;
 	
-	UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
-		SubLoot.ItemID,
-		SubLoot.DropChance,
-		SubLoot.MinCount,
-		SubLoot.MaxCount
+	UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT 1] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+		Sub1Loot.ItemID,
+		Sub1Loot.DropChance,
+		Sub1Loot.MinCount,
+		Sub1Loot.MaxCount
 	);
 	
-	SpawnedLootComp->LootTable.Add(SubLoot);
+	FLootRule Sub2Loot;
+	Sub2Loot.ItemID = MonsterTable.SubDrop2TableID;
+	Sub2Loot.DropChance = MonsterTable.SubDrop2TablePrecent;
+	Sub2Loot.MaxCount = MonsterTable.SubDrop2MaxNum;
+	Sub2Loot.MinCount = MonsterTable.SubDrop2MinNum;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT 2] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+		Sub2Loot.ItemID,
+		Sub2Loot.DropChance,
+		Sub2Loot.MinCount,
+		Sub2Loot.MaxCount
+	);
+	
+	SpawnedLootComp->LootTable.Add(Sub1Loot);
+	SpawnedLootComp->LootTable.Add(Sub2Loot);
 	UE_LOG(LogTemp, Warning, TEXT("LootTable Count After Sub: %d"), SpawnedLootComp->LootTable.Num());
 	UE_LOG(LogTemp, Error, TEXT("몬스터 드랍 아이템 설정 완료"));
 }

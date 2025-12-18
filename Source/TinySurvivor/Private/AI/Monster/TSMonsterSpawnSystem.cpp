@@ -105,15 +105,24 @@ void UTSMonsterSpawnSystem::Initialize(FSubsystemCollectionBase& Collection)
 			
 			FTSMonsterTable CachingRow;
 			CachingRow.MonsterTag = Row->MonsterTag;
+			
 			CachingRow.MainDropTableID = Row->MainDropTableID;
 			CachingRow.MainDropTablePrecent = Row->MainDropTablePrecent;
 			CachingRow.MainDropMaxNum = Row->MainDropMaxNum;
 			CachingRow.MainDropMinNum = Row->MainDropMinNum;
-			CachingRow.SubDropTableID = Row->SubDropTableID;
-			CachingRow.SubDropTablePrecent = Row->SubDropTablePrecent;
-			CachingRow.SubDropMaxNum = Row->SubDropMaxNum;
-			CachingRow.SubDropMinNum = Row->SubDropMinNum;
+			
+			CachingRow.SubDrop1TableID = Row->SubDrop1TableID;
+			CachingRow.SubDrop1TablePrecent = Row->SubDrop1TablePrecent;
+			CachingRow.SubDrop1MaxNum = Row->SubDrop1MaxNum;
+			CachingRow.SubDrop1MinNum = Row->SubDrop1MinNum;
+			
+			CachingRow.SubDrop2TableID = Row->SubDrop2TableID;
+			CachingRow.SubDrop2TablePrecent = Row->SubDrop2TablePrecent;
+			CachingRow.SubDrop2MaxNum = Row->SubDrop2MaxNum;
+			CachingRow.SubDrop2MinNum = Row->SubDrop2MinNum;
+			
 			CachingRow.MonsterClass = Row->MonsterClass;
+			
 			CachingRows.Add(MoveTemp(CachingRow));
 			CachingMonsterMap.Add(CachingRow.MonsterTag, &CachingRows.Last());
 		}
@@ -190,11 +199,18 @@ bool UTSMonsterSpawnSystem::RequestMonsterSpawn(FTransform& SpawnParms, FGamepla
 				FoundMonsterData->MainDropMinNum
 			);
 			
-			UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
-				FoundMonsterData->SubDropTableID,
-				FoundMonsterData->SubDropTablePrecent,
-				FoundMonsterData->SubDropMaxNum,
-				FoundMonsterData->SubDropMinNum
+			UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT 1] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+				FoundMonsterData->SubDrop1TableID,
+				FoundMonsterData->SubDrop1TablePrecent,
+				FoundMonsterData->SubDrop1MaxNum,
+				FoundMonsterData->SubDrop1MinNum
+			);
+			
+			UE_LOG(LogTemp, Warning, TEXT("[SUB LOOT 2] ID=%d, Chance=%.2f, Min=%d, Max=%d"),
+				FoundMonsterData->SubDrop2TableID,
+				FoundMonsterData->SubDrop2TablePrecent,
+				FoundMonsterData->SubDrop2MaxNum,
+				FoundMonsterData->SubDrop2MinNum
 			);
 			
 			MonsterCharacterInterface->SetDropRootItems(*FoundMonsterData);
