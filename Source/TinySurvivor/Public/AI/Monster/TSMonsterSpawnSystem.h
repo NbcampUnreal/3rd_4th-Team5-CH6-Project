@@ -64,9 +64,6 @@ protected:
 	// 로그 제어 변수 캐싱 (캐싱)
 	bool CachedbWantPrintLog;
 	
-	// 배열 캐싱
-	TArray<FTSMonsterTable> CachingRows;
-	
 	// 조회용 TMAP
 	TMap<FGameplayTag, FTSMonsterTable*> CachingMonsterMap;
 	
