@@ -40,8 +40,8 @@ bool AGameplayCue_Status_Poisoned::OnActive_Implementation(AActor* MyTarget, con
 		return true;
 	}
 	
-	// PostProcess 설정 로직
-	SetupPostProcess(MyTarget);
+	SetupPostProcess(MyTarget); // PostProcess 설정 로직
+	StartFadeIn(); // Fade In 시작
 	return true;
 }
 
@@ -56,10 +56,119 @@ bool AGameplayCue_Status_Poisoned::OnRemove_Implementation(AActor* MyTarget, con
 	// 로컬 플레이어만 정리
 	if (IsLocalPlayerTarget(MyTarget))
 	{
-		// PostProcess 정리
-		CleanupPostProcess();
+		StartFadeOut(); // Fade Out 시작
+		//CleanupPostProcess(); // PostProcess 정리
 	}
 	return true;
+}
+
+void AGameplayCue_Status_Poisoned::UpdateFade()
+{
+	if (!PostProcessComponent)
+	{
+		GetWorldTimerManager().ClearTimer(FadeTimerHandle);
+		return;
+	}
+	
+	FadeElapsedTime += 1.0f / 60.0f;
+	
+	if (bIsFadingIn)
+	{
+		// Fade In: 0 → 1
+		float Alpha = FMath::Clamp(FadeElapsedTime / FadeInDuration, 0.0f, 1.0f);
+		
+		// Ease In-Out 곡선 적용 (부드러운 전환)
+		Alpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
+		
+		PostProcessComponent->BlendWeight = Alpha;
+		
+		if (Alpha >= 1.0f)
+		{
+			// Fade In 완료
+			bIsFadingIn = false;
+			GetWorldTimerManager().ClearTimer(FadeTimerHandle);
+			
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			UE_LOG(LogPoison, Log, TEXT("[GameplayCue_Poison] Fade In 완료"));
+#endif
+		}
+	}
+	else if (bIsFadingOut)
+	{
+		// Fade Out: 1 → 0
+		float Alpha = FMath::Clamp(FadeElapsedTime / FadeOutDuration, 0.0f, 1.0f);
+		
+		// Ease In-Out 곡선 적용
+		Alpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
+		
+		PostProcessComponent->BlendWeight = 1.0f - Alpha;
+		
+		if (Alpha >= 1.0f)
+		{
+			// Fade Out 완료
+			bIsFadingOut = false;
+			GetWorldTimerManager().ClearTimer(FadeTimerHandle);
+			CleanupPostProcess();
+			
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			UE_LOG(LogPoison, Log, TEXT("[GameplayCue_Poison] Fade Out 완료, PostProcess 정리"));
+#endif
+		}
+	}
+}
+
+void AGameplayCue_Status_Poisoned::StartFadeIn()
+{
+	if (!PostProcessComponent)
+	{
+		return;
+	}
+	
+	bIsFadingIn = true;
+	bIsFadingOut = false;
+	FadeElapsedTime = 0.0f;
+	
+	// 타이머 시작 (60fps로 업데이트)
+	GetWorldTimerManager().SetTimer(
+		FadeTimerHandle,
+		this,
+		&AGameplayCue_Status_Poisoned::UpdateFade,
+		1.0f / 60.0f,
+		true
+	);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogPoison, Log,
+		TEXT("[GameplayCue_Poison] Fade In 시작 (Duration: %.2fs)"),
+		FadeInDuration);
+#endif
+}
+
+void AGameplayCue_Status_Poisoned::StartFadeOut()
+{
+	if (!PostProcessComponent)
+	{
+		return;
+	}
+	
+	bIsFadingIn = false;
+	bIsFadingOut = true;
+	FadeElapsedTime = 0.0f;
+	
+	// 타이머 시작
+	GetWorldTimerManager().SetTimer(
+		FadeTimerHandle,
+		this,
+		&AGameplayCue_Status_Poisoned::UpdateFade,
+		1.0f / 60.0f,
+		true
+	);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogPoison, Log,
+		TEXT("[GameplayCue_Poison] Fade Out 시작 (Duration: %.2fs)"),
+		FadeOutDuration);
+#endif
 }
 
 void AGameplayCue_Status_Poisoned::SetupPostProcess(AActor* Target)
@@ -71,6 +180,9 @@ void AGameplayCue_Status_Poisoned::SetupPostProcess(AActor* Target)
 	
 	// PostProcess 활성화
 	PostProcessComponent->bEnabled = true;
+	
+	// 초기 BlendWeight를 0으로 설정 (Fade In 준비)
+	PostProcessComponent->BlendWeight = 0.0f;
 	
 	//============================================================================
 	// 비네팅 설정
@@ -86,22 +198,27 @@ void AGameplayCue_Status_Poisoned::SetupPostProcess(AActor* Target)
 	//============================================================================
 	// Green 채널만 강조
 	PostProcessComponent->Settings.bOverride_ColorSaturation = true;
-	PostProcessComponent->Settings.ColorSaturation = FVector4(0.8f, 1.2f, 0.8f, 1.0f);
+	//PostProcessComponent->Settings.ColorSaturation = FVector4(0.8f, 1.2f, 0.8f, 1.0f);
+	PostProcessComponent->Settings.ColorSaturation = FVector4(0.6f, 0.8f, 0.65f, 1.0f); // 채도 낮춤
 	
 	// 미세한 초록 톤
 	PostProcessComponent->Settings.bOverride_ColorGain = true;
-	PostProcessComponent->Settings.ColorGain = FVector4(0.9f, 1.12f, 0.9f, 1.0f);
+	//PostProcessComponent->Settings.ColorGain = FVector4(0.9f, 1.12f, 0.9f, 1.0f);
+	PostProcessComponent->Settings.ColorGain = FVector4(0.85f, 0.95f, 0.88f, 1.0f); // 어둡고 차분한 초록
+
 	
 	// 초록빛 오프셋
 	PostProcessComponent->Settings.bOverride_ColorOffset = true;
-	PostProcessComponent->Settings.ColorOffset = FVector4(0.0f, 0.1f, 0.0f, 0.0f);
+	//PostProcessComponent->Settings.ColorOffset = FVector4(0.0f, 0.1f, 0.0f, 0.0f);
+	PostProcessComponent->Settings.ColorOffset = FVector4(-0.05f, 0.02f, -0.03f, 0.0f); // 약간 어둡게
 	
 	//============================================================================
 	// 크로매틱 애버레이션
 	// RGB 분리 잔상 (시각적 어지러움) - 매우 강하게: 독 상태 체감 극대화
 	//============================================================================
 	PostProcessComponent->Settings.bOverride_SceneFringeIntensity = true;
-	PostProcessComponent->Settings.SceneFringeIntensity = 10.0f; // 최대로 증가
+	//PostProcessComponent->Settings.SceneFringeIntensity = 10.0f; // 최대로 증가
+	PostProcessComponent->Settings.SceneFringeIntensity = 3.0f;
 	
 	//============================================================================
 	// 모션 블러
@@ -109,10 +226,12 @@ void AGameplayCue_Status_Poisoned::SetupPostProcess(AActor* Target)
 	// 회전 시 잔상 증가 최대 수준: 컨트롤이 무거워진 느낌 연출
 	//============================================================================
 	PostProcessComponent->Settings.bOverride_MotionBlurAmount = true;
-	PostProcessComponent->Settings.MotionBlurAmount = 1.5f; 
+	//PostProcessComponent->Settings.MotionBlurAmount = 1.5f; //강하게
+	PostProcessComponent->Settings.MotionBlurAmount = 0.5f;
 	
 	PostProcessComponent->Settings.bOverride_MotionBlurMax = true;
-	PostProcessComponent->Settings.MotionBlurMax = 100.0f;
+	//PostProcessComponent->Settings.MotionBlurMax = 100.0f; //강하게
+	PostProcessComponent->Settings.MotionBlurMax = 30.0f;
 	
 	PostProcessComponent->Settings.bOverride_MotionBlurPerObjectSize = true;
 	PostProcessComponent->Settings.MotionBlurPerObjectSize = 2.0f;
@@ -215,6 +334,12 @@ void AGameplayCue_Status_Poisoned::CleanupPostProcess()
 	{
 		PostProcessComponent->bEnabled = false;
 		PostProcessComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	}
+	
+	// 타이머 정리
+	if (FadeTimerHandle.IsValid())
+	{
+		GetWorldTimerManager().ClearTimer(FadeTimerHandle);
 	}
 }
 

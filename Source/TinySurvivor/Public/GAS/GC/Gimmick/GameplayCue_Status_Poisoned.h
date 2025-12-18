@@ -38,6 +38,24 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Effects")
 	float MotionBlurAmount = 0.5f;
 	
+	// Fade 관련 변수
+	UPROPERTY(EditDefaultsOnly, Category = "Effects|Fade")
+	float FadeInDuration = 0.5f;  // Fade In 시간 (초)
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Effects|Fade")
+	float FadeOutDuration = 0.8f; // Fade Out 시간 (초)
+	
+	FTimerHandle FadeTimerHandle;
+	float FadeElapsedTime = 0.0f;
+	bool bIsFadingIn = false;
+	bool bIsFadingOut = false;
+	
+	UFUNCTION()
+	void UpdateFade();
+	
+	void StartFadeIn();
+	void StartFadeOut();
+	
 	void SetupPostProcess(AActor* Target);
 	void CleanupPostProcess();
 	
