@@ -375,6 +375,7 @@ void ATSCharacter::InitializeAbilities()
 	GiveByTag(AbilityTags::TAG_Ability_Interact_Build.GetTag());
 	GiveByTag(AbilityTags::TAG_Ability_Interact_Interact.GetTag());
 	GiveByTag(AbilityTags::TAG_Ability_Interact_Ping.GetTag());
+	GiveByTag(AbilityTags::TAG_Ability_Interact_Emote.GetTag());
 	GiveByTag(AbilityTags::TAG_Ability_Interact_LeftClick.GetTag());
 	GiveByTag(AbilityTags::TAG_Ability_Interact_RightClick.GetTag());
 
@@ -890,6 +891,15 @@ void ATSCharacter::UnlockCrouchToggle()
 void ATSCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D Input = Value.Get<FVector2D>();
+	
+	if (Input.SizeSquared() > 0.01f && ASC)
+	{
+		FGameplayTagContainer CancelTags;
+		CancelTags.AddTag(AbilityTags::TAG_Ability_Interact_Emote);
+		//감정표현 취소
+		ASC->CancelAbilities(&CancelTags);
+	}
+	
 	// 클라이밍 이동 로직 Cross Product 언리얼에선 왼손 규칙 씀
 	if (IsClimbing())
 	{
@@ -908,8 +918,6 @@ void ATSCharacter::Move(const FInputActionValue& Value)
 		}
 		return;
 	}
-	
-	
 	//기본 이동 로직 (걷기) wasd
 	const FRotator ControlRot = Controller->GetControlRotation();
 	const FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
@@ -917,10 +925,14 @@ void ATSCharacter::Move(const FInputActionValue& Value)
 	const FVector Right = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
 
 	if (!FMath::IsNearlyZero(Input.Y))
+	{
 		AddMovementInput(Forward, Input.Y);
+	}
 
 	if (!FMath::IsNearlyZero(Input.X))
+	{
 		AddMovementInput(Right, Input.X);
+	}
 }
 
 void ATSCharacter::Look(const FInputActionValue& Value)
@@ -1058,8 +1070,6 @@ void ATSCharacter::OnSprintCompleted(const struct FInputActionValue& Value)
 		ASC->CancelAbilities(&WithTags);
 	}
 }
-
-//LyingDown 삭제 
 
 void ATSCharacter::OnOpenBag(const struct FInputActionValue& Value)
 {
@@ -1258,6 +1268,44 @@ void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
 		
 	}
 	ServerSpawnPing(NowPingType, SpawnLocation);
+}
+
+void ATSCharacter::OnEmoteStarted(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT(" T (Emote) pressed"));
+	if (BuildingComponent && BuildingComponent->IsBuildingMode())
+	{
+		return;
+	}
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetController());
+	if (PC)
+	{
+		PC->ShowEmoteUI();
+	}
+}
+
+void ATSCharacter::OnEmoteCompleted(const struct FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Log, TEXT(" T (Emote) end"));
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetController());
+	if (PC && ASC)
+	{
+		ETSEmoteType NowEmoteType = PC->HideEmoteUI();
+		if (NowEmoteType == ETSEmoteType::NONE)
+		{
+			return;
+		}
+		FGameplayEventData Payload;
+		Payload.EventMagnitude = (float) NowEmoteType;
+		Payload.Instigator = this;
+		Payload.Target = this;
+		FGameplayTag EventTag =  AbilityTags::TAG_Event_Play_Emote;
+		if (IsLocallyControlled())
+		{
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, Payload);
+		}
+		ServerPlayEmote(NowEmoteType);	
+	}
 }
 
 void ATSCharacter::OnWheelScroll(const struct FInputActionValue& Value)
@@ -1488,6 +1536,22 @@ void ATSCharacter::ServerSpawnPing_Implementation(ETSPingType PingType, FVector 
 	}
 }
 
+void ATSCharacter::ServerPlayEmote_Implementation(ETSEmoteType EmoteType)
+{
+	if (!ASC)
+	{
+		return;
+	}
+	FGameplayEventData Payload;
+	Payload.EventMagnitude = (float) EmoteType;
+	Payload.Instigator = this;
+	Payload.Target = this;
+	
+	FGameplayTag EventTag =  AbilityTags::TAG_Event_Play_Emote;
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, Payload);
+	
+}
+
 void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 {
 	// 빌딩 모드인지 확인
@@ -1684,6 +1748,10 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnPingStarted);
 		EnhancedInputComponent->BindAction(InputDataAsset->PingAction, ETriggerEvent::Completed, this,
 										   &ATSCharacter::OnPingCompleted);
+		EnhancedInputComponent->BindAction(InputDataAsset->EmoteAction, ETriggerEvent::Started, this,
+										   &ATSCharacter::OnEmoteStarted);
+		EnhancedInputComponent->BindAction(InputDataAsset->EmoteAction, ETriggerEvent::Completed, this,
+										   &ATSCharacter::OnEmoteCompleted);
 		EnhancedInputComponent->BindAction(InputDataAsset->WheelScrollAction, ETriggerEvent::Triggered, this,
 		                                   &ATSCharacter::OnWheelScroll);
 		EnhancedInputComponent->BindAction(InputDataAsset->LeftClickAction, ETriggerEvent::Started, this,
