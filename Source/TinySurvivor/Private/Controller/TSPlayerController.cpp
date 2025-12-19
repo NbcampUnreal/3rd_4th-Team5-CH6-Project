@@ -659,3 +659,60 @@ void ATSPlayerController::SetCurrentPingType(ETSPingType Ping)
 {
 	CurrentPing = Ping;
 }
+
+
+void ATSPlayerController::ShowEmoteUI()
+{
+	CurrentEmote = ETSEmoteType::NONE;
+	if (EmoteWidget)
+	{
+		return;
+	}
+	if (!EmoteWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("  EmoteWidgetClass is NULL!"));
+		return;
+	}
+	EmoteWidget = CreateWidget<UUserWidget>(this, EmoteWidgetClass);
+	if (EmoteWidget)
+	{
+		EmoteWidget->AddToViewport();
+		// 커서 나타내기
+		bShowMouseCursor = true;
+		
+		int32 ViewportX, ViewportY;
+		GetViewportSize(ViewportX, ViewportY);
+		SetMouseLocation(ViewportX/2, ViewportY/2);
+		
+		// UI 위에 마우스 올려서 이벤트 발생하게 하기
+		bEnableClickEvents = true;
+		bEnableMouseOverEvents = true;
+		
+		FInputModeGameAndUI InputMode;
+		InputMode.SetWidgetToFocus(nullptr);
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		SetInputMode(InputMode);
+	}
+}
+
+ETSEmoteType ATSPlayerController::HideEmoteUI()
+{
+	if (EmoteWidget)
+	{
+		EmoteWidget->RemoveFromParent();
+		EmoteWidget = nullptr;
+	}
+	bShowMouseCursor = false;
+	
+	bEnableClickEvents = false;
+	bEnableMouseOverEvents = false;
+	
+	SetInputMode(FInputModeGameOnly());
+	return CurrentEmote;
+}
+
+void ATSPlayerController::SetCurrentEmoteType(ETSEmoteType Emote)
+{
+	CurrentEmote = Emote;
+}
+
