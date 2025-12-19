@@ -25,6 +25,7 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Build);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Interact);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Ping);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Emote);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_LeftClick);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_RightClick);
 	
@@ -39,6 +40,7 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Roll);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Jump);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Climb);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Play_Emote);
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Increase_Stamina);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Stamina_Block);
@@ -113,6 +115,7 @@ namespace AbilityTags
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Enemy_Damage);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Hit);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Play_Emote);
 }
 
 namespace MonsterTags
