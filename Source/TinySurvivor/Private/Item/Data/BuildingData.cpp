@@ -24,6 +24,8 @@ void FBuildingData::PrintDebugInfo() const
 	UE_LOG(LogFBuildingData, Display, TEXT("RequiredTier: %d"), static_cast<uint8>(RequiredTier));
 	UE_LOG(LogFBuildingData, Display, TEXT("MaxDurability: %d"), MaxDurability);
 	UE_LOG(LogFBuildingData, Display, TEXT("IsErosionController: %s"), IsErosionController ? TEXT("True") : TEXT("False"));
+	UE_LOG(LogFBuildingData, Display, TEXT("bCanAttachToWall: %s"), bCanAttachToWall ? TEXT("True") : TEXT("False"));
+	UE_LOG(LogFBuildingData, Display, TEXT("bIsSurface: %s"), bIsSurface ? TEXT("True") : TEXT("False"));
 	
 	//======================================
 	// LIGHT SYSTEM DATA
