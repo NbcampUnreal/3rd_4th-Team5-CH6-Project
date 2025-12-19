@@ -25,9 +25,10 @@ ATSInteractionActorBase::ATSInteractionActorBase()
 	MeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
 	// 응답 설정
 	MeshComponent->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-	MeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block); // 플레이어 통과 못함
-	MeshComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap); // 오버랩 감지용!
-	MeshComponent->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Ignore); // 지면 트레이스는 무시
+	MeshComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	MeshComponent->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	MeshComponent->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+	MeshComponent->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Block);
 
 	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
 	InteractionWidget->SetupAttachment(RootComponent);
@@ -66,11 +67,7 @@ void ATSInteractionActorBase::PostInitializeComponents()
 	{
 		CachedIDS = GI->GetSubsystem<UItemDataSubsystem>();
 	}
-	if (!Tags.Contains(FName("BlockBuilding")))
-	{
-		// 빌딩 오버랩 감지용 태그 추가
-		Tags.Add(FName("BlockBuilding"));
-	}
+
 
 #if WITH_EDITOR
 	// 충돌 설정 디버그 출력
@@ -113,6 +110,11 @@ void ATSInteractionActorBase::InitializeFromBuildingData(const FBuildingData& Bu
 		ItemInstance.CreationServerTime = GetWorld()->GetTimeSeconds();
 		// 메쉬 설정
 		InitializeMesh(BuildingInfo);
+		if (!BuildingInfo.bIsSurface && !Tags.Contains(FName("BlockBuilding")))
+		{
+			// 빌딩 오버랩 감지용 태그 추가
+			Tags.Add(FName("BlockBuilding"));
+		}
 	}
 
 }

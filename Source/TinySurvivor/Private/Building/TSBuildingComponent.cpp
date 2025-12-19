@@ -9,7 +9,6 @@
 #include "GameFramework/Pawn.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "Item/TSInteractionActorBase.h"
-#include "Item/Data/BuildingData.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -123,13 +122,12 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 	}
 
 	// 빌딩 데이터 조회
-	FBuildingData BuildingData;
-	if (!GetBuildingData(BuildingDataID, BuildingData))
+	if (!GetBuildingData(BuildingDataID, CachedBuildingData))
 	{
 		return;
 	}
 
-	if (BuildingData.WorldMesh.IsNull())
+	if (CachedBuildingData.WorldMesh.IsNull())
 	{
 		return;
 	}
@@ -145,7 +143,7 @@ void UTSBuildingComponent::CreatePreviewMesh(int32 BuildingDataID)
 	PreviewMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// 메시 로드
-	UStaticMesh* PreviewMesh = BuildingData.WorldMesh.LoadSynchronous();
+	UStaticMesh* PreviewMesh = CachedBuildingData.WorldMesh.LoadSynchronous();
 	if (PreviewMesh)
 	{
 		PreviewMeshComp->SetStaticMesh(PreviewMesh);
@@ -194,6 +192,7 @@ void UTSBuildingComponent::UpdatePreviewMesh(float DeltaTime)
 	{
 		return;
 	}
+
 	// 위치, 회전 설정
 	LastTransform.SetLocation(HitResult.Location);
 	LastTransform.SetRotation(FRotator(0.f, RotationYaw, 0.f).Quaternion());
@@ -201,7 +200,14 @@ void UTSBuildingComponent::UpdatePreviewMesh(float DeltaTime)
 	PreviewMeshComp->SetWorldTransform(LastTransform);
 	// 설치 가능 여부 검증
 	bCanPlace = ValidatePlacement(HitResult);
-
+	// 벽 설치인 경우 회전 조정
+	if (bCanPlace && CachedBuildingData.bCanAttachToWall)
+	{
+		FVector WallNormal = HitResult.Normal;
+		WallNormal.Normalize();
+		RotationYaw = WallNormal.Rotation().Yaw;
+		LastTransform.SetRotation(FRotator(0.f, RotationYaw, 0.f).Quaternion());
+	}
 	// 설치 가능 여부 변경 시 프리뷰 메시 색상 변경
 	if (bCanPlace != bLastCanPlace && CachedDynamicMaterials.Num() > 0)
 	{
@@ -262,23 +268,32 @@ bool UTSBuildingComponent::ValidatePlacement(FHitResult HitResult)
 	{
 		return false;
 	}
-	// 지면이 아닌 곳에 설치하는지 확인
+
+	// 어디에 설치하는지 확인
 	const float DotProduct = FVector::DotProduct(HitResult.Normal, FVector::UpVector);
-	if (DotProduct < 0.7f)
+	if (CachedBuildingData.bCanAttachToWall)
 	{
-		return false;
+		// 벽
+		if (DotProduct > 0.3f)
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// 지면
+		if (DotProduct < 0.7f)
+		{
+			return false;
+		}
 	}
 
 	// 충돌 체크
-	FBuildingData BuildingData;
 	FVector CheckExtent = FVector(100.f, 100.f, 100.f);
-	if (GetBuildingData(CurrentBuildingDataID, BuildingData))
+	if (PreviewMeshComp && PreviewMeshComp->GetStaticMesh())
 	{
-		if (PreviewMeshComp && PreviewMeshComp->GetStaticMesh())
-		{
-			FBoxSphereBounds Bounds = PreviewMeshComp->GetStaticMesh()->GetBounds();
-			CheckExtent = Bounds.BoxExtent * 0.9f;
-		}
+		FBoxSphereBounds Bounds = PreviewMeshComp->GetStaticMesh()->GetBounds();
+		CheckExtent = Bounds.BoxExtent * 0.9f;
 	}
 
 	// 오버랩 체크
@@ -288,7 +303,7 @@ bool UTSBuildingComponent::ValidatePlacement(FHitResult HitResult)
 	}
 
 	// LightSource 범위 체크 / 라이팅 빌딩 제외
-	if (BuildingData.BuildingType != EBuildingType::LIGHT)
+	if (CachedBuildingData.BuildingType != EBuildingType::LIGHT)
 	{
 		if (!IsInLightSourceRange(HitResult.Location))
 		{
@@ -402,12 +417,7 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 		return;
 	}
 	// 빌딩 액터 스폰
-	FBuildingData BuildingData;
-	if (!GetBuildingData(BuildingDataID, BuildingData))
-	{
-		return;
-	}
-	if (!BuildingData.ActorClass)
+	if (!CachedBuildingData.ActorClass)
 	{
 		return;
 	}
@@ -418,7 +428,7 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	ATSInteractionActorBase* SpawnedActor = GetWorld()->SpawnActorDeferred<ATSInteractionActorBase>(
-		BuildingData.ActorClass,
+		CachedBuildingData.ActorClass,
 		SpawnTransform,
 		SpawnParams.Owner,
 		SpawnParams.Instigator,
@@ -427,7 +437,7 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 	// 액터 속성 설정
 	if (SpawnedActor)
 	{
-		SpawnedActor->InitializeFromBuildingData(BuildingData, BuildingDataID);
+		SpawnedActor->InitializeFromBuildingData(CachedBuildingData, BuildingDataID);
 		SpawnedActor->FinishSpawning(SpawnTransform);
 	}
 }
