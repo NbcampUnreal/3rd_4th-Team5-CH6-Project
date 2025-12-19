@@ -1212,7 +1212,7 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 				- 소모품 회복약만 스케일을 0.3 축소. (회복약 에셋이 큰 문제로)
 			*/
 			// 스케일 조정 대상
-			const int32 HealPotionID = 303;
+			const int32 HealPotionID = 304;
 			
 			// 회복약만 스케일 축소
 			if (ItemInfo.ItemID == HealPotionID)
