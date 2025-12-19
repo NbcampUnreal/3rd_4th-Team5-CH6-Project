@@ -27,7 +27,7 @@ protected:
 	                                   UTSInventoryMasterComponent* TargetInventory, EInventoryType FromInventoryType,
 	                                   int32 FromSlotIndex, EInventoryType ToInventoryType, int32 ToSlotIndex,
 	                                   bool bIsFullStack = true) override;
-	virtual bool CanPlaceItemInSlot(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex) override;
+	virtual bool CanPlaceItemInSlot(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget) override;
 	virtual void ClearSlot(FSlotStructMaster& Slot) override;
 	
 	void SetFuelSlot();
