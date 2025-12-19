@@ -30,19 +30,28 @@ void UTSLampInventory::Internal_TransferItem(UTSInventoryMasterComponent* Source
 	{
 		return;
 	}
+
 	Super::Internal_TransferItem(SourceInventory, TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType,
 	                             ToSlotIndex,
 	                             bIsFullStack);
 	SetFuelSlot();
 }
 
-bool UTSLampInventory::CanPlaceItemInSlot(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex)
+bool UTSLampInventory::CanPlaceItemInSlot(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex,
+                                          bool IsTarget)
 {
-	if (Super::CanPlaceItemInSlot(StaticDataID, InventoryType, SlotIndex))
+	if (Super::CanPlaceItemInSlot(StaticDataID, InventoryType, SlotIndex, IsTarget))
 	{
 		if (StaticDataID != MaintenanceCostID)
 		{
 			return false;
+		}
+		if (IsTarget)
+		{
+			if (GetSlot(InventoryType, SlotIndex).CurrentStackSize >= MaintenanceCostQty)
+			{
+				return false;
+			}
 		}
 	}
 	OnFuelTransferred.Broadcast();

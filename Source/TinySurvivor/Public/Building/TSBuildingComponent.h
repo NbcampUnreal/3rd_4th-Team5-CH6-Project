@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Item/Data/BuildingData.h"
 #include "TSBuildingComponent.generated.h"
 
 
 class UItemDataSubsystem;
 class ATSCharacter;
-struct FBuildingData;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TINYSURVIVOR_API UTSBuildingComponent : public UActorComponent
@@ -34,7 +34,7 @@ public:
 	// 재료 소비
 	bool ConsumeIngredients(int32 RecipeID);
 	// 빌딩모드 진입 여부 리턴
-	bool IsBuildingMode() { return bIsBuildingMode; }
+	bool IsBuildingMode() const { return bIsBuildingMode; }
 	// 좌클릭으로 설치 확정
 	void ConfirmPlacement();
 	// 건물 회전
@@ -77,6 +77,8 @@ private:
 	float LightSourceDetectionRadius = 5000.f;
 
 	// 빌딩 관련 변수
+	UPROPERTY()
+	FBuildingData CachedBuildingData;
 	UPROPERTY(ReplicatedUsing = OnRep_IsBuildingMode)
 	bool bIsBuildingMode = false;
 	UFUNCTION()

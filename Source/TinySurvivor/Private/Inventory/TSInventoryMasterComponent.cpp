@@ -308,7 +308,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	// 타입 검증
 	if (FromSlot.ItemData.StaticDataID != 0)
 	{
-		if (!TargetInventory->CanPlaceItemInSlot(FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex))
+		if (!TargetInventory->CanPlaceItemInSlot(FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex, true))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in target inventory"));
 			return;
@@ -317,7 +317,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 
 	if (ToSlot.ItemData.StaticDataID != 0)
 	{
-		if (!SourceInventory->CanPlaceItemInSlot(ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex))
+		if (!SourceInventory->CanPlaceItemInSlot(ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex, false))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in source inventory"));
 			return;
@@ -357,6 +357,26 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 			// SlotType 복원
 			FromSlot.SlotType = FromSlotType;
 			ToSlot.SlotType = ToSlotType;
+			
+			// MaxStackSize 재설정(연료슬롯의 최대 스택 제한때문에 다시 설정해줘야 함)
+			// FromSlot 재설정
+			if (FromSlot.ItemData.StaticDataID != 0)
+			{
+				FItemData ItemInfo;
+				if (SourceInventory->GetItemData(FromSlot.ItemData.StaticDataID, ItemInfo))
+				{
+					FromSlot.MaxStackSize = ItemInfo.MaxStack;
+				}
+			}
+			// ToSlot 재설정
+			if (ToSlot.ItemData.StaticDataID != 0)
+			{
+				FItemData ItemInfo;
+				if (TargetInventory->GetItemData(ToSlot.ItemData.StaticDataID, ItemInfo))
+				{
+					ToSlot.MaxStackSize = ItemInfo.MaxStack;
+				}
+			}
 		}
 		else
 		{
@@ -995,7 +1015,8 @@ int32 UTSInventoryMasterComponent::FindEmptySlot(EInventoryType InventoryType) c
 bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 	int32 StaticDataID,
 	EInventoryType InventoryType,
-	int32 SlotIndex)
+	int32 SlotIndex,
+	bool IsTarget)
 {
 	if (StaticDataID == 0 || !IsValidSlotIndex(InventoryType, SlotIndex))
 	{
