@@ -189,9 +189,33 @@ public:
 	void CheckInLightSource();
 	
 #pragma endregion
+
 protected:
 	virtual void BeginPlay() override;
 
+#pragma region Crouch
+	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
+	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override; 
+	
+	void UpdateCrouchCamera(); // 매 프레임 카메라 위치 갱신
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
+	float StandCameraZ = 0.f; // 서있을때 카메라 높이 보정
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
+	float CrouchCameraZ = 0.f; // 앉았을때 카메라 높이 보정
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
+	FName CrouchCurveName = "CrouchCameraAlpha"; //애니메이션 커브 이름
+	
+	float OriginalCrouchHeightAdjust = 0.f; //캡슐 높이 변화량
+	FVector BaseSpringArmSocketOffset = FVector::ZeroVector; //초기 스프링암 오프셋
+	
+	FTimerHandle CrouchTimerHandle;
+	void UnlockCrouchToggle(); //잠금 해제 함수
+	bool bCrouchToggleLocked = false;
+#pragma endregion
+	
 #pragma region SurvivalAttribute
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> StaminaIncreaseEffectClass; // 스태미나 자연 회복용 GE

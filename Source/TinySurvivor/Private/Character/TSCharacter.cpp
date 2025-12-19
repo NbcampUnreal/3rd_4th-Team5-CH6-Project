@@ -810,6 +810,7 @@ void ATSCharacter::BeginPlay()
 	Super::BeginPlay();
 	if (SpringArmComponent)
 	{
+		BaseSpringArmSocketOffset = SpringArmComponent -> SocketOffset;
 		SpringArmBaseLocation = SpringArmComponent->GetRelativeLocation();
 		SpringArmRightLocation = SpringArmBaseLocation + FVector(0.f, RightShoulderOffset, 0.f); // +40
 		SpringArmLeftLocation = SpringArmBaseLocation + FVector(0.f, LeftShoulderOffset, 0.f); // -80
@@ -840,6 +841,50 @@ void ATSCharacter::BeginPlay()
 			}
 		}
 	}
+}
+
+void ATSCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	OriginalCrouchHeightAdjust = ScaledHalfHeightAdjust; // 캡슐 줄어든 크기 저장해서 이만큼 카메라 들어올리기
+}
+
+void ATSCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
+{
+	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+	OriginalCrouchHeightAdjust = ScaledHalfHeightAdjust; // 캡슐이 커진 크기 저장
+}
+
+void ATSCharacter::UpdateCrouchCamera()
+{
+	if (IsLocallyControlled())
+	{
+		if (SpringArmComponent)
+		{
+			UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+			if (Anim)
+			{
+				float Alpha = Anim->GetCurveValue(CrouchCurveName);
+				Alpha = FMath::Clamp(Alpha, 0.f, 1.f); //애니메이션 커브값 가져오기
+				
+				const float TargetZ=FMath::Lerp(StandCameraZ,CrouchCameraZ,Alpha);
+				const float Adjust = OriginalCrouchHeightAdjust;
+				// crouched 상태면 캡슐 낮아졌으니 카메라를 위로 보정
+				// 반대면 캡슐이 높아졌으니 카메라를 아래로 보정
+				const float JumpCancel = bIsCrouched ? (Adjust * (1.f - Alpha)) : (-Adjust * Alpha);
+				
+				FVector NewOffset = BaseSpringArmSocketOffset;
+				NewOffset.Z += (TargetZ + JumpCancel);
+				
+				SpringArmComponent->SocketOffset = NewOffset;
+			}
+		}
+	}
+}
+
+void ATSCharacter::UnlockCrouchToggle()
+{
+	bCrouchToggleLocked = false;
 }
 
 void ATSCharacter::Move(const FInputActionValue& Value)
@@ -952,6 +997,10 @@ void ATSCharacter::OnRoll(const struct FInputActionValue& Value)
 void ATSCharacter::OnCrouch(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("c pressed"));
+	if (!ASC) return;
+	//연타방지
+	if (bCrouchToggleLocked) return;
+	bCrouchToggleLocked = true;
 	const FGameplayTag CrouchTag = AbilityTags::TAG_Ability_Move_Crouch.GetTag();
 	const FGameplayTag CrouchStateTag = AbilityTags::TAG_State_Move_Crouch.GetTag();
 	
@@ -968,6 +1017,9 @@ void ATSCharacter::OnCrouch(const struct FInputActionValue& Value)
 			ASC->TryActivateAbilitiesByTag(CrouchTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
 		}
 	}
+	const float Delay = ASC->HasMatchingGameplayTag(CrouchStateTag) ? 0.62f : 0.65f;
+	
+	GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &ATSCharacter::UnlockCrouchToggle, Delay, false);
 }
 
 void ATSCharacter::OnSprintStarted(const struct FInputActionValue& Value)
@@ -1589,6 +1641,7 @@ void ATSCharacter::Tick(float DeltaTime)
 	//[E]=====================================================================================
 	
 	LineTrace();
+	UpdateCrouchCamera();
 }
 
 void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
