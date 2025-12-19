@@ -72,6 +72,8 @@ struct FBuildingData : public FTableRowBase
 		, RequiredTier(ETier::T1)                    // 제작 요구 등급 초기화 (Tier 1 = 기본값)
 		, MaxDurability(100)                         // 최대 내구도 초기화 (기본값: 100)
 		, IsErosionController(false)                 // 침식 관리 기능 여부 초기화 (기본: 없음)
+		, bCanAttachToWall(false)                    // 벽면 설치 가능 여부 초기화 (기본: 불가)
+		, bIsSurface(false)                          // 설치 평면 제공 여부 초기화 (기본: 제공 안 함)
 		, MaintenanceCostID(0)                       // 유지비 재료 ID 초기화 (0 = 없음)
 		, MaintenanceInterval(0)                     // 유지비 소모 간격 초기화 (0초 = 없음)
 		, MaintenanceCostQty(0)                      // 유지비 수량 초기화 (0 = 없음)
@@ -139,8 +141,20 @@ struct FBuildingData : public FTableRowBase
 	// 침식도 관리 여부
 	// 광원 건축물만 True
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
-	meta=(DisplayName="Erosion Controller", ToolTip="침식도 관리 여부"))
+		meta=(DisplayName="Erosion Controller", ToolTip="침식도 관리 여부"))
 	bool IsErosionController;
+	
+	// 벽면 설치 가능 여부
+	// True인 경우 벽에 부착 설치 가능
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Can Attach To Wall", ToolTip="벽면에 설치(부착) 가능 여부"))
+	bool bCanAttachToWall;
+
+	// 설치 가능한 평면 제공 여부
+	// True인 경우 다른 건축물을 위에 설치 가능한 평면을 제공
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="System",
+		meta=(DisplayName="Is Surface Provider", ToolTip="설치 가능한 평면 제공 여부"))
+	bool bIsSurface;
 #pragma endregion
 	
 #pragma region LightSystem
