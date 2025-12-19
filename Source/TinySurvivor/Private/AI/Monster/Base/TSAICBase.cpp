@@ -6,6 +6,7 @@
 #include "Components/StateTreeAIComponent.h"
 #include "GameFramework/Character.h"
 #include "GameplayTags/AbilityGameplayTags.h"
+#include "Navigation/CrowdFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 
@@ -39,6 +40,14 @@ void ATSAICBase::BeginPlay()
 	{
 		ThisAIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ATSAICBase::OnTargetPerceptionUpdated);
 		ThisAIPerceptionComponent->OnTargetPerceptionForgotten.AddDynamic(this, &ATSAICBase::OnTargetPerceptionForgotten);
+	}
+	
+	UCrowdFollowingComponent* CrowdFollowingComponent = FindComponentByClass<UCrowdFollowingComponent>();
+	if (IsValid(CrowdFollowingComponent))
+	{
+		CrowdFollowingComponent->SetCrowdSeparation(true);
+		CrowdFollowingComponent->SetCrowdSeparationWeight(50.f);
+		CrowdFollowingComponent->SetCrowdAvoidanceRangeMultiplier(1.1f);
 	}
 }
 
