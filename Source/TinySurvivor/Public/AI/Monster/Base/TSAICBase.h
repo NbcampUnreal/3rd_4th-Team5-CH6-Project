@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "AIController.h"
+#include "DetourCrowdAIController.h"
 #include "MonsterAICInterface.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "TSAICBase.generated.h"
@@ -11,7 +12,7 @@ class UAISenseConfig_Sight;
 class UStateTreeAIComponent;
 
 UCLASS()
-class TINYSURVIVOR_API ATSAICBase : public AAIController, public IAbilitySystemInterface, public IMonsterAICInterface
+class TINYSURVIVOR_API ATSAICBase : public ADetourCrowdAIController, public IAbilitySystemInterface, public IMonsterAICInterface
 {
 	GENERATED_BODY()
 
