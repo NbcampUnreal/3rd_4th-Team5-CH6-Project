@@ -341,7 +341,7 @@ void UBuildingRecipeDataSubsystem::PrintCacheDebugInfo() const
 			{
 				case EBuildingCategory::NONE: CategoryName = TEXT("None"); break;
 				case EBuildingCategory::CRAFTING: CategoryName = TEXT("Crafting"); break;
-				case EBuildingCategory::LIGHTING: CategoryName = TEXT("lighting"); break;
+				case EBuildingCategory::LIGHT: CategoryName = TEXT("Light"); break;
 				case EBuildingCategory::STRUCT: CategoryName = TEXT("Struct"); break;
 				case EBuildingCategory::STORAGE: CategoryName = TEXT("Storage"); break;
 				default: CategoryName = TEXT("Unknown"); break;
@@ -463,7 +463,7 @@ void UBuildingRecipeDataSubsystem::RunInitializationTests()
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("보관함(STORAGE) 레시피 개수: %d"), StorageRecipes.Num());
 	
 	// LIGHTING
-	TArray<int32> LightingRecipes = GetRecipeIDsByCategory(EBuildingCategory::LIGHTING);
+	TArray<int32> LightingRecipes = GetRecipeIDsByCategory(EBuildingCategory::LIGHT);
 	UE_LOG(LogBuildingRecipeDataSubsystem, Display, TEXT("조명(LIGHTING) 레시피 개수: %d"), LightingRecipes.Num());
 	
 	// 5. 재료/결과물 검색 테스트
