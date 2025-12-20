@@ -269,7 +269,6 @@ protected:
 	void OnCrouch(const struct FInputActionValue& Value);
 	void OnSprintStarted(const struct FInputActionValue& Value);
 	void OnSprintCompleted(const struct FInputActionValue& Value);
-	//Lying Down 삭제
 	
 	// Interaction 함수들
 	void OnOpenBag(const struct FInputActionValue& Value);
@@ -280,6 +279,8 @@ protected:
 	void OnRightClick(const struct FInputActionValue& Value); // 얘넨 모르겠다.
 	void OnPingStarted(const struct FInputActionValue& Value);
 	void OnPingCompleted(const struct FInputActionValue& Value);
+	void OnEmoteStarted(const struct FInputActionValue& Value);
+	void OnEmoteCompleted(const struct FInputActionValue& Value);
 	void OnWheelScroll(const struct FInputActionValue& Vaule);
 	void OnEsc(const struct FInputActionValue& Vaule);
 	
@@ -341,6 +342,11 @@ public:
 	void ServerSpawnPing(ETSPingType PingType, FVector Location);
 	
 	
+#pragma endregion
+	
+#pragma region Emote
+	UFUNCTION(Server, Reliable) 
+	void ServerPlayEmote(ETSEmoteType EmoteType);
 #pragma endregion
 	
 #pragma region Component
