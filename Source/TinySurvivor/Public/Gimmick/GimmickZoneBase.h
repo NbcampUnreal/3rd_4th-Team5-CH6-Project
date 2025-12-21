@@ -136,6 +136,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = "Gimmick Zone")
 	bool bZoneEnabled = true;
 	
+	// 플레이어만 영향을 받을지 여부
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gimmick Zone")
+	bool bAffectPlayerOnly = true;
+	
 	// 영역에 적용할 효과 목록 (다중 GE 지원)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gimmick Zone|Effects")
 	TArray<FGimmickZoneEffectConfig> ZoneEffects;
