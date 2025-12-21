@@ -4,6 +4,11 @@
 namespace AbilityTags
 {
 	//================================
+	// 플레이어 식별 태그
+	//================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Character_Type_Player, "Character.Type.Player");
+	
+	//================================
 	// Ability 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Move_JumpOrClimb, "Ability.Move.JumpOrClimb");
@@ -63,6 +68,10 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Poison, "State.Status.Poison");					// 독 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_Poison, "State.Status.Immune.Poison");	// 독 면역
 	
+	// Electric Shock 관련 태그
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_ElectricShock, "State.Status.ElectricShock");				// 감전 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_ElectricShock, "State.Status.Immune.ElectricShock");	// 감전 면역
+	
 	// Temperature 관련 태그
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Temperature_Increase, "State.Status.Temperature.Increase");  // 온도 상승 상태이상
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Temperature_Decrease, "State.Status.Temperature.Decrease");  // 온도 감소 상태이상
@@ -81,11 +90,6 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Modifier_MOVE_SPEED, "State.Modifier.MOVE_SPEED");				// 이동 속도 증가
 	
 	//================================
-	// GameplayCue 관련 태그 정의
-	//================================
-	UE_DEFINE_GAMEPLAY_TAG(TAG_GameplayCue_Status_Poisoned, "GameplayCue.Status.Poisoned");
-	
-	//================================
 	// Input 관련 태그 정의
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Input_HotKey, "Input.HotKey");
@@ -95,7 +99,7 @@ namespace AbilityTags
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Data_Damage_Fall, "Data.Damage.Fall");
 
-  //================================
+	//================================
 	// Event 관련 태그 (몽타주 노티파이 등)
 	//================================
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Montage_HitCheck, "Event.Montage.HitCheck");
@@ -110,7 +114,7 @@ namespace AbilityTags
 namespace MonsterTags
 {
 	// 식별용
-	UE_DEFINE_GAMEPLAY_TAG(TAG_Character_Type_Player, "Character.Type.Player");
+	//UE_DEFINE_GAMEPLAY_TAG(TAG_Character_Type_Player, "Character.Type.Player");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Character_Type_Monster, "Character.Type.Monster");
 	
 	// 상태용
