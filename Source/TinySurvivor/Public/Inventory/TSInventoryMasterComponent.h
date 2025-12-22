@@ -217,7 +217,8 @@ public:
 	virtual bool CanPlaceItemInSlot(
 		int32 StaticDataID,
 		EInventoryType InventoryType,
-		int32 SlotIndex);
+		int32 SlotIndex,
+		bool IsTarget);
 
 	// ========================================
 	// 가방 시스템

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EmoteSystem/TSEmoteTypes.h"
 #include "GameFramework/PlayerController.h"
 #include "PingSystem/TSPingTypes.h"
 #include "TSPlayerController.generated.h"
@@ -119,10 +120,18 @@ public:
 	void ShowPingUI();
 	ETSPingType HidePingUI();
 	
+	void ShowEmoteUI();
+	ETSEmoteType HideEmoteUI();
+	
 	UFUNCTION(BlueprintCallable, Category = "Ping")
 	void SetCurrentPingType(ETSPingType Ping);
 	
 	ETSPingType CurrentPing = ETSPingType::NONE;
+	
+	UFUNCTION(BlueprintCallable, Category = "Emote")
+	void SetCurrentEmoteType(ETSEmoteType Emote);
+	
+	ETSEmoteType CurrentEmote = ETSEmoteType::NONE;
 protected:
 	//~=============================================================================
 	// Lifecycle Overrides
@@ -167,6 +176,14 @@ protected:
 	/** 생성된 Ping 위젯 인스턴스*/
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
 	UUserWidget* PingWidget;
+	
+	/** Emote 시 표시할 위젯 클래스 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> EmoteWidgetClass;
+	
+	/** 생성된 Emote 위젯 인스턴스*/
+	UPROPERTY(BlueprintReadOnly, Category = "UI")
+	UUserWidget* EmoteWidget;
 	
 	//~=============================================================================
 	// Container Management

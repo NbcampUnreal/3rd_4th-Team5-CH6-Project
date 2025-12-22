@@ -7,13 +7,21 @@
 
 /*
 	Ability, State 전용 네이티브 게임플레이 태그
+	- 플레이어 식별 태그
 	- Ability 관련 태그
 	- State / Status 관련 태그
+	- State / Status 관련 상태이상 (디버프, 면역)
 	- Input 관련 태그
-	- Poison 관련 태그 (독 디버프, 면역)
+	- Data 관련 태그 정의
+	- Event 관련 태그 (몽타주 노티파이 등)
 */
 namespace AbilityTags
 {
+	//================================
+	// 플레이어 식별 태그
+	//================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Player);
+	
 	//================================
 	// Ability 관련 태그
 	//================================
@@ -25,6 +33,7 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Build);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Interact);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Ping);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_Emote);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_LeftClick);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Interact_RightClick);
 	
@@ -39,6 +48,7 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Roll);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Jump);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Move_Climb);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Play_Emote);
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Increase_Stamina);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Stamina_Block);
@@ -72,6 +82,10 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_Poison);	// 독 면역 (해독제)
 	
+	// Electric Shock 관련 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_ElectricShock);			// 감전 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_ElectricShock);	// 감전 면역
+	
 	// Temperature 관련 상태이상 태그
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Temperature_Increase);	// 온도 상승 상태이상
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Temperature_Decrease);	// 온도 감소 상태이상
@@ -90,11 +104,6 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Modifier_MOVE_SPEED);			// 이동 속도 증가
 	
 	//================================
-	// GameplayCue 관련 태그 정의
-	//================================
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GameplayCue_Status_Poisoned);
-	
-	//================================
 	// Input 관련 태그
 	//================================
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Input_HotKey);
@@ -110,15 +119,15 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Montage_HitCheck);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Armor_Hit);
 	
-	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Enemy_Damage);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Hit);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Play_Emote);
 }
 
 namespace MonsterTags
 {
 	// 식별용
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Player);
+	//UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Player);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Character_Type_Monster);
 	
 	// 상태용

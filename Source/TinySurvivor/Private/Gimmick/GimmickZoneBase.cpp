@@ -8,6 +8,7 @@
 #include "GameplayEffect.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
+#include "GameplayTags/AbilityGameplayTags.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogGimmickZoneBase, Log, All);
@@ -155,6 +156,23 @@ void AGimmickZoneBase::OnZoneBeginOverlap(
 		return;
 	}
 	
+	// 플레이어만 영향받는 옵션이 켜져있을 때 플레이어 태그 체크
+	if (bAffectPlayerOnly)
+	{
+		FGameplayTag PlayerTag = AbilityTags::TAG_Character_Type_Player;
+		if (!TargetASC->HasMatchingGameplayTag(PlayerTag))
+		{
+			if (bShowDebugInfo)
+			{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] 플레이어 전용 영역 - 비플레이어 무시: %s"),
+					*GetName(), *OtherActor->GetName());
+#endif
+			}
+			return;
+		}
+	}
+	
 	// 영역 내 Actor 목록에 추가
 	ActorsInZone.Add(OtherActor);
 	
@@ -184,6 +202,16 @@ void AGimmickZoneBase::OnZoneEndOverlap(
 	if (!TargetASC)
 	{
 		return;
+	}
+	
+	// 플레이어만 영향받는 옵션일 때 플레이어 태그 체크
+	if (bAffectPlayerOnly)
+	{
+		FGameplayTag PlayerTag = AbilityTags::TAG_Character_Type_Player;
+		if (!TargetASC->HasMatchingGameplayTag(PlayerTag))
+		{
+			return;
+		}
 	}
 	
 	// 영역 내 Actor 목록에서 제거
@@ -310,7 +338,7 @@ void AGimmickZoneBase::ApplySingleEffect(UAbilitySystemComponent* TargetASC, con
 		return;
 	}
 	
-	// *** OnEnter 타입일 때 기존 활성 GE가 있으면 먼저 제거 (중복 방지) ***
+	// OnEnter 타입일 때 기존 활성 GE가 있으면 먼저 제거 (중복 방지)
 	if (Config.EffectType == EGimmickZoneEffectType::OnEnter)
 	{
 		TMap<TSubclassOf<UGameplayEffect>, FActiveGameplayEffectHandle>* HandleMap =
@@ -592,7 +620,7 @@ void AGimmickZoneBase::PeriodicCheck()
 				continue; // 면역이면 재적용하지 않음
 			}
 		
-			// *** 핵심 수정: ASC에서 실제로 GE가 활성 상태인지 확인 ***
+			// ASC에서 실제로 GE가 활성 상태인지 확인
 			bool bGEIsActive = false;
 		
 			if (ExistingHandle && ExistingHandle->IsValid())

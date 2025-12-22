@@ -11,7 +11,6 @@ ATSLadder::ATSLadder()
 	PrimaryActorTick.bCanEverTick = false;
 	// 물리 설정
 	MeshComponent->SetSimulatePhysics(true);
-	MeshComponent->SetCollisionProfileName("PhysicsActor");
 	// 무게 설정
 	MeshComponent->BodyInstance.bOverrideMass = true; 
 	MeshComponent->BodyInstance.SetMassOverride(5000.f);
