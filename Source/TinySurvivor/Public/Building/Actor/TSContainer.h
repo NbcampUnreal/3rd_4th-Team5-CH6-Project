@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "TSInteractionActorBase.h"
+#include "TSBuildingActorBase.h"
 #include "TSContainer.generated.h"
 
 class UTSInventoryMasterComponent;
 
 UCLASS()
-class TINYSURVIVOR_API ATSContainer : public ATSInteractionActorBase
+class TINYSURVIVOR_API ATSContainer : public ATSBuildingActorBase
 {
 	GENERATED_BODY()
 
@@ -24,6 +24,8 @@ public:
 #pragma endregion
 	
 protected:
+	virtual void Multicast_PlayDestroyEffect_Implementation() const override;
+	void DropAllItems() const;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UTSInventoryMasterComponent> InventoryComp;
 };

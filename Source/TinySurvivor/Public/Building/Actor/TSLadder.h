@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/TSInteractionActorBase.h"
+#include "Building/Actor/TSBuildingActorBase.h"
 #include "TSLadder.generated.h"
 
 UCLASS()
-class TINYSURVIVOR_API ATSLadder : public ATSInteractionActorBase
+class TINYSURVIVOR_API ATSLadder : public ATSBuildingActorBase
 {
 	GENERATED_BODY()
 

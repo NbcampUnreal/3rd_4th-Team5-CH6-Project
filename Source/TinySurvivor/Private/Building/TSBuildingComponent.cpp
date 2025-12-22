@@ -8,7 +8,7 @@
 #include "Building/System/BuildingRecipeDataSubsystem.h"
 #include "GameFramework/Pawn.h"
 #include "Inventory/TSInventoryMasterComponent.h"
-#include "Item/TSInteractionActorBase.h"
+#include "Building/Actor/TSBuildingActorBase.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -417,6 +417,10 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 		return;
 	}
 	// 빌딩 액터 스폰
+	if (!GetBuildingData(BuildingDataID, CachedBuildingData))
+	{
+		return;
+	}
 	if (!CachedBuildingData.ActorClass)
 	{
 		return;
@@ -427,7 +431,7 @@ void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingData
 	SpawnParams.Instigator = Cast<APawn>(GetOwner());
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	ATSInteractionActorBase* SpawnedActor = GetWorld()->SpawnActorDeferred<ATSInteractionActorBase>(
+	ATSBuildingActorBase* SpawnedActor = GetWorld()->SpawnActorDeferred<ATSBuildingActorBase>(
 		CachedBuildingData.ActorClass,
 		SpawnTransform,
 		SpawnParams.Owner,
