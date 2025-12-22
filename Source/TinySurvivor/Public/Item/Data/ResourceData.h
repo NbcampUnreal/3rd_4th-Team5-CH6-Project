@@ -72,6 +72,7 @@ public:
 		, RespawnTime(0.0f)                               // 자원 재생 시간 초기화 (0.0 = 즉시)
 		, WorldMesh(nullptr)                              // 월드 표시용 메시 초기화 (nullptr)
 		, ActorClass(nullptr)                        // 스폰될 액터 클래스 초기화 (nullptr)
+		, DestroySound(nullptr)                           // 파괴 사운드 초기화 (nullptr)
 	{}
 
 #pragma region Identifier
@@ -191,7 +192,14 @@ public:
 		meta=(DisplayName="Actor Class", ToolTip="스폰될 액터 클래스"))
 	TSubclassOf<AActor> ActorClass;
 #pragma endregion
-
+	
+#pragma region Sound
+	// 자원 파괴 또는 채집 완료 시 재생되는 사운드
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Sound",
+		meta=(DisplayName="Destroy Sound", ToolTip="자원이 파괴되거나 채집 완료 시 재생되는 사운드"))
+	TSoftObjectPtr<USoundBase> DestroySound;
+#pragma endregion
+	
 #pragma region Debug
 	/*
 		디버그용 상세 정보 로그 출력
