@@ -336,6 +336,12 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		// 일반 교환
 		if (bIsFullStack)
 		{
+			// FromSlot이 읽기 전용인 경우 빈 슬롯이 아니면 스왑 불가능
+			if(ToSlot.CurrentStackSize > 0 && FromSlot.SlotAccessType==ESlotAccessType::ReadOnly)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Cannot swap read-only slot"));
+				return;
+			}
 			bAddedToActiveSlot = true;
 			// SlotAccessType 백업
 			ESlotAccessType FromSlotAccessType = FromSlot.SlotAccessType;
@@ -392,17 +398,6 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 			}
 		}
 	}
-
-	// 활성화 슬롯 변경 시 브로드캐스트
-	if (bAddedToActiveSlot)
-	{
-		HandleActiveHotkeyIndexChanged();
-	}
-	// // 방어구이면 장착 해제
-	// if (FromInventoryType == EInventoryType::Equipment)
-	// {
-	// 	UnequipArmor(FromSlotIndex);
-	// }
 	
 	/*
 		신규: 방어구 처리 내용 보완
@@ -448,7 +443,8 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	// 활성화 슬롯 변경 시 또는 방어구 탈착 시 브로드캐스트
 	if (bAddedToActiveSlot || bArmorUnequipped || bArmorEquipped)
 	{
-		HandleActiveHotkeyIndexChanged();
+		SourceInventory->HandleActiveHotkeyIndexChanged();
+		TargetInventory->HandleActiveHotkeyIndexChanged();
 	}
 	
 	// 소스 인벤토리의 델리게이트 브로드캐스트
@@ -1024,7 +1020,7 @@ bool UTSInventoryMasterComponent::CanPlaceItemInSlot(
 	}
 
 	// 슬롯 접근 타입 확인
-	if (GetSlot(InventoryType, SlotIndex).SlotAccessType==ESlotAccessType::ReadOnly)
+	if (IsTarget && GetSlot(InventoryType, SlotIndex).SlotAccessType==ESlotAccessType::ReadOnly)
 	{
 		return false;
 	}
