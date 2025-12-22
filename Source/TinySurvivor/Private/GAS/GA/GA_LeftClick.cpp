@@ -8,7 +8,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "GameplayTags/AbilityGameplayTags.h"
 #include "GameplayTags/ItemGameplayTags.h"
-#include "Item/TSInteractionActorBase.h"
+#include "Building/Actor/TSBuildingActorBase.h"
 #include "Sound/Hit/HitComponent.h"
 
 UGA_LeftClick::UGA_LeftClick()
@@ -215,7 +215,7 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 				HitComponent->PlayHitSound(Hit);
 			}
 			
-			ATSInteractionActorBase* InteractionActorBase = Cast<ATSInteractionActorBase>(HitActor);
+			ATSBuildingActorBase* InteractionActorBase = Cast<ATSBuildingActorBase>(HitActor);
 			float DamageAmount = (float)ATK;
 			if (InteractionActorBase)
 			{

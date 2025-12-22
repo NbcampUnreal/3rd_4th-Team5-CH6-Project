@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Item/TSInteractionActorBase.h"
+#include "Building/Actor/TSBuildingActorBase.h"
 #include "TSCraftingTable.generated.h"
 
 class UTSCraftingTableInventory;
@@ -11,7 +11,7 @@ class UCraftingDataSubsystem;
 class ATSCharacter;
 
 UCLASS()
-class TINYSURVIVOR_API ATSCraftingTable : public ATSInteractionActorBase
+class TINYSURVIVOR_API ATSCraftingTable : public ATSBuildingActorBase
 {
 	GENERATED_BODY()
 

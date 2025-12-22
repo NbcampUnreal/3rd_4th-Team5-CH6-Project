@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "TSInteractionActorBase.h"
+#include "Building/Actor/TSBuildingActorBase.h"
 #include "GameFramework/Actor.h"
 #include "TSPickupItem.generated.h"
 
 UCLASS()
-class TINYSURVIVOR_API ATSPickupItem : public ATSInteractionActorBase
+class TINYSURVIVOR_API ATSPickupItem : public ATSBuildingActorBase
 {
 	GENERATED_BODY()
 
