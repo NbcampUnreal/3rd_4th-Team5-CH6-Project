@@ -1,4 +1,4 @@
-// GC_Poison_Material.h
+// AGC_Poison_Material.h
 
 #pragma once
 
