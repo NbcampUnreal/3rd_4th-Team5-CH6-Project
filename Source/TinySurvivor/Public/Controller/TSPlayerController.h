@@ -117,6 +117,9 @@ public:
 	void ShowGameOverUI();
 	void HideGameOverUI();
 	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ping")
+	void PingSuccess();
+	
 	void ShowPingUI();
 	ETSPingType HidePingUI();
 	

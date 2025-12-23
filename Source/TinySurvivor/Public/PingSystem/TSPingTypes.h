@@ -9,8 +9,8 @@ enum class ETSPingType : uint8
 {
 	NONE UMETA(DisplayName = "None"),
 	DANGER UMETA(DisplayName = "Danger"),
-	FINDRESOURCE UMETA(DisplayName = "FindResource"),
-	GATHERING UMETA(DisplayName = "Gathering"),
-	MYLOCATION UMETA(DisplayName = "MyLocation")
+	DISCOVER UMETA(DisplayName = "Discover"),
+	HELP UMETA(DisplayName = "Help"),
+	LOCATION UMETA(DisplayName = "Location")
 };
 
