@@ -47,5 +47,6 @@ void ATSCampfire::OnLifeTimeExpired()
 	{
 		FireEffect->Deactivate();
 	}
-	Destroy();
+	Multicast_PlayDestroyEffect();
+	SetLifeSpan(1.f);
 }

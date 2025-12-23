@@ -53,10 +53,17 @@ protected:
 	void OnRep_ItemInstance();
 	// 메시 초기화
 	virtual void InitializeMesh(const FBuildingData& BuildingInfo);
+	// 태그 동기화
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_AddBlockBuildingTag();
 
 	// 플레이어 아이템 내구도 업데이트 이벤트 발송
 	void SendItemDurabilityEvent(UAbilitySystemComponent* ASC);
-
+	
+	// 스폰 사운드 재생
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_PlaySpawnEffect() const;
+	
 	// 파괴 이펙트/사운드 재생
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_PlayDestroyEffect() const;
@@ -64,10 +71,16 @@ protected:
 	TObjectPtr<UItemDataSubsystem> CachedIDS;
 	int32 LastStaticDataID = 0;
 
+	// 스폰 이펙트/사운드
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect|Spawn")
+	TObjectPtr<UNiagaraSystem> SpawnEffect;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect|Spawn")
+	TObjectPtr<USoundBase> SpawnSound;
+	
 	// 파괴 이펙트/사운드
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Destroy|Effect")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect|Destroy")
 	TObjectPtr<UNiagaraSystem> DestroyEffect;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Destroy|Effect")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effect|Destroy")
 	TObjectPtr<USoundBase> DestroySound;
 	
 	// 상호작용 위젯
