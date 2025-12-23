@@ -72,6 +72,9 @@ protected:
 	// 현재 아이템 체력
 	float CurrentResourceHealth = 0;
 	
+	// 현재 아이템 파괴 사운드
+	TSoftObjectPtr<USoundBase> CurrentDestroySound;
+	
 	// 아이템 스폰용 root comp
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<ULootComponent> LootComponent;
