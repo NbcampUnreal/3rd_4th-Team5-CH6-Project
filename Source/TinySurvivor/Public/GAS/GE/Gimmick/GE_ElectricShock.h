@@ -1,4 +1,4 @@
-// ElectricShock.h
+// GE_ElectricShock.h
 #pragma once
 
 #include "CoreMinimal.h"
