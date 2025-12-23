@@ -166,6 +166,6 @@ private:
 		- constexpr: 컴파일 타임 상수
 		- 변경 금지 (기획 협의 완료)
 	*/
-	static constexpr int32 DecayItemID = 307;
+	static constexpr int32 DecayItemID = 308;
 #pragma endregion
 };

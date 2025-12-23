@@ -88,12 +88,12 @@ int32 UTSCraftingTableInventory::PlaceCraftResult(APlayerController* PC, int32 R
 		ServerDropItemToWorld(EInventoryType::BackPack, SlotIndex, Slot.CurrentStackSize);
 	}
 
-	FItemInstance Result = FItemInstance(ResultItemID, GetWorld()->GetTimeSeconds());
 	FItemData ItemInfo;
-	if (!GetItemData(Result.StaticDataID, ItemInfo))
+	if (!GetItemData(ResultItemID, ItemInfo))
 	{
 		return -1;
 	}
+	FItemInstance Result = FItemInstance(ResultItemID, GetWorld()->GetTimeSeconds(), ItemInfo.GetMaxDurability());
 	// 제작 결과물 배치
 	Slot.ItemData = Result;
 	Slot.CurrentStackSize = Quantity;

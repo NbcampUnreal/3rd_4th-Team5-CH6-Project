@@ -1,13 +1,13 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/TSContainer.h"
+#include "Building/Actor/TSContainer.h"
 
 #include "Character/TSCharacter.h"
 #include "Controller/TSPlayerController.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "Item/Data/BuildingData.h"
-#include "Item/System/ItemDataSubsystem.h"
+#include "Item/System/WorldItemPoolSubsystem.h"
 
 
 // Sets default values
@@ -67,3 +67,22 @@ bool ATSContainer::RunOnServer()
 	return false;
 }
 
+void ATSContainer::Multicast_PlayDestroyEffect_Implementation() const
+{
+	Super::Multicast_PlayDestroyEffect_Implementation();
+	DropAllItems();
+}
+
+void ATSContainer::DropAllItems() const
+{
+	FTransform DropTransform = GetActorTransform();
+	FVector DropLocation = GetActorLocation();
+	for (auto Slot :InventoryComp->BagInventory.InventorySlotContainer)
+	{
+		UWorldItemPoolSubsystem* IPS = GetWorld()->GetSubsystem<UWorldItemPoolSubsystem>();
+		if (IPS)
+		{
+			IPS->DropItem(Slot, DropTransform, DropLocation);
+		}
+	}
+}

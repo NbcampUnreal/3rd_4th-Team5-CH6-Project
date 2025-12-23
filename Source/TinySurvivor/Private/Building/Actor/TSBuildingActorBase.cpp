@@ -1,17 +1,20 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/TSInteractionActorBase.h"
+#include "Building/Actor/TSBuildingActorBase.h"
+
+#include "NiagaraFunctionLibrary.h"
 #include "Character/TSCharacter.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetComponent.h"
 #include "GameplayTags/ItemGameplayTags.h"
 #include "Item/System/ItemDataSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 class UTextBlock;
 // Sets default values
-ATSInteractionActorBase::ATSInteractionActorBase()
+ATSBuildingActorBase::ATSBuildingActorBase()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
@@ -38,7 +41,7 @@ ATSInteractionActorBase::ATSInteractionActorBase()
 	InteractionWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-void ATSInteractionActorBase::BeginPlay()
+void ATSBuildingActorBase::BeginPlay()
 {
 	// 레벨 배치 액터 초기화 (서버에서만)
 	if (HasAuthority() && ItemInstance.StaticDataID != 0 && ItemInstance.CurrentDurability == -1)
@@ -55,11 +58,11 @@ void ATSInteractionActorBase::BeginPlay()
 	{
 		InteractionWidget->SetWidgetClass(InteractionWidgetClass);
 	}
-	
+
 	Super::BeginPlay();
 }
 
-void ATSInteractionActorBase::PostInitializeComponents()
+void ATSBuildingActorBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	// IDS 캐싱
@@ -91,13 +94,13 @@ void ATSInteractionActorBase::PostInitializeComponents()
 #endif
 }
 
-void ATSInteractionActorBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void ATSBuildingActorBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ATSInteractionActorBase, ItemInstance);
+	DOREPLIFETIME(ATSBuildingActorBase, ItemInstance);
 }
 
-void ATSInteractionActorBase::InitializeFromBuildingData(const FBuildingData& BuildingInfo, const int32 StaticDataID)
+void ATSBuildingActorBase::InitializeFromBuildingData(const FBuildingData& BuildingInfo, const int32 StaticDataID)
 {
 	// 서버에서 빌딩 데이터로 멤버 변수 업데이트
 	if (HasAuthority())
@@ -116,10 +119,9 @@ void ATSInteractionActorBase::InitializeFromBuildingData(const FBuildingData& Bu
 			Tags.Add(FName("BlockBuilding"));
 		}
 	}
-
 }
 
-void ATSInteractionActorBase::DamageDurability(UAbilitySystemComponent* ASC, float DamageAmount)
+void ATSBuildingActorBase::DamageDurability(UAbilitySystemComponent* ASC, float DamageAmount)
 {
 	if (!HasAuthority())
 	{
@@ -137,11 +139,12 @@ void ATSInteractionActorBase::DamageDurability(UAbilitySystemComponent* ASC, flo
 	// 내구도 0 이하이면 Destroy
 	if (ItemInstance.CurrentDurability <= 0)
 	{
-		Destroy();
+		Multicast_PlayDestroyEffect();
+		SetLifeSpan(0.5f);
 	}
 }
 
-void ATSInteractionActorBase::ShowInteractionWidget(ATSCharacter* InstigatorCharacter)
+void ATSBuildingActorBase::ShowInteractionWidget(ATSCharacter* InstigatorCharacter)
 {
 	if (!InteractionWidget)
 	{
@@ -158,7 +161,7 @@ void ATSInteractionActorBase::ShowInteractionWidget(ATSCharacter* InstigatorChar
 	}
 }
 
-void ATSInteractionActorBase::HideInteractionWidget()
+void ATSBuildingActorBase::HideInteractionWidget()
 {
 	if (!InteractionWidget)
 	{
@@ -167,7 +170,7 @@ void ATSInteractionActorBase::HideInteractionWidget()
 	InteractionWidget->SetVisibility(false);
 }
 
-void ATSInteractionActorBase::SetInteractionText(FText WidgetText)
+void ATSBuildingActorBase::SetInteractionText(FText WidgetText)
 {
 	UUserWidget* Widget = InteractionWidget->GetWidget();
 	if (Widget)
@@ -180,21 +183,21 @@ void ATSInteractionActorBase::SetInteractionText(FText WidgetText)
 	}
 }
 
-bool ATSInteractionActorBase::CanInteract(ATSCharacter* InstigatorCharacter)
+bool ATSBuildingActorBase::CanInteract(ATSCharacter* InstigatorCharacter)
 {
 	return true;
 }
 
-void ATSInteractionActorBase::Interact(ATSCharacter* InstigatorCharacter)
+void ATSBuildingActorBase::Interact(ATSCharacter* InstigatorCharacter)
 {
 }
 
-bool ATSInteractionActorBase::RunOnServer()
+bool ATSBuildingActorBase::RunOnServer()
 {
 	return true;
 }
 
-void ATSInteractionActorBase::OnRep_ItemInstance()
+void ATSBuildingActorBase::OnRep_ItemInstance()
 {
 	if (LastStaticDataID != ItemInstance.StaticDataID)
 	{
@@ -208,7 +211,7 @@ void ATSInteractionActorBase::OnRep_ItemInstance()
 	}
 }
 
-void ATSInteractionActorBase::InitializeMesh(const FBuildingData& BuildingInfo)
+void ATSBuildingActorBase::InitializeMesh(const FBuildingData& BuildingInfo)
 {
 	// 메쉬 설정
 	if (MeshComponent && !BuildingInfo.WorldMesh.IsNull())
@@ -224,7 +227,7 @@ void ATSInteractionActorBase::InitializeMesh(const FBuildingData& BuildingInfo)
 	}
 }
 
-void ATSInteractionActorBase::SendItemDurabilityEvent(UAbilitySystemComponent* ASC)
+void ATSBuildingActorBase::SendItemDurabilityEvent(UAbilitySystemComponent* ASC)
 {
 	// ASC 이벤트 태그 전송 
 	FGameplayEventData EventData;
@@ -233,4 +236,22 @@ void ATSInteractionActorBase::SendItemDurabilityEvent(UAbilitySystemComponent* A
 	EventData.Instigator = ASC->GetAvatarActor();
 	EventData.Target = ASC->GetAvatarActor();
 	ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
+}
+
+void ATSBuildingActorBase::Multicast_PlayDestroyEffect_Implementation() const
+{
+	//1. 메시 숨기기
+	MeshComponent->SetVisibility(false);
+	MeshComponent->SetSimulatePhysics(false);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// 2. 이펙트 재생
+	if (DestroyEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DestroyEffect, GetActorLocation());
+	}
+	// 3. 사운드 재생
+	if (DestroySound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, DestroySound, GetActorLocation());
+	}
 }

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "ErosionLightSourceInterface.h"
 #include "GameFramework/Actor.h"
-#include "Item/TSInteractionActorBase.h"
+#include "Building/Actor/TSBuildingActorBase.h"
 #include "ErosionLightSourceSubActor.generated.h"
 
 class UErosionLightSourceComponent;
@@ -32,7 +32,7 @@ struct FLightScaleStep
 };
 
 UCLASS()
-class TINYSURVIVOR_API AErosionLightSourceSubActor : public ATSInteractionActorBase, public IErosionLightSourceInterface
+class TINYSURVIVOR_API AErosionLightSourceSubActor : public ATSBuildingActorBase, public IErosionLightSourceInterface
 {
 	GENERATED_BODY()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

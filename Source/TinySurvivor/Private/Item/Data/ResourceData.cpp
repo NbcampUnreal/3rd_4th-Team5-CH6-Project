@@ -37,6 +37,11 @@ void FResourceData::PrintDebugInfo() const
 	FString MeshName = WorldMesh.IsValid() ? WorldMesh->GetName() : TEXT("None");
 	UE_LOG(LogFResourceData, Display, TEXT("WorldMesh: %s"), *MeshName);
 	
+	// Sound
+	UE_LOG(LogFResourceData, Display, TEXT("---[Sound]"));
+	FString DestroySoundName = DestroySound.IsValid() ? DestroySound->GetName() : TEXT("None");
+	UE_LOG(LogFResourceData, Display, TEXT("DestroySound: %s"), *DestroySoundName);
+	
 	// Spawn
 	UE_LOG(LogFResourceData, Display, TEXT("---[Spawn]"));
 	FString ActorName = ActorClass ? ActorClass->GetName() : TEXT("None");
