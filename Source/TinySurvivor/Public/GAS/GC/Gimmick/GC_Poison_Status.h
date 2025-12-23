@@ -1,4 +1,4 @@
-// AGC_Poison_Status.h
+// GC_Poison_Status.h
 #pragma once
 
 #include "CoreMinimal.h"
