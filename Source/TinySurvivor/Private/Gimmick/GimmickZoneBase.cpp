@@ -9,6 +9,7 @@
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 #include "GameplayTags/AbilityGameplayTags.h"
+#include "System/Time/TimeTickManager.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogGimmickZoneBase, Log, All);
@@ -18,6 +19,9 @@ AGimmickZoneBase::AGimmickZoneBase()
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
 	bAlwaysRelevant = true; // 모든 클라이언트에게 항상 Relevant
+	
+	// TimeTickManager 초기화
+	CachedTimeTickManager = nullptr;
 	
 	// Root Component
 	RootComp = CreateDefaultSubobject<USceneComponent>(TEXT("RootComp"));
@@ -58,7 +62,7 @@ void AGimmickZoneBase::BeginPlay()
 			ActiveCollision->OnComponentEndOverlap.AddDynamic(this, &AGimmickZoneBase::OnZoneEndOverlap);
 		}
 		
-		// 주기적 체크가 필요한 경우 타이머 시작
+		// 주기적 체크가 필요한 경우 TimeTickManager 구독
 		bool bNeedsPeriodicCheck = false;
 		for (const FGimmickZoneEffectConfig& Config : ZoneEffects)
 		{
@@ -71,9 +75,20 @@ void AGimmickZoneBase::BeginPlay()
 		
 		if (bNeedsPeriodicCheck)
 		{
-			StartPeriodicCheck();
+			SubscribeToTimeTickManager();
 		}
 	}
+}
+
+void AGimmickZoneBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// TimeTickManager 구독 해제
+	if (HasAuthority())
+	{
+		UnsubscribeFromTimeTickManager();
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 void AGimmickZoneBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -290,7 +305,7 @@ void AGimmickZoneBase::ApplyZoneEffects(AActor* TargetActor)
 
 void AGimmickZoneBase::RemoveZoneEffects(AActor* TargetActor)
 {
-	if (!TargetActor)
+	if (!TargetActor || !IsValid(TargetActor))
 	{
 		return;
 	}
@@ -333,7 +348,7 @@ void AGimmickZoneBase::ApplySingleEffect(UAbilitySystemComponent* TargetASC, con
 	}
 	
 	AActor* TargetActor = TargetASC->GetAvatarActor();
-	if (!TargetActor)
+	if (!TargetActor || !IsValid(TargetActor))
 	{
 		return;
 	}
@@ -374,8 +389,8 @@ void AGimmickZoneBase::ApplySingleEffect(UAbilitySystemComponent* TargetASC, con
 	ContextHandle.AddSourceObject(this);
 	
 	FGameplayEffectSpecHandle SpecHandle = TargetASC->MakeOutgoingSpec(
-		Config.GameplayEffectClass, 
-		Config.EffectLevel, 
+		Config.GameplayEffectClass,
+		Config.EffectLevel,
 		ContextHandle
 	);
 	
@@ -399,8 +414,7 @@ void AGimmickZoneBase::ApplySingleEffect(UAbilitySystemComponent* TargetASC, con
 		OnEnterEffectHandles.FindOrAdd(TargetActor).Add(Config.GameplayEffectClass, ActiveHandle);
 		
 		// 시간 저장 (로그용)
-		LastEnterTimes.FindOrAdd(TargetActor).Add(
-			Config.GameplayEffectClass, GetWorld()->GetTimeSeconds());
+		LastEnterTimes.FindOrAdd(TargetActor).Add(Config.GameplayEffectClass, GetWorld()->GetTimeSeconds());
 	}
 	
 	if (bShowDebugInfo)
@@ -422,7 +436,7 @@ void AGimmickZoneBase::RemoveWhileInZoneEffects(UAbilitySystemComponent* TargetA
 	}
 	
 	AActor* TargetActor = TargetASC->GetAvatarActor();
-	if (!TargetActor)
+	if (!TargetActor || !IsValid(TargetActor))
 	{
 		return;
 	}
@@ -452,7 +466,7 @@ void AGimmickZoneBase::RemoveWhileInZoneEffects(UAbilitySystemComponent* TargetA
 
 void AGimmickZoneBase::RemoveOnEnterEffects(UAbilitySystemComponent* TargetASC, AActor* TargetActor)
 {
-	if (!TargetASC || !TargetActor)
+	if (!TargetASC || !TargetActor || !IsValid(TargetActor))
 	{
 		return;
 	}
@@ -505,6 +519,11 @@ bool AGimmickZoneBase::CanApplyOnEnterEffect(
 	AActor* TargetActor,
 	const FGimmickZoneEffectConfig& Config) const
 {
+	if (!TargetActor || !IsValid(TargetActor))
+	{
+		return false;
+	}
+	
 	// 주기적 체크가 활성화된 경우, 쿨다운 무시 (Duration 종료 감지를 위해)
 	if (Config.bPeriodicCheckWhileInZone)
 	{
@@ -562,13 +581,14 @@ void AGimmickZoneBase::PeriodicCheck()
 	}
 	
 	// 영역 내 모든 Actor 체크
-	TArray<AActor*> ActorsToCheck = ActorsInZone.Array();
+	TArray<AActor*> InvalidActors;
 	
-	for (AActor* Actor : ActorsToCheck)
+	for (AActor* Actor : ActorsInZone)
 	{
-		if (!Actor || !IsValid(Actor))
+		// 유효성 체크
+		if (!IsValid(Actor))
 		{
-			ActorsInZone.Remove(Actor);
+			InvalidActors.Add(Actor);
 			continue;
 		}
 		
@@ -581,7 +601,8 @@ void AGimmickZoneBase::PeriodicCheck()
 		// OnEnter + bPeriodicCheckWhileInZone 효과만 체크
 		for (const FGimmickZoneEffectConfig& Config : ZoneEffects)
 		{
-			if (Config.EffectType != EGimmickZoneEffectType::OnEnter || !Config.bPeriodicCheckWhileInZone)
+			if (Config.EffectType != EGimmickZoneEffectType::OnEnter
+				|| !Config.bPeriodicCheckWhileInZone)
 			{
 				continue;
 			}
@@ -619,10 +640,10 @@ void AGimmickZoneBase::PeriodicCheck()
 				}
 				continue; // 면역이면 재적용하지 않음
 			}
-		
+			
 			// ASC에서 실제로 GE가 활성 상태인지 확인
 			bool bGEIsActive = false;
-		
+			
 			if (ExistingHandle && ExistingHandle->IsValid())
 			{
 				// ASC에서 해당 Handle의 GE가 실제로 존재하는지 확인
@@ -662,49 +683,62 @@ void AGimmickZoneBase::PeriodicCheck()
 		}
 	}
 	
+	// 유효하지 않은 Actor들 제거
+	for (AActor* InvalidActor : InvalidActors)
+	{
+		ActorsInZone.Remove(InvalidActor);
+		ActiveEffectHandles.Remove(InvalidActor);
+		OnEnterEffectHandles.Remove(InvalidActor);
+		LastEnterTimes.Remove(InvalidActor);
+	}
+	
 	// 영역 밖에 있지만 OnEnter GE가 활성 상태인 Actor들도 면역 체크
 	CheckImmuneActorsOutsideZone();
 }
 
-void AGimmickZoneBase::StartPeriodicCheck()
+void AGimmickZoneBase::SubscribeToTimeTickManager()
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
 	
-	// 가장 짧은 체크 간격 찾기
-	float MinInterval = 1.0f;
-	for (const FGimmickZoneEffectConfig& Config : ZoneEffects)
+	UWorld* World = GetWorld();
+	if (!World)
 	{
-		if (Config.bPeriodicCheckWhileInZone)
-		{
-			MinInterval = FMath::Min(MinInterval, Config.PeriodicCheckInterval);
-		}
+		return;
 	}
 	
-	GetWorldTimerManager().SetTimer(
-		PeriodicCheckTimerHandle,
-		this,
-		&AGimmickZoneBase::PeriodicCheck,
-		MinInterval,
-		true // 반복
-	);
-	
-	if (bShowDebugInfo)
+	// TimeTickManager 가져오기
+	CachedTimeTickManager = World->GetSubsystem<UTimeTickManager>();
+	if (!CachedTimeTickManager)
 	{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] Periodic 체크 시작 - Interval: %.2fs"),
-			*GetName(), MinInterval);
+		UE_LOG(LogGimmickZoneBase, Error,
+			TEXT("[%s] TimeTickManager를 찾을 수 없습니다. 주기적 체크가 작동하지 않습니다."), *GetName());
 #endif
+		
+		return;
 	}
+	
+	// OnSecondTick 델리게이트 구독
+	CachedTimeTickManager->OnSecondTick.AddDynamic(this, &AGimmickZoneBase::PeriodicCheck);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] TimeTickManager 구독 완료"), *GetName());
+#endif
 }
 
-void AGimmickZoneBase::StopPeriodicCheck()
+void AGimmickZoneBase::UnsubscribeFromTimeTickManager()
 {
-	if (PeriodicCheckTimerHandle.IsValid())
+	if (CachedTimeTickManager)
 	{
-		GetWorldTimerManager().ClearTimer(PeriodicCheckTimerHandle);
+		CachedTimeTickManager->OnSecondTick.RemoveDynamic(this, &AGimmickZoneBase::PeriodicCheck);
+		CachedTimeTickManager = nullptr;
+		
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogGimmickZoneBase, Log, TEXT("[%s] TimeTickManager 구독 해제 완료"), *GetName());
+#endif
 	}
 }
 
@@ -718,6 +752,8 @@ void AGimmickZoneBase::CheckImmuneActorsOutsideZone()
 	TArray<AActor*> ActorsToCheck;
 	OnEnterEffectHandles.GetKeys(ActorsToCheck);
 	
+	TArray<AActor*> ActorsToCleanup;
+	
 	for (AActor* Actor : ActorsToCheck)
 	{
 		// 영역 내에 있으면 PeriodicCheck에서 이미 처리됨
@@ -726,10 +762,9 @@ void AGimmickZoneBase::CheckImmuneActorsOutsideZone()
 			continue;
 		}
 		
-		if (!Actor || !IsValid(Actor))
+		if (!IsValid(Actor))
 		{
-			OnEnterEffectHandles.Remove(Actor);
-			LastEnterTimes.Remove(Actor);
+			ActorsToCleanup.Add(Actor);
 			continue;
 		}
 		
@@ -752,7 +787,8 @@ void AGimmickZoneBase::CheckImmuneActorsOutsideZone()
 		
 		for (const FGimmickZoneEffectConfig& Config : ZoneEffects)
 		{
-			if (Config.EffectType != EGimmickZoneEffectType::OnEnter || !Config.bPeriodicCheckWhileInZone)
+			if (Config.EffectType != EGimmickZoneEffectType::OnEnter
+				|| !Config.bPeriodicCheckWhileInZone)
 			{
 				continue;
 			}
@@ -794,9 +830,15 @@ void AGimmickZoneBase::CheckImmuneActorsOutsideZone()
 		// HandleMap이 비었으면 Actor 자체를 제거
 		if (HandleMap->Num() == 0)
 		{
-			OnEnterEffectHandles.Remove(Actor);
-			LastEnterTimes.Remove(Actor);
+			ActorsToCleanup.Add(Actor);
 		}
+	}
+	
+	// 정리가 필요한 Actor들 제거
+	for (AActor* Actor : ActorsToCleanup)
+	{
+		OnEnterEffectHandles.Remove(Actor);
+		LastEnterTimes.Remove(Actor);
 	}
 }
 #pragma endregion
@@ -823,6 +865,14 @@ void AGimmickZoneBase::SetZoneEnabled(bool bEnabled)
 		
 		for (AActor* Actor : ActorsToRemove)
 		{
+			// 유효성 체크
+			if (!IsValid(Actor))
+			{
+				// 무효한 액터는 Map에서 제거
+				ActiveEffectHandles.Remove(Actor);
+				continue;
+			}
+			
 			RemoveZoneEffects(Actor);
 		}
 	}

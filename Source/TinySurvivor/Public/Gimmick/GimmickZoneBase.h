@@ -10,6 +10,7 @@ class UBoxComponent;
 class USphereComponent;
 class UGameplayEffect;
 class UAbilitySystemComponent;
+class UTimeTickManager;
 
 /*
 	영역 형태 타입
@@ -94,6 +95,7 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 #pragma region Components
@@ -224,20 +226,17 @@ protected:
 	
 	// 영역 내 Actor들의 WhileInZone GE Handle 추적
 	//UPROPERTY() // TMap 중첩은 UPROPERTY 지원 안됨
+	// Raw Pointer를 키로 사용하되, 접근 시 유효성 체크
 	TMap<AActor*, TArray<FActiveGameplayEffectHandle>> ActiveEffectHandles;
 	
 	// OnEnter 타입 GE Handle 추적 (면역 시 제거용)
 	TMap<AActor*, TMap<TSubclassOf<UGameplayEffect>, FActiveGameplayEffectHandle>> OnEnterEffectHandles;
 	
 	// OnEnter 타입의 마지막 적용 시간 추적 (재진입 쿨다운용)
-	//UPROPERTY() // TMap 중첩은 UPROPERTY 지원 안됨
 	TMap<AActor*, TMap<TSubclassOf<UGameplayEffect>, float>> LastEnterTimes;
 	
 	// 영역 내에 있는 Actor 목록 (주기적 체크용)
 	TSet<AActor*> ActorsInZone;
-	
-	// 주기적 체크 타이머 핸들
-	FTimerHandle PeriodicCheckTimerHandle;
 #pragma endregion
 	
 #pragma region Helpers
@@ -255,15 +254,21 @@ protected:
 	// Shape 업데이트 (Editor에서 실시간 반영)
 	void UpdateCollisionShape();
 	
-	// 주기적 체크 (독 영역용)
+	// 주기적 체크 (독 영역용) - TimeTickManager 콜백으로 변경
+	UFUNCTION()
 	void PeriodicCheck();
 	
-	// 주기적 체크 타이머 시작/중지
-	void StartPeriodicCheck();
-	void StopPeriodicCheck();
+	// TimeTickManager 구독/해제 (타이머 대체)
+	void SubscribeToTimeTickManager();
+	void UnsubscribeFromTimeTickManager();
 	
 	// 영역 밖 Actor의 면역 체크 (영역 퇴장 후 해독제 복용 대응)
 	void CheckImmuneActorsOutsideZone();
+	
+private:
+	// TimeTickManager 캐싱
+	UPROPERTY()
+	UTimeTickManager* CachedTimeTickManager;
 #pragma endregion
 	
 #pragma region PostEditChangeProperty
