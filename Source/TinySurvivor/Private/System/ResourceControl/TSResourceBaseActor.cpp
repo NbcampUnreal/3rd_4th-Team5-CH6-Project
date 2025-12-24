@@ -6,6 +6,7 @@
 #include "Item/LootComponent.h"
 #include "System/ResourceControl/TSResourcePoint.h"
 #include "GameplayTags/ItemGameplayTags.h"
+#include "Kismet/GameplayStatics.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
@@ -146,6 +147,7 @@ void ATSResourceBaseActor::InitFromResourceData(FResourceData& Data)
 	ResourceRuntimeData = Data;
 	CurrentItemCount = ResourceRuntimeData.TotalYield;
 	CurrentResourceHealth = ResourceRuntimeData.ResourceHealth;
+	CurrentDestroySound = ResourceRuntimeData.DestroySound;
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("아이템 수량 설정 완료 %d"), CurrentItemCount);
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Log, TEXT("자원 체력 설정 완료 %f"), CurrentResourceHealth);
 	
@@ -382,6 +384,20 @@ void ATSResourceBaseActor::RequestSpawnResource()
 	else
 	{
 		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 컨트롤 시스템 찾지 못함."));
+	}
+	
+	//  파괴 사운드 재생
+	if (!CurrentDestroySound.IsNull())
+	{
+		USoundBase* Sound = CurrentDestroySound.LoadSynchronous();
+		if (Sound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				Sound,
+				GetActorLocation()
+			);
+		}
 	}
 	Destroy();
 }
