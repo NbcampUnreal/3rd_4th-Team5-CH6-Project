@@ -1231,47 +1231,47 @@ void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
 		return;
 	}
 	FVector SpawnLocation = FVector::ZeroVector;
-	if (NowPingType == ETSPingType::LOCATION || NowPingType == ETSPingType::HELP)
-	{
+	//if (NowPingType == ETSPingType::LOCATION || NowPingType == ETSPingType::HELP)
+	//{
 		// 내 위치 || 도움 -> 캐릭터 위치에 핑 찍기
-		SpawnLocation = GetActorLocation();
+		//SpawnLocation = GetActorLocation();
 		
+	//} else
+	//{
+	// 위험 || 발견 알림이면 라인 트레이스 -> 힛 부분에 찍기
+	// 라인트레이스 쏘고 힛 부분 or 끝부분에 핑 찍기
+	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
+	FVector2D ViewPortSize = FVector2D::ZeroVector;
+	GEngine->GameViewport->GetViewportSize(ViewPortSize);
+	const FVector2D ViewportCenter = ViewPortSize / 2.f;
+		
+	FVector TraceStart;
+	FVector Forward;
+	bool bDeprojectSuccess = UGameplayStatics::DeprojectScreenToWorld(
+		PC,              // GetFirstPlayerController 대신 PC 사용 (더 안전)
+		ViewportCenter, 
+		TraceStart, 
+		Forward
+		);
+	if (!bDeprojectSuccess)
+	{
+		return;
+	}
+	const FVector TraceEnd = TraceStart + (Forward * 50000.0f);
+	FHitResult HitResult;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+		
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, Params);
+	if (bHit)
+	{
+		SpawnLocation = HitResult.Location;
 	} else
 	{
-		// 위험 || 발견 알림이면 라인 트레이스 -> 힛 부분에 찍기
-		// 라인트레이스 쏘고 힛 부분 or 끝부분에 핑 찍기
-		if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
-		FVector2D ViewPortSize = FVector2D::ZeroVector;
-		GEngine->GameViewport->GetViewportSize(ViewPortSize);
-		const FVector2D ViewportCenter = ViewPortSize / 2.f;
-		
-		FVector TraceStart;
-		FVector Forward;
-		bool bDeprojectSuccess = UGameplayStatics::DeprojectScreenToWorld(
-				PC,              // GetFirstPlayerController 대신 PC 사용 (더 안전)
-				ViewportCenter, 
-				TraceStart, 
-				Forward
-			);
-		if (!bDeprojectSuccess)
-		{
-			return;
-		}
-		const FVector TraceEnd = TraceStart + (Forward * 50000.0f);
-		FHitResult HitResult;
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(this);
-		
-		bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, Params);
-		if (bHit)
-		{
-			SpawnLocation = HitResult.Location;
-		} else
-		{
-			SpawnLocation = TraceEnd;
-		}
-		
+		SpawnLocation = TraceEnd;
 	}
+		
+	//}
 	if (PC)
 	{
 		PC->PingSuccess();
