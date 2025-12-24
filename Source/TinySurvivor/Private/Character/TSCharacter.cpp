@@ -1537,7 +1537,7 @@ void ATSCharacter::ServerSpawnPing_Implementation(ETSPingType PingType, FVector 
 		return;
 	}
 	FTransform SpawnPingTransform(FRotator::ZeroRotator, Location);
-	ATSPingActor* Ping = GetWorld()->SpawnActorDeferred<ATSPingActor>(PingActorClass, SpawnPingTransform, this, nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	ATSPingActor* Ping = GetWorld()->SpawnActorDeferred<ATSPingActor>(PingActorClass, SpawnPingTransform, this, this,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 	if (Ping)
 	{
 		Ping->PingType = PingType;
