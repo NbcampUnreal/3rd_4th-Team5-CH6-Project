@@ -4,6 +4,7 @@
 #include "Building/Actor/TSBuildingActorBase.h"
 
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "Character/TSCharacter.h"
 #include "Components/TextBlock.h"
 #include "Components/WidgetComponent.h"
@@ -52,6 +53,10 @@ void ATSBuildingActorBase::BeginPlay()
 			// 빌딩 컴포넌트에서 지연 스폰할때처럼 초기화
 			InitializeFromBuildingData(BuildingInfo, ItemInstance.StaticDataID);
 		}
+	}
+	else
+	{
+		Multicast_PlaySpawnEffect();
 	}
 	// 상호작용 위젯 설정
 	if (InteractionWidget && InteractionWidgetClass)
@@ -113,10 +118,10 @@ void ATSBuildingActorBase::InitializeFromBuildingData(const FBuildingData& Build
 		ItemInstance.CreationServerTime = GetWorld()->GetTimeSeconds();
 		// 메쉬 설정
 		InitializeMesh(BuildingInfo);
-		if (!BuildingInfo.bIsSurface && !Tags.Contains(FName("BlockBuilding")))
+		// 빌딩 오버랩 감지용 태그 추가
+		if (!BuildingInfo.bIsSurface)
 		{
-			// 빌딩 오버랩 감지용 태그 추가
-			Tags.Add(FName("BlockBuilding"));
+			Multicast_AddBlockBuildingTag();
 		}
 	}
 }
@@ -140,7 +145,7 @@ void ATSBuildingActorBase::DamageDurability(UAbilitySystemComponent* ASC, float 
 	if (ItemInstance.CurrentDurability <= 0)
 	{
 		Multicast_PlayDestroyEffect();
-		SetLifeSpan(0.5f);
+		SetLifeSpan(1.f);
 	}
 }
 
@@ -227,6 +232,15 @@ void ATSBuildingActorBase::InitializeMesh(const FBuildingData& BuildingInfo)
 	}
 }
 
+void ATSBuildingActorBase::Multicast_AddBlockBuildingTag_Implementation()
+{
+	if (!Tags.Contains(FName("BlockBuilding")))
+	{
+		// 빌딩 오버랩 감지용 태그 추가
+		Tags.Add(FName("BlockBuilding"));
+	}
+}
+
 void ATSBuildingActorBase::SendItemDurabilityEvent(UAbilitySystemComponent* ASC)
 {
 	// ASC 이벤트 태그 전송 
@@ -238,18 +252,40 @@ void ATSBuildingActorBase::SendItemDurabilityEvent(UAbilitySystemComponent* ASC)
 	ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
 }
 
+void ATSBuildingActorBase::Multicast_PlaySpawnEffect_Implementation() const
+{
+	// 1. 이펙트 재생
+	if (SpawnEffect)
+	{
+		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), SpawnEffect, GetActorLocation());
+		if (NiagaraComp)
+		{
+			FVector ActorScale = this->GetComponentsBoundingBox().GetSize() / 100.f;
+			NiagaraComp->SetRelativeScale3D(ActorScale);
+		}
+	}
+	// 2. 사운드 재생
+	if (SpawnSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, SpawnSound, GetActorLocation());
+	}
+}
+
 void ATSBuildingActorBase::Multicast_PlayDestroyEffect_Implementation() const
 {
-	//1. 메시 숨기기
-	MeshComponent->SetVisibility(false);
-	MeshComponent->SetSimulatePhysics(false);
-	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	// 2. 이펙트 재생
+	// 1. 이펙트 재생
 	if (DestroyEffect)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DestroyEffect, GetActorLocation());
+		UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(), DestroyEffect, GetActorLocation());
+		if (NiagaraComp)
+		{
+			FVector ActorScale = this->GetComponentsBoundingBox().GetSize() / 100.f;
+			NiagaraComp->SetRelativeScale3D(ActorScale);
+		}
 	}
-	// 3. 사운드 재생
+	// 2. 사운드 재생
 	if (DestroySound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, DestroySound, GetActorLocation());

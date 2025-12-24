@@ -578,8 +578,11 @@ bool UTSBuildingComponent::IsInLightSourceRange(const FVector& Location) const
 
 void UTSBuildingComponent::OnRep_IsBuildingMode()
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnRep_IsBuildingMode called! Role: %d, bIsBuildingMode: %d"),
-	       GetOwnerRole(), bIsBuildingMode);
+	// 로컬 컨트롤러 체크
+	if (!GetOwner()->GetInstigatorController() || !GetOwner()->GetInstigatorController()->IsLocalController())
+	{
+		return;
+	}
 	// 클라이언트에서 상태 변경 시 프리뷰 메시 처리
 	if (bIsBuildingMode)
 	{
