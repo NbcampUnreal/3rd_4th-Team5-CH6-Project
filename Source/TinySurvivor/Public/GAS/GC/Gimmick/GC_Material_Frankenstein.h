@@ -1,4 +1,4 @@
-// AGC_Material_Frankenstein.h
+// GC_Material_Frankenstein.h
 
 #pragma once
 

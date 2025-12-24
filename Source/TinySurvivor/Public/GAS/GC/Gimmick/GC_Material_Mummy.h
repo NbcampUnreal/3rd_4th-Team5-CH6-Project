@@ -1,4 +1,4 @@
-// AGC_Material_Mummy.h
+// GC_Material_Mummy.h
 #pragma once
 
 #include "CoreMinimal.h"
