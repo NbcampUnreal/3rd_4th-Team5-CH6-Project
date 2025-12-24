@@ -80,6 +80,11 @@ void ATSCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 	InitAbilitySystem();
 	InitializeAbilities(); //어빌리티 부여
+	if (!ASC)
+	{
+		return;
+	}
+	
 	if (StaminaIncreaseEffectClass)
 	{
 		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
@@ -1226,14 +1231,14 @@ void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
 		return;
 	}
 	FVector SpawnLocation = FVector::ZeroVector;
-	if (NowPingType == ETSPingType::MYLOCATION || NowPingType == ETSPingType::GATHERING)
+	if (NowPingType == ETSPingType::LOCATION || NowPingType == ETSPingType::HELP)
 	{
-		// 내 위치 || 집합 -> 캐릭터 위치에 핑 찍기
+		// 내 위치 || 도움 -> 캐릭터 위치에 핑 찍기
 		SpawnLocation = GetActorLocation();
 		
 	} else
 	{
-		// 위험 || 자원 알림이면 라인 트레이스 -> 힛 부분에 찍기
+		// 위험 || 발견 알림이면 라인 트레이스 -> 힛 부분에 찍기
 		// 라인트레이스 쏘고 힛 부분 or 끝부분에 핑 찍기
 		if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
 		FVector2D ViewPortSize = FVector2D::ZeroVector;
@@ -1266,6 +1271,10 @@ void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
 			SpawnLocation = TraceEnd;
 		}
 		
+	}
+	if (PC)
+	{
+		PC->PingSuccess();
 	}
 	ServerSpawnPing(NowPingType, SpawnLocation);
 }
