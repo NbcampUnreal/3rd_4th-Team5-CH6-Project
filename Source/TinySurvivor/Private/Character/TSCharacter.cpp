@@ -238,6 +238,11 @@ void ATSCharacter::InitAbilitySystem()
 	}
 	ASC->InitAbilityActorInfo(PS, this);
 
+	ASC->GetGameplayAttributeValueChangeDelegate(UTSAttributeSet::GetMoveSpeedAttribute()).AddUObject(this, &ATSCharacter::OnMoveSpeedChanged);
+	if (UCharacterMovementComponent* MoveComponent = GetCharacterMovement())
+	{
+		MoveComponent->MaxWalkSpeed = Attributes->GetMoveSpeed();
+	}
 
 	if (IsValid(ASC) && IsValid(Attributes))
 	{
