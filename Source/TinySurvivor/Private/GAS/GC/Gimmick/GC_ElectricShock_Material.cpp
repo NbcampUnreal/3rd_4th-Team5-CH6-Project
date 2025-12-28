@@ -37,6 +37,17 @@ bool AGC_ElectricShock_Material::OnActive_Implementation(
 		return false;
 	}
 	
+	// 이전 상태 완전 초기화 (재사용 시 안전성 확보)
+	OriginalMaterials.Empty();
+	CurrentBlinkCount = 0;
+	TargetActor.Reset();
+	
+	// 타이머가 남아있을 수 있으므로 정리
+	if (BlinkTimerHandle.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BlinkTimerHandle);
+	}
+	
 	TargetActor = MyTarget;
 	LoadMaterials();
 	CacheOriginalMaterials(MyTarget);
@@ -171,8 +182,32 @@ void AGC_ElectricShock_Material::CacheOriginalMaterials(AActor* Target)
 		OriginalMaterials.Empty();
 		for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
 		{
-			OriginalMaterials.Add(MeshComp->GetMaterial(i));
+			UMaterialInterface* CurrentMat = MeshComp->GetMaterial(i);
+			
+			// 이미 해골/화이트 머티리얼이 적용되어 있으면 DefaultMaterial 사용
+			if (CurrentMat == SkullMaterial ||
+				CurrentMat == WhiteMaterialInstance ||
+				(SkullMaterialPath.Len() > 0 && CurrentMat &&
+				 CurrentMat->GetPathName().Contains(TEXT("skin1"))))
+			{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogGCElectricShockMaterial, Warning,
+					TEXT("[%s] 이미 효과 머티리얼이 적용됨. DefaultMaterial로 대체: Slot %d"),
+					*GetName(), i);
+#endif
+				
+				OriginalMaterials.Add(DefaultMaterial);
+			}
+			else
+			{
+				OriginalMaterials.Add(CurrentMat);
+			}
 		}
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogGCElectricShockMaterial, Log,
+			TEXT("[%s] 원본 머티리얼 캐시 완료 - Target: %s, Count: %d"),
+			*GetName(), *Target->GetName(), OriginalMaterials.Num());
+#endif
 	}
 }
 #pragma endregion
