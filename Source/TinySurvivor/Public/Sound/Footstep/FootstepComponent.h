@@ -14,9 +14,8 @@ struct FFootstepSound
 {
 	GENERATED_BODY()
 	UPROPERTY(EditDefaultsOnly, Category = "Footstep")
-	TObjectPtr<USoundBase> Left = nullptr;
-	UPROPERTY(EditDefaultsOnly, Category = "Footstep")
-	TObjectPtr<USoundBase> Right = nullptr;
+	TObjectPtr<USoundBase> FootStep = nullptr;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Footstep")
 	TObjectPtr<USoundBase> Climbing = nullptr;
 };
@@ -39,7 +38,7 @@ public:
 	
 	// 걷기, 달리기 소리
 	UFUNCTION(BlueprintCallable, Category = "Footstep")
-	void PlayFootstepSound(const FVector& Location, bool& IsLeft);
+	void PlayFootstepSound(const FVector& Location);
 	
 	// 착지할 때 소리
 	UFUNCTION(BlueprintCallable, Category = "Footstep")
