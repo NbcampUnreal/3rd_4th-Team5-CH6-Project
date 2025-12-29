@@ -17,7 +17,7 @@ UFootstepComponent::UFootstepComponent()
 }
 
 
-void UFootstepComponent::PlayFootstepSound(const FVector& Location, bool& IsLeft)
+void UFootstepComponent::PlayFootstepSound(const FVector& Location)
 {
 	EPhysicalSurface SurfaceType = GetSurfaceTypeBelow(Location, 50.f);
 
@@ -27,7 +27,7 @@ void UFootstepComponent::PlayFootstepSound(const FVector& Location, bool& IsLeft
 		Sounds = &DefaultFootstepSound;
 	}
 
-	USoundBase* Sound = IsLeft ? Sounds->Left : Sounds->Right;
+	USoundBase* Sound = Sounds->FootStep;
 
 	PlaySoundAtLocation(Sound, Location);
 }
@@ -46,9 +46,8 @@ void UFootstepComponent::PlayFootstepSoundFromHit(const FHitResult& Hit)
 		Sounds = &DefaultFootstepSound;
 	}
 
-	PlaySoundAtLocation(Sounds->Left, Hit.ImpactPoint);
-
-	PlaySoundAtLocation(Sounds->Right, Hit.ImpactPoint);
+	PlaySoundAtLocation(Sounds->FootStep, Hit.ImpactPoint);
+	PlaySoundAtLocation(Sounds->FootStep, Hit.ImpactPoint);
 }
 
 void UFootstepComponent::PlayClimbingSound(const FVector& Location)

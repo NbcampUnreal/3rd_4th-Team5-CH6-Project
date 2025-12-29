@@ -52,8 +52,8 @@ EPhysicalSurface USoundComponent::GetSurfaceTypeFront(const FVector& Location, c
 EPhysicalSurface USoundComponent::GetSurfaceTypeFromHit(const FHitResult& Hit) const
 {
 	FHitResult HitResult;
-	FVector Start = Hit.ImpactPoint + Hit.ImpactPoint * 10.f;
-	FVector End = Hit.ImpactPoint - Hit.ImpactPoint * 200.f;
+	FVector Start = Hit.ImpactPoint + Hit.ImpactNormal * 10.f;
+	FVector End = Hit.ImpactPoint - Hit.ImpactNormal * 10.f;
 
 	if (LineTrace(Start, End, HitResult))
 	{
