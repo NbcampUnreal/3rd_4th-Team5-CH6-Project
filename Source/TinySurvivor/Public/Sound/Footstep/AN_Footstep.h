@@ -16,8 +16,6 @@ class TINYSURVIVOR_API UAN_Footstep : public UAnimNotify
 public:
 	UPROPERTY(EditAnywhere, Category = "Footstep")
 	FName SocketName = TEXT("foot_l");
-	UPROPERTY(EditAnywhere, Category = "Footstep")
-	bool IsLeft = true;
 	
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 };

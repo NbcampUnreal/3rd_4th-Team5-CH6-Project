@@ -16,6 +16,6 @@ void UAN_Footstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* A
 	if (FootstepComp)
 	{
 		FVector SocketLocation = MeshComp->GetSocketLocation(SocketName);
-		FootstepComp->PlayFootstepSound(SocketLocation, IsLeft);
+		FootstepComp->PlayFootstepSound(SocketLocation);
 	}
 }
