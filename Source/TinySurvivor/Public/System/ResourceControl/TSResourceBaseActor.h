@@ -55,6 +55,9 @@ protected:
 	// 스폰 요청 
 	void RequestSpawnResource();
 	
+	// 효과음 재생
+	void PlaySound();
+
 	// 껍데기
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UStaticMeshComponent> ResourceStaticMeshComp = nullptr;

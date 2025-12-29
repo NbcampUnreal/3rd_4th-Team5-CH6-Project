@@ -339,6 +339,8 @@ void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& A
 	
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 성공"));
 	
+		
+	PlaySound(); // 자원 획득 시 효과음 재생
 	
 	// 만약 체력이 안 쓴다? 그러면 죽어.
 	if (false == IsHasHealth)
@@ -385,7 +387,11 @@ void ATSResourceBaseActor::RequestSpawnResource()
 	{
 		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("스폰 포인트와 컨트롤 시스템에게 요청 실패 : 컨트롤 시스템 찾지 못함."));
 	}
-	
+	Destroy();
+}
+
+void ATSResourceBaseActor::PlaySound()
+{
 	//  파괴 사운드 재생
 	if (!CurrentDestroySound.IsNull())
 	{
@@ -399,9 +405,7 @@ void ATSResourceBaseActor::RequestSpawnResource()
 			);
 		}
 	}
-	Destroy();
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 
