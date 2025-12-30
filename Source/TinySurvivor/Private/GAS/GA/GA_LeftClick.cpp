@@ -230,13 +230,8 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 			ITSResourceItemInterface* ResourceInterface = Cast<ITSResourceItemInterface>(HitActor);
 			if (ResourceInterface) //만약 자원원천이면 
 			{
-				if (ItemAnimType == EItemAnimType::NONE ||
-					ItemAnimType == EItemAnimType::PICK ||
-					ItemAnimType == EItemAnimType::AXE)
-				{
-					//함수 불러오기
-					ResourceInterface->GetItemFromResource(ASC, ItemAnimType, ATK, Hit.ImpactPoint, Hit.ImpactNormal, Character->GetActorLocation(), Character->GetActorForwardVector(), true);
-				}
+				//함수 불러오기
+				ResourceInterface->GetItemFromResource(ASC, ItemAnimType, ATK, Hit.ImpactPoint, Hit.ImpactNormal, Character->GetActorLocation(), Character->GetActorForwardVector(), true);
 				return;
 			}
 
