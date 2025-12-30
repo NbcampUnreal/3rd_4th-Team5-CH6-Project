@@ -26,7 +26,7 @@ protected:
 	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass; // EndAbility 후 1초 딜레이  
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
-	float TraceDistance = 50.f;
+	float TraceDistance = 120.f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb") 
 	float TraceRadius = 30.f;

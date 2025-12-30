@@ -120,7 +120,7 @@ bool UGA_JumpOrClimb::ClimbableActor(FHitResult& OutHit)
 		}
 		// 거리 제한 (벽이 너무 멀면 false)
 		float DistanceToWall = (OutHit.ImpactPoint - Start).Size();
-		if (DistanceToWall > 80.f)
+		if (DistanceToWall > 120.f)
 		{
 			UE_LOG(LogTemp,Warning,TEXT("벽이 너무 멀리있음"));
 			return false;
