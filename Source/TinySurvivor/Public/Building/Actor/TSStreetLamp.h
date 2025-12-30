@@ -36,6 +36,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	virtual void ChangeLightScaleByErosion(float CurrentErosionScale) override;
+	
 	UFUNCTION()
 	void OnRep_IsFueling();
 	UFUNCTION()
