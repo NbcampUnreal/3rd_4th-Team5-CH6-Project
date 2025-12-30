@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayCueNotify_Actor.h"
+#include "Sound/SoundCue.h"
 #include "GC_ElectricShock_Material.generated.h"
 
 /*
