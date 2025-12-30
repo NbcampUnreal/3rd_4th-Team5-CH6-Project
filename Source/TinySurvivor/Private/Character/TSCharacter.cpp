@@ -396,7 +396,7 @@ void ATSCharacter::InitializeAbilities()
 	GiveByTag(InteractTag::INTERACTTAG_RESOURCE_STARTINTERACT.GetTag());
 	
 	// Hit 나중에 네이티브로 바꾸셈
-	GiveByTag(FGameplayTag::RequestGameplayTag(FName("Ability.Hit")));
+	GiveByTag(AbilityTags::TAG_Ability_HotKey.GetTag());
 }
 
 void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -419,7 +419,17 @@ void ATSCharacter::BecomeDowned()
 	// 1. 기존 행동 취소 및 Downed 태그 부착
 	if (ASC)
 	{
-		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+		if (DownedTagEffectClass)
+		{
+			FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+			ContextHandle.AddSourceObject(this);
+			FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DownedTagEffectClass, 1, ContextHandle);
+            
+			if (SpecHandle.IsValid())
+			{
+				ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			}
+		}
 	}
 
 	// 2. 이동속도 감소 GE 적용
@@ -497,8 +507,18 @@ void ATSCharacter::Die()
 	// 1. 태그 Downed -> Dead 교체
 	if (ASC)
 	{
-		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
-		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Dead);
+		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Downed));
+		if (DeadTagEffectClass)
+		{
+			FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+			ContextHandle.AddSourceObject(this);
+			FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DeadTagEffectClass, 1, ContextHandle);
+            
+			if (SpecHandle.IsValid())
+			{
+				ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			}
+		}
 	}
 	// 2. 상태 변수 업데이트 
 	bIsDownedState = false;
@@ -602,7 +622,7 @@ void ATSCharacter::Revive() // Downed된 친구가 부활하는 함수
 	// 1. Downed 태그 제거
 	if (ASC)
 	{
-		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Downed);
+		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Downed));
 	}
 	// 2. Health 50 회복, DownedHealth 100 초기화
 	if (UTSAttributeSet* AS = GetAttributeSet())
@@ -666,7 +686,17 @@ void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
 	// 4. Rescue 태그 부착
 	if (ASC)
 	{
-		ASC->AddLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+		if (RescuingTagEffectClass)
+		{
+			FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+			ContextHandle.AddSourceObject(this);
+			FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(RescuingTagEffectClass, 1, ContextHandle);
+            
+			if (SpecHandle.IsValid())
+			{
+				ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			}
+		}
 	}
 	
 	// 5. 내 움직임 봉인 // 구조 중 이동 불가
@@ -692,7 +722,7 @@ void ATSCharacter::ServerStopRevive_Implementation()
 	// 2. Rescue 태그 제거
 	if (ASC)
 	{
-		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Rescuing));
 	}
 	
 	// 4. 이동상태 복구
@@ -718,7 +748,7 @@ void ATSCharacter::OnReviveFinished()
 	// 3. 태그 제거
 	if (ASC)
 	{
-		ASC->RemoveLooseGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
+		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Rescuing));
 	}
 	// 4. 이동상태 복구
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -785,7 +815,7 @@ void ATSCharacter::CheckInLightSource()
 	{
 		if (ASC->HasMatchingGameplayTag(InLightTag)) //주변에 빛 액터 없는데 라이트 태그 갖고있으면 없애기
 		{
-			ASC->RemoveLooseGameplayTag(InLightTag);
+			ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(InLightTag));
 		}
 		return;
 	}
@@ -804,14 +834,24 @@ void ATSCharacter::CheckInLightSource()
 		// 이건 빛구역이다 -> 태그 넣기
 		if (!ASC -> HasMatchingGameplayTag(InLightTag))
 		{
-			ASC->AddLooseGameplayTag(InLightTag);
+			if (InLightTagEffectClass)
+			{
+				FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+				ContextHandle.AddSourceObject(this);
+				FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(InLightTagEffectClass, 1, ContextHandle);
+            
+				if (SpecHandle.IsValid())
+				{
+					ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+				}
+			}
 		}
 	} else
 	{
 		// 어둠 구역이니까 라이트 태그 떼기
 		if (ASC->HasMatchingGameplayTag(InLightTag))
 		{
-			ASC->RemoveLooseGameplayTag(InLightTag);
+			ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(InLightTag));
 		}
 	}
 }

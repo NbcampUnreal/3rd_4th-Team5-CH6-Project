@@ -247,6 +247,36 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> FallDamageEffectClass; // 낙하데미지 GE
 	
+	
+	
+public:
+	//------------------------------------------------- 태그 적용 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> DownedTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> DeadTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> RescuingTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> InLightTagEffectClass;
+	
+	//------------------------------------------------- 여긴 AS 태그 적용 이벤트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> ThirstTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> HungerTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> FullTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> TempHotTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> TempColdTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> AnxietyTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> PanicTagEffectClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
+	TSubclassOf<UGameplayEffect> SanityBlockTagEffectClass;
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> FullRecoverHealthEffectClass; // Full 시 health recover 하는 GE
