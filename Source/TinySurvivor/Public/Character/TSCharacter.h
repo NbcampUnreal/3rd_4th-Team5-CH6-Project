@@ -23,6 +23,9 @@ class UTSPlayerInputDataAsset;
 class UInputAction;
 class AErosionLightSourceSubActor;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionBegin);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionEnd);
+
 UCLASS()
 class TINYSURVIVOR_API ATSCharacter : public ACharacter , public IAbilitySystemInterface
 {
@@ -384,6 +387,13 @@ public:
 	// Hit 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UHitComponent> HitComponent;
+#pragma endregion
+	
+#pragma region Delegate
+	UPROPERTY(BlueprintAssignable, Category = "Delegate")
+	FOnReticleInteractionBegin OnReticleInteractionBegin;
+	UPROPERTY(BlueprintAssignable, Category = "Delegate")
+	FOnReticleInteractionEnd OnReticleInteractionEnd;
 #pragma endregion
 	
 private:
