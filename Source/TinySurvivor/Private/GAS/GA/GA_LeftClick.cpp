@@ -197,7 +197,7 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 	TArray<AActor*> Ignored;
 	Ignored.Add(Character);
 	
-	bool bHit = UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxHalfSize, Character->GetActorRotation(),UEngineTypes::ConvertToTraceType(ECC_Visibility), false, Ignored, EDrawDebugTrace::ForDuration, Hits, true);
+	bool bHit = UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxHalfSize, Character->GetActorRotation(),UEngineTypes::ConvertToTraceType(ECC_Visibility), false, Ignored, EDrawDebugTrace::None, Hits, true);
 
 	if (bHit)
 	{
@@ -230,13 +230,8 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 			ITSResourceItemInterface* ResourceInterface = Cast<ITSResourceItemInterface>(HitActor);
 			if (ResourceInterface) //만약 자원원천이면 
 			{
-				if (ItemAnimType == EItemAnimType::NONE ||
-					ItemAnimType == EItemAnimType::PICK ||
-					ItemAnimType == EItemAnimType::AXE)
-				{
-					//함수 불러오기
-					ResourceInterface->GetItemFromResource(ASC, ItemAnimType, ATK, Hit.ImpactPoint, Hit.ImpactNormal, Character->GetActorLocation(), Character->GetActorForwardVector(), true);
-				}
+				//함수 불러오기
+				ResourceInterface->GetItemFromResource(ASC, ItemAnimType, ATK, Hit.ImpactPoint, Hit.ImpactNormal, Character->GetActorLocation(), Character->GetActorForwardVector(), true);
 				return;
 			}
 
