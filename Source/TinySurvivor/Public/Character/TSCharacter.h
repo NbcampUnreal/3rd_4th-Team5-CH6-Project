@@ -23,6 +23,9 @@ class UTSPlayerInputDataAsset;
 class UInputAction;
 class AErosionLightSourceSubActor;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionBegin);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionEnd);
+
 UCLASS()
 class TINYSURVIVOR_API ATSCharacter : public ACharacter , public IAbilitySystemInterface
 {
@@ -342,14 +345,6 @@ private:
 	TWeakObjectPtr<AActor> CurrentHitActor; //현재 라인트레이스에 맞고 있는 액터
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastHitActor; //직전 프레임에서 맞고 있던 액터
-	
-	
-	//test-----------------------------------------------------------------------
-	// 디버그 라인 On/Off
-	UPROPERTY(EditAnywhere, Category = "LineTrace|Debug")
-	bool bLineTraceDebugDraw = false;
-	
-	void OnTogglelinetrace(const struct FInputActionValue& Value);
 #pragma endregion
 
 #pragma region Climb
@@ -392,6 +387,13 @@ public:
 	// Hit 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UHitComponent> HitComponent;
+#pragma endregion
+	
+#pragma region Delegate
+	UPROPERTY(BlueprintAssignable, Category = "Delegate")
+	FOnReticleInteractionBegin OnReticleInteractionBegin;
+	UPROPERTY(BlueprintAssignable, Category = "Delegate")
+	FOnReticleInteractionEnd OnReticleInteractionEnd;
 #pragma endregion
 	
 private:

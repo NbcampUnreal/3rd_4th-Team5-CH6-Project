@@ -34,6 +34,7 @@
 #include "Sound/Hit/HitComponent.h"
 #include "System/Erosion/ErosionLightSourceSubActor.h"
 #include "PingSystem/TSPingTypes.h"
+#include "System/ResourceControl/TSResourceBaseActor.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -1525,16 +1526,6 @@ void ATSCharacter::LineTrace()
 	LastHitActor = CurrentHitActor;
 	CurrentHitActor = HitResult.GetActor();
 	
-	//test----------------------------------------------------
-	if (bLineTraceDebugDraw)
-	{
-		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_GameTraceChannel1);
-		DrawDebugLine(GetWorld(), TraceStart, TraceEnd, FColor::Green, false, 1.f, 0, 1.f);
-		if (HitResult.bBlockingHit)
-		{
-			DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 8.f, 12, FColor::Red, false, 1.f);
-		}
-	}
 	// 같은 걸 바라보면 아무것도 하지 않음.
 	if (CurrentHitActor == LastHitActor) return;
 
@@ -1547,7 +1538,13 @@ void ATSCharacter::LineTrace()
 			if (InteractionInterface)
 			{
 				InteractionInterface->HideInteractionWidget();
+				OnReticleInteractionEnd.Broadcast();
 			}
+		}
+		// 자원원천, 클라이밍 레티클 상호작용 끝내기
+		else if(LastHitActor->IsA(ATSResourceBaseActor::StaticClass()) || LastHitActor->ActorHasTag("Climbable"))
+		{
+			OnReticleInteractionEnd.Broadcast();
 		}
 	}
 
@@ -1560,14 +1557,15 @@ void ATSCharacter::LineTrace()
 			if (InteractionInterface && InteractionInterface->CanInteract(this))
 			{
 				InteractionInterface->ShowInteractionWidget(this);
+				OnReticleInteractionBegin.Broadcast();
 			}
 		}
+		// 자원원천, 클라이밍 레티클 상호작용 시작
+		else if(CurrentHitActor->IsA(ATSResourceBaseActor::StaticClass()) || CurrentHitActor->ActorHasTag("Climbable"))
+		{
+			OnReticleInteractionBegin.Broadcast();
+		}
 	}
-}
-
-void ATSCharacter::OnTogglelinetrace(const struct FInputActionValue& Value)
-{
-	bLineTraceDebugDraw = ! bLineTraceDebugDraw;
 }
 
 bool ATSCharacter::IsClimbing()
@@ -1839,11 +1837,6 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnHotKey9);
 		EnhancedInputComponent->BindAction(InputDataAsset->HotKey0Action, ETriggerEvent::Started, this,
 		                                   &ATSCharacter::OnHotKey0);
-		
-		
-		// --- test --- 
-		EnhancedInputComponent->BindAction(InputDataAsset->OnTogglelinetraceAction, ETriggerEvent::Started, this,
-										   &ATSCharacter::OnTogglelinetrace);
 	}
 }
 
