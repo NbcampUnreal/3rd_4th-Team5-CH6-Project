@@ -197,7 +197,7 @@ void UGA_LeftClick::BoxTrace(UAbilitySystemComponent* ASC, EItemAnimType ItemAni
 	TArray<AActor*> Ignored;
 	Ignored.Add(Character);
 	
-	bool bHit = UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxHalfSize, Character->GetActorRotation(),UEngineTypes::ConvertToTraceType(ECC_Visibility), false, Ignored, EDrawDebugTrace::ForDuration, Hits, true);
+	bool bHit = UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxHalfSize, Character->GetActorRotation(),UEngineTypes::ConvertToTraceType(ECC_Visibility), false, Ignored, EDrawDebugTrace::None, Hits, true);
 
 	if (bHit)
 	{
