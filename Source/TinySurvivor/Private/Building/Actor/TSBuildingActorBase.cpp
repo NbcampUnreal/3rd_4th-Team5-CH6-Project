@@ -54,7 +54,7 @@ void ATSBuildingActorBase::BeginPlay()
 			InitializeFromBuildingData(BuildingInfo, ItemInstance.StaticDataID);
 		}
 	}
-	else
+	else if (ItemInstance.CurrentDurability != -1)
 	{
 		Multicast_PlaySpawnEffect();
 	}
