@@ -87,7 +87,7 @@ protected:
 	
 	// 침식도 이벤트 구독 함수 
 	UFUNCTION()
-	void ChangeLightScaleByErosion(float CurrentErosionScale);
+	virtual void ChangeLightScaleByErosion(float CurrentErosionScale);
 
 	// 밝기 조절 함수 
 	void SetLightScale(float scale);

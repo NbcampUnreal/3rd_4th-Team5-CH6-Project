@@ -104,6 +104,15 @@ void ATSStreetLamp::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+void ATSStreetLamp::ChangeLightScaleByErosion(float CurrentErosionScale)
+{
+	if (!bIsFueling)
+	{
+		return;
+	}
+	Super::ChangeLightScaleByErosion(CurrentErosionScale);
+}
+
 void ATSStreetLamp::SetFuelTimer()
 {
 	if (bIsFueling)
