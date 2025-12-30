@@ -107,53 +107,90 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 {
 	Super::PostGameplayEffectExecute(Data);
 	ClampAfterEffect(Data);
+	UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+	if (!ASC)
+	{
+		return;
+	}
+	AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
+	ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
+	if  (!Char)
+	{
+		return;
+	}
 	
 	if (Data.EvaluatedData.Attribute == GetThirstAttribute())
-	{
-		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+	{		
 		FGameplayTag ThirstTag = AbilityTags::TAG_State_Status_Thirst;
 		if (GetThirst() <= 0.0f)
 		{
 			if (!ASC->HasMatchingGameplayTag(ThirstTag))
 			{
-				ASC->AddLooseGameplayTag(ThirstTag);
+				if (Char->ThirstTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->ThirstTagEffectClass, 1, ContextHandle);
+            
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
 			}
 		}else
 		{
 			if (ASC->HasMatchingGameplayTag(ThirstTag))
 			{
-				ASC->RemoveLooseGameplayTag(ThirstTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(ThirstTag));
 			}
 		}
 	}
 	if (Data.EvaluatedData.Attribute == GetHungerAttribute())
 	{
-		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
-		FGameplayTag HungerStatusTag = AbilityTags::TAG_State_Status_Hunger;
+		FGameplayTag HungerTag = AbilityTags::TAG_State_Status_Hunger;
 		if (GetHunger() <= 0.0f)
 		{
-			if (!ASC->HasMatchingGameplayTag(HungerStatusTag))
+			if (!ASC->HasMatchingGameplayTag(HungerTag))
 			{
-				ASC->AddLooseGameplayTag(HungerStatusTag);
+				if (Char->HungerTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->HungerTagEffectClass, 1, ContextHandle);
+            
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
 			}
 		}else
 		{
-			if (ASC->HasMatchingGameplayTag(HungerStatusTag))
+			if (ASC->HasMatchingGameplayTag(HungerTag))
 			{
-				ASC->RemoveLooseGameplayTag(HungerStatusTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(HungerTag));
 			}
 		}
 		
-		AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
-		ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
 		// Full 상태 처리
-		FGameplayTag FullStatusTag = AbilityTags::TAG_State_Status_Full;
+		FGameplayTag FullTag = AbilityTags::TAG_State_Status_Full;
 		if (GetHunger() >= 100.0f)
 		{
 			// 배부름 태그 부착
-			if (!ASC->HasMatchingGameplayTag(FullStatusTag))
+			if (!ASC->HasMatchingGameplayTag(FullTag))
 			{
-				ASC->AddLooseGameplayTag(FullStatusTag);
+				if (Char->FullTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->FullTagEffectClass, 1, ContextHandle);
+            
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
 			}
 			if (Char  && Char->FullRecoverHealthEffectClass)
 			{
@@ -168,50 +205,69 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 			}
 		} else
 		{
-			if (ASC->HasMatchingGameplayTag(FullStatusTag))
+			if (ASC->HasMatchingGameplayTag(FullTag))
 			{
-				ASC->RemoveLooseGameplayTag(FullStatusTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(FullTag));
 			}
 		}
 	}
 	if (Data.EvaluatedData.Attribute == GetTemperatureAttribute())
 	{
-		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
-		FGameplayTag TempHotStatusTag = AbilityTags::TAG_State_Status_TempHot;
-		FGameplayTag TempColdStatusTag = AbilityTags::TAG_State_Status_TempCold;
+		FGameplayTag TempHotTag = AbilityTags::TAG_State_Status_TempHot;
+		FGameplayTag TempColdTag = AbilityTags::TAG_State_Status_TempCold;
 		
 		if (GetTemperature() >= 40.0f)
 		{
 			// 더위 상태이상 -> Hot 태그 붙이고 Cold 태그 제거
-			if (!ASC->HasMatchingGameplayTag(TempHotStatusTag))
+			if (!ASC->HasMatchingGameplayTag(TempHotTag))
 			{
-				ASC->AddLooseGameplayTag(TempHotStatusTag);
+				if (Char->TempHotTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->TempHotTagEffectClass, 1, ContextHandle);
+         
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
 			}
-			if (ASC->HasMatchingGameplayTag(TempColdStatusTag))
+			if (ASC->HasMatchingGameplayTag(TempColdTag))
 			{
-				ASC->RemoveLooseGameplayTag(TempColdStatusTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(TempColdTag));
 			}
 		}else if (GetTemperature() <= 30.0f)
 		{
 			// 추위 상태이상 -> Cold 태그 붙이고 Hot 태그 제거 
-			if (!ASC->HasMatchingGameplayTag(TempColdStatusTag))
+			if (!ASC->HasMatchingGameplayTag(TempColdTag))
 			{
-				ASC->AddLooseGameplayTag(TempColdStatusTag);
+				if (Char->TempColdTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->TempColdTagEffectClass, 1, ContextHandle);
+         
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
 			}
-			if (ASC->HasMatchingGameplayTag(TempHotStatusTag))
+			if (ASC->HasMatchingGameplayTag(TempHotTag))
 			{
-				ASC->RemoveLooseGameplayTag(TempHotStatusTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(TempHotTag));
 			}
 		} else //정상 범위면 둘 다 제거
 		{
-			if (ASC->HasMatchingGameplayTag(TempHotStatusTag))
+			if (ASC->HasMatchingGameplayTag(TempHotTag))
 			{
-				ASC->RemoveLooseGameplayTag(TempHotStatusTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(TempHotTag));
 			}
 
-			if (ASC->HasMatchingGameplayTag(TempColdStatusTag))
+			if (ASC->HasMatchingGameplayTag(TempColdTag))
 			{
-				ASC->RemoveLooseGameplayTag(TempColdStatusTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(TempColdTag));
 			}
 		}
 	}
@@ -222,9 +278,6 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 			///////////////////
 			// 내 캐릭터 Down //
 			///////////////////
-			UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
-			AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
-			ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
 			if (Char && !Char -> IsDowned()) // Downed 상태가 아니라면 
 			{
 				// Downed Health 를 Max 로 세팅 해주고
@@ -244,9 +297,6 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 			//////////////////
 			// 내 캐릭터 사망 //
 			//////////////////
-			UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
-			AActor* AvatarActor = ASC ? ASC->GetAvatarActor() : nullptr;
-			ATSCharacter* Char = Cast<ATSCharacter>(AvatarActor);
 			if (Char) 
 			{
 				// 다운하도록
@@ -256,38 +306,100 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 	}
 	if (Data.EvaluatedData.Attribute == GetSanityAttribute())
 	{
-		UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
 		FGameplayTag AnxietyTag = AbilityTags::TAG_State_Status_Anxiety;
 		FGameplayTag PanicTag = AbilityTags::TAG_State_Status_Panic;
-		if (GetSanity() >= 70.0f)
+		FGameplayTag SanityBlockTag = AbilityTags::TAG_State_Sanity_InLightBlock;
+		
+		if (GetSanity() <= 0.0f) // 정신력 0 -> 패닉 상태
 		{
-			ASC->RemoveLooseGameplayTag(AnxietyTag);
-			ASC->RemoveLooseGameplayTag(PanicTag);
-		}
-		else if (GetSanity() >= 30)
+			// 블락 태그 갖고있다면 제거
+			if (ASC->HasMatchingGameplayTag(SanityBlockTag))
+			{
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(SanityBlockTag));
+			}
+			// 불안 태그 갖고있다면 제거
+			if (ASC->HasMatchingGameplayTag(AnxietyTag))
+			{
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AnxietyTag));
+			}
+			// 패닉 태그 안갖고 있다면 부착
+			if (!ASC->HasMatchingGameplayTag(PanicTag))
+			{
+				if (Char->PanicTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->PanicTagEffectClass, 1, ContextHandle);
+         
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
+			}
+		} else if (GetSanity() > 0.0f && GetSanity() <= 30.0f) // 정신력 1 ~30 -> 불안 상태
 		{
-			ASC->AddLooseGameplayTag(AnxietyTag);
-			ASC->RemoveLooseGameplayTag(PanicTag);
-		} 
-		else
+			// 블락 태그 갖고있다면 제거
+			if (ASC->HasMatchingGameplayTag(SanityBlockTag))
+			{
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(SanityBlockTag));
+			}
+			// 패닉 태그 갖고있다면 제거
+			if (ASC->HasMatchingGameplayTag(PanicTag))
+			{
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(PanicTag));
+			}
+			// 불안 태그 안갖고 있다면 부착
+			if (!ASC->HasMatchingGameplayTag(AnxietyTag))
+			{
+				if (Char->AnxietyTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->AnxietyTagEffectClass, 1, ContextHandle);
+         
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
+			}
+		} else if (GetSanity() > 30.0f) // 30 초과 -> 정상 범위
 		{
-			ASC->AddLooseGameplayTag(PanicTag);
-			ASC->RemoveLooseGameplayTag(AnxietyTag);
+			// 패닉 불안 갖고있다면 태그 제거
+			if (ASC->HasMatchingGameplayTag(PanicTag))
+			{
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(PanicTag));
+			}
+			if (ASC->HasMatchingGameplayTag(AnxietyTag))
+			{
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AnxietyTag));
+			}
 		}
 
-		FGameplayTag SanityBlockTag = AbilityTags::TAG_State_Sanity_InLightBlock;
+
 		if (GetSanity() >= 80.0f)
 		{
 			if (!ASC->HasMatchingGameplayTag(SanityBlockTag))
 			{
-				ASC->AddLooseGameplayTag(SanityBlockTag);
+				if (Char->SanityBlockTagEffectClass)
+				{
+					FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+					ContextHandle.AddSourceObject(this);
+					FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(Char->SanityBlockTagEffectClass, 1, ContextHandle);
+         
+					if (SpecHandle.IsValid())
+					{
+						ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+					}
+				}
 			}
 		}
 		else
 		{
 			if (ASC->HasMatchingGameplayTag(SanityBlockTag))
 			{
-				ASC->RemoveLooseGameplayTag(SanityBlockTag);
+				ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(SanityBlockTag));
 			}
 		}
 	}
