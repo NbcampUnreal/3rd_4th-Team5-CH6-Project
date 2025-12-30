@@ -34,6 +34,7 @@
 #include "Sound/Hit/HitComponent.h"
 #include "System/Erosion/ErosionLightSourceSubActor.h"
 #include "PingSystem/TSPingTypes.h"
+#include "System/ResourceControl/TSResourceBaseActor.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -1537,7 +1538,13 @@ void ATSCharacter::LineTrace()
 			if (InteractionInterface)
 			{
 				InteractionInterface->HideInteractionWidget();
+				OnReticleInteractionEnd.Broadcast();
 			}
+		}
+		// 자원원천, 클라이밍 레티클 상호작용 끝내기
+		else if(LastHitActor->IsA(ATSResourceBaseActor::StaticClass()) || LastHitActor->ActorHasTag("Climbable"))
+		{
+			OnReticleInteractionEnd.Broadcast();
 		}
 	}
 
@@ -1550,7 +1557,13 @@ void ATSCharacter::LineTrace()
 			if (InteractionInterface && InteractionInterface->CanInteract(this))
 			{
 				InteractionInterface->ShowInteractionWidget(this);
+				OnReticleInteractionBegin.Broadcast();
 			}
+		}
+		// 자원원천, 클라이밍 레티클 상호작용 시작
+		else if(CurrentHitActor->IsA(ATSResourceBaseActor::StaticClass()) || CurrentHitActor->ActorHasTag("Climbable"))
+		{
+			OnReticleInteractionBegin.Broadcast();
 		}
 	}
 }
