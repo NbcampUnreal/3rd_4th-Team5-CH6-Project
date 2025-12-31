@@ -19,6 +19,7 @@ class UTSAttributeSet;
 class UGameplayAbility;
 class UCameraComponent;
 class USpringArmComponent;
+class UWidgetComponent;
 class UTSPlayerInputDataAsset;
 class UInputAction;
 class AErosionLightSourceSubActor;
@@ -387,6 +388,9 @@ public:
 	// Hit 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UHitComponent> HitComponent;
+	// 닉네임을 위한 위젯 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UWidgetComponent> PlayerNameComponent;
 #pragma endregion
 	
 #pragma region Delegate
@@ -427,4 +431,9 @@ public:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayPickUpMontage();
+	
+#pragma region PlayerName
+	UFUNCTION(BlueprintImplementableEvent)
+	void ShowPlayerName(const FString& Name);
+#pragma endregion
 };
