@@ -6,6 +6,7 @@
 #include "Item/System/WorldItemInstanceSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlayerState/TSPlayerState.h"
+#include "GameState/TSGameState.h"
 
 ATSGameMode::ATSGameMode()
 {
@@ -45,5 +46,17 @@ void ATSGameMode::PostLogin(APlayerController* NewPlayer)
 			}
 		}
 	}
+	if (ATSGameState* GS = GetGameState<ATSGameState>())
+	{
+		GS->Multicast_UpdateCurrentPlayer();
+	}
 }
 
+void ATSGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+	if (ATSGameState* GS = GetGameState<ATSGameState>())
+	{
+		GS->Multicast_UpdateCurrentPlayer();
+	}
+}
