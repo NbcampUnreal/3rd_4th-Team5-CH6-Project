@@ -27,6 +27,8 @@
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "System/ResourceControl/TSResourceItemInterface.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/TextBlock.h"
+#include "Components/WidgetComponent.h"
 #include "Sound/Footstep/FootstepComponent.h"
 #include "UI/TSPlayerUIDataControllerSystem.h"
 #include "GameState/TSGameState.h"
@@ -35,7 +37,6 @@
 #include "System/Erosion/ErosionLightSourceSubActor.h"
 #include "PingSystem/TSPingTypes.h"
 #include "System/ResourceControl/TSResourceBaseActor.h"
-#include "Components/WidgetComponent.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -67,6 +68,14 @@ ATSCharacter::ATSCharacter()
 	HitComponent = CreateDefaultSubobject<UHitComponent>(TEXT("HitComponent"));
 	PlayerNameComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameComponent"));
 	PlayerNameComponent->SetupAttachment(GetMesh());
+	
+	// 상호작용 위젯
+	InteractionWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionWidget"));
+	InteractionWidget->SetupAttachment(RootComponent);
+	InteractionWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	InteractionWidget->SetDrawSize(FVector2D(300.f, 60.f));
+	InteractionWidget->SetVisibility(false);
+	InteractionWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 UAbilitySystemComponent* ATSCharacter::GetAbilitySystemComponent() const
@@ -1534,13 +1543,35 @@ void ATSCharacter::LineTrace()
 	// 끝 위치
 	const FVector TraceEnd = TraceStart + Forward * TraceLength;
 	FHitResult HitResult;
+	    
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
 	
-	GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, TraceChannel);
+	// GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, TraceChannel);
+	if (!GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Pawn, Params))
+	{
+		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, TraceChannel, Params);
+	}
 	LastHitActor = CurrentHitActor;
 	CurrentHitActor = HitResult.GetActor();
 	
 	// 같은 걸 바라보면 아무것도 하지 않음.
-	if (CurrentHitActor == LastHitActor) return;
+	if (CurrentHitActor == LastHitActor)
+	{
+		if (IsValid(CurrentHitActor.Get()))
+		{
+			if (CurrentHitActor->Implements<UIInteraction>())
+			{
+				IIInteraction* InteractionInterface = Cast<IIInteraction>(CurrentHitActor);
+				if (InteractionInterface && !InteractionInterface->CanInteract(this))
+				{
+					InteractionInterface->HideInteractionWidget();
+				}
+			}
+		}
+		return;
+	}
+
 
 	// 이전 액터 처리
 	if (IsValid(LastHitActor.Get()))
@@ -1572,6 +1603,10 @@ void ATSCharacter::LineTrace()
 				InteractionInterface->ShowInteractionWidget(this);
 				OnReticleInteractionBegin.Broadcast();
 			}
+			else
+			{
+				InteractionInterface->HideInteractionWidget();
+			}
 		}
 		// 자원원천, 클라이밍 레티클 상호작용 시작
 		else if(CurrentHitActor->IsA(ATSResourceBaseActor::StaticClass()) || CurrentHitActor->ActorHasTag("Climbable"))
@@ -1584,6 +1619,59 @@ void ATSCharacter::LineTrace()
 bool ATSCharacter::IsClimbing()
 {
 	return bIsClimbState;
+}
+
+void ATSCharacter::ShowInteractionWidget(ATSCharacter* InstigatorCharacter)
+{	
+	if (!InteractionWidget)
+	{
+		return;
+	}
+	InteractionWidget->SetVisibility(true);
+	if (CanInteract(InstigatorCharacter))
+	{
+		SetInteractionText(InteractionText);
+	}
+}
+
+void ATSCharacter::HideInteractionWidget()
+{
+	if (!InteractionWidget)
+	{
+		return;
+	}
+	InteractionWidget->SetVisibility(false);
+}
+
+void ATSCharacter::SetInteractionText(FText WidgetText)
+{
+	UUserWidget* Widget = InteractionWidget->GetWidget();
+	if (Widget)
+	{
+		UTextBlock* TextBlock = Cast<UTextBlock>(Widget->GetWidgetFromName(TEXT("InteractionText")));
+		if (TextBlock)
+		{
+			TextBlock->SetText(WidgetText);
+		}
+	}
+}
+
+bool ATSCharacter::CanInteract(ATSCharacter* InstigatorCharacter)
+{
+	if (IsValid(ASC) && ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed))
+	{
+		return true;
+	}
+	return false;
+}
+
+void ATSCharacter::Interact(ATSCharacter* InstigatorCharacter)
+{
+}
+
+bool ATSCharacter::RunOnServer()
+{
+	return false;
 }
 
 void ATSCharacter::ServerSpawnPing_Implementation(ETSPingType PingType, FVector Location)
