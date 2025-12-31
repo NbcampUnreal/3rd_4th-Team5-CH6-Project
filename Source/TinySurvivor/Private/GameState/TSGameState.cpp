@@ -88,3 +88,8 @@ void ATSGameState::DecreaseSanityToAll(bool bIsDeath)
 		}
 	}
 }
+
+void ATSGameState::Multicast_UpdateCurrentPlayer_Implementation()
+{
+	UpdateCurrentPlayer();
+}

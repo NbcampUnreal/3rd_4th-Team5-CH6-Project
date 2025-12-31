@@ -24,4 +24,10 @@ public:
 	void Multicast_GameOver();
 	
 	void DecreaseSanityToAll(bool bIsDeath);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UpdateCurrentPlayer();
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void UpdateCurrentPlayer();
 };

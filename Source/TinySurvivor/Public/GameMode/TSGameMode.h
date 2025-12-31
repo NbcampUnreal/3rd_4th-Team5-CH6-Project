@@ -13,4 +13,5 @@ public:
 	ATSGameMode();
 	
 	void PostLogin(APlayerController* NewPlayer) override;
+	void Logout(AController* Exiting) override;
 };
