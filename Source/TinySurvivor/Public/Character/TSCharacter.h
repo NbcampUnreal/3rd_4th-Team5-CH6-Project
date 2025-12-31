@@ -7,6 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "InputActionValue.h"
 #include "Item/Data/Common/ItemCommonEnums.h"
+#include "Item/Interface/IInteraction.h"
 #include "TSCharacter.generated.h"
 
 class UHitComponent;
@@ -28,7 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionBegin);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionEnd);
 
 UCLASS()
-class TINYSURVIVOR_API ATSCharacter : public ACharacter , public IAbilitySystemInterface
+class TINYSURVIVOR_API ATSCharacter : public ACharacter , public IAbilitySystemInterface, public IIInteraction
 {
 	GENERATED_BODY()
 	
@@ -398,6 +399,24 @@ public:
 	FOnReticleInteractionBegin OnReticleInteractionBegin;
 	UPROPERTY(BlueprintAssignable, Category = "Delegate")
 	FOnReticleInteractionEnd OnReticleInteractionEnd;
+#pragma endregion
+	
+#pragma region Interaction
+	virtual void ShowInteractionWidget(ATSCharacter* InstigatorCharacter) override;
+	virtual void HideInteractionWidget() override;
+	virtual void SetInteractionText(FText WidgetText) override;
+	virtual bool CanInteract(ATSCharacter* InstigatorCharacter) override;
+	virtual void Interact(ATSCharacter* InstigatorCharacter) override;
+	virtual bool RunOnServer() override;
+	
+	protected:
+	// 상호작용 위젯
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
+	TObjectPtr<UWidgetComponent> InteractionWidget;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
+	TSubclassOf<UUserWidget> InteractionWidgetClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
+	FText InteractionText = FText::FromString(TEXT("살리기"));
 #pragma endregion
 	
 private:
