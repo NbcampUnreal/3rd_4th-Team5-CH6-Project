@@ -72,15 +72,6 @@ AWorldItem::AWorldItem()
 	InteractionWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 	Tags.AddUnique(FName("BlockBuilding"));
-	
-	// [디버그] 텍스트 렌더 컴포넌트 추가
-	DebugTextComp = CreateDefaultSubobject<UTextRenderComponent>(TEXT("DebugTextComp"));
-	DebugTextComp->SetupAttachment(MeshComponent);
-	DebugTextComp->SetRelativeLocation(FVector(0, 0, 100.0f)); // 아이템 머리 위 1m
-	DebugTextComp->SetHorizontalAlignment(EHTA_Center);
-	DebugTextComp->SetTextRenderColor(FColor::Red);
-	DebugTextComp->SetWorldSize(20.0f); // 글자 크기
-	DebugTextComp->SetVisibility(true); // 항상 보이게
 }
 
 // 어떤 변수를 클라이언트로 복제할 지 설정
@@ -204,9 +195,6 @@ void AWorldItem::SetItemData(const FSlotStructMaster& NewItemData)
 		
 		// 외형 업데이트
 		UpdateAppearance();
-		
-		// 디버그
-		UpdateDebugText();
 	}
 }
 
@@ -214,9 +202,6 @@ void AWorldItem::SetItemData(const FSlotStructMaster& NewItemData)
 void AWorldItem::OnRep_ItemData()
 {
 	UpdateAppearance();
-	
-	// 디버그
-	UpdateDebugText();
 }
 
 // ItemData.StaticDataID를 이용해 메시를 찾아 비동기 로드하고 적용
@@ -405,11 +390,6 @@ void AWorldItem::OnDecayTick()
 			ItemData.CurrentDecayPercent = (ItemData.ExpirationTime - CurrentTime) / DecayRate;
 		}
 	}
-	
-	if (HasAuthority())
-	{
-		UpdateDebugText();
-	}
 }
 
 void AWorldItem::ConvertToDecayedItem()
@@ -489,49 +469,6 @@ void AWorldItem::InitializeDecaySystem()
 
 //[E]=====================================================================================
 
-// 헬퍼 함수: 디버그 텍스트 갱신 (헤더에 선언 안 해도 내부에서만 쓸 거면 이렇게 구현 가능, 혹은 따로 만드세요)
-void AWorldItem::UpdateDebugText()
-{
-	if (!DebugTextComp) return;
-
-	FString DebugString = FString::Printf(TEXT("ID: %d"), ItemData.ItemData.StaticDataID);
-    DebugString.Append(FString::Printf(TEXT("\nStack : %d"), ItemData.CurrentStackSize));
-	bool bIsRealDecayItem = false;
-	
-	UGameInstance* GI = GetWorld()->GetGameInstance();
-	
-	if (GI)
-	{
-		auto* DataSys = GI->GetSubsystem<UItemDataSubsystem>();
-		if (DataSys)
-		{
-			FItemData StaticData;
-			if (DataSys->GetItemDataSafe(ItemData.ItemData.StaticDataID, StaticData))
-			{
-				bIsRealDecayItem = StaticData.IsDecayEnabled();
-			}
-		}
-	}
-	
-	// 부패 정보 추가
-	if (bIsRealDecayItem && ItemData.ExpirationTime > 0.1f)
-	{
-		float RemainTime = ItemData.ExpirationTime - GetWorld()->GetTimeSeconds();
-		DebugString.Append(FString::Printf(TEXT("\nExpirationTime : %.1f"), ItemData.ExpirationTime));
-		DebugString.Append(FString::Printf(TEXT("\nDecay: %.1f sec (%.0f%%)"), RemainTime, ItemData.CurrentDecayPercent * 100.0f));
-	}
-	else
-	{
-		DebugString.Append(FString::Printf(TEXT("\nExpirationTime : %.1f"), ItemData.ExpirationTime));
-		DebugString.Append(FString::Printf(TEXT("\nNo Decay")));
-	}
-
-	// 소스 인덱스 표시 (풀링 디버깅용)
-	DebugString.Append(FString::Printf(TEXT("\nSrcIdx: %d"), SourceInstanceIndex));
-
-	DebugTextComp->SetText(FText::FromString(DebugString));
-}
-
 void AWorldItem::Interact(ATSCharacter* InstigatorCharacter)
 {
 	if (!HasAuthority())
@@ -571,7 +508,6 @@ void AWorldItem::Interact(ATSCharacter* InstigatorCharacter)
 		else if (RemainingQuantity < Quantity)
 		{
 			ItemData.CurrentStackSize = RemainingQuantity;
-			UpdateDebugText();
 		}
 	}
 }
@@ -635,15 +571,4 @@ void AWorldItem::HideInteractionWidget()
 bool AWorldItem::RunOnServer()
 {
 	return true;
-}
-
-// 디버그용
-void AWorldItem::SetSourceInstanceIndex(int32 NewIndex)
-{
-	SourceInstanceIndex = NewIndex;
-	
-	if (HasAuthority())
-	{
-		UpdateDebugText();
-	}
 }

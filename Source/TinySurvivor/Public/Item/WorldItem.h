@@ -46,12 +46,6 @@ class TINYSURVIVOR_API AWorldItem : public APoolableActorBase, public IIInteract
 
 public:
 	AWorldItem();
-
-	// 디버그. 머리 위에 정보를 띄울 텍스트 컴포넌트
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Debug")
-	UTextRenderComponent* DebugTextComp;
-	
-	void UpdateDebugText();
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -128,8 +122,4 @@ public:
 	virtual void SetInteractionText(FText InteractionText) override;
 	virtual void HideInteractionWidget() override;
 	virtual bool RunOnServer() override;
-	
-	// 디버그용
-	// 인덱스를 설정하면서 디버그 텍스트도 갱신하는 함수
-	void SetSourceInstanceIndex(int32 NewIndex);
 };
