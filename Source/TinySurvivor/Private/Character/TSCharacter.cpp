@@ -35,6 +35,7 @@
 #include "System/Erosion/ErosionLightSourceSubActor.h"
 #include "PingSystem/TSPingTypes.h"
 #include "System/ResourceControl/TSResourceBaseActor.h"
+#include "Components/WidgetComponent.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
 DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
@@ -64,6 +65,8 @@ ATSCharacter::ATSCharacter()
 	BuildingComponent = CreateDefaultSubobject<UTSBuildingComponent>(TEXT("BuildingComponent"));
 	FootstepComponent = CreateDefaultSubobject<UFootstepComponent>(TEXT("FootstepComponent"));
 	HitComponent = CreateDefaultSubobject<UHitComponent>(TEXT("HitComponent"));
+	PlayerNameComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameComponent"));
+	PlayerNameComponent->SetupAttachment(GetMesh());
 }
 
 UAbilitySystemComponent* ATSCharacter::GetAbilitySystemComponent() const
@@ -84,6 +87,11 @@ void ATSCharacter::PossessedBy(AController* NewController)
 	if (!ASC)
 	{
 		return;
+	}
+	
+	if (GetPlayerState())
+	{
+		ShowPlayerName(GetPlayerState()->GetPlayerName());
 	}
 	
 	if (StaminaIncreaseEffectClass)
@@ -213,6 +221,11 @@ void ATSCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 	InitAbilitySystem();
+
+	if (GetPlayerState())
+	{
+		ShowPlayerName(GetPlayerState()->GetPlayerName());
+	}
 }
 
 void ATSCharacter::InitAbilitySystem()
