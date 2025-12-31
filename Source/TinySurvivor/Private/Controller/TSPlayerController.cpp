@@ -22,6 +22,7 @@ void ATSPlayerController::AcknowledgePossession(class APawn* P)
 			{
 				UpdateHUDWithCharacter(TSCharacter);
 			}
+			SetInputMode(FInputModeGameOnly());
 		}
 	}
 }
