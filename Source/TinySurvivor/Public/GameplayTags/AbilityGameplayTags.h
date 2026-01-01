@@ -80,10 +80,11 @@ namespace AbilityTags
 	
 	// Poison 관련 태그
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Poison);		// 독 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gimmick_Poison);				// 독 상태이상 (Gimmick)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_Poison);	// 독 면역 (해독제)
 	
 	// Electric Shock 관련 태그
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_ElectricShock);			// 감전 상태이상
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gimmick_ElectricShock);				// 감전 상태이상 (Gimmick)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_State_Status_Immune_ElectricShock);	// 감전 면역
 	
 	// Temperature 관련 상태이상 태그
