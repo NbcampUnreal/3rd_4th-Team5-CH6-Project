@@ -66,10 +66,11 @@ namespace AbilityTags
 	
 	// Poison 관련 태그
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Poison, "State.Status.Poison");					// 독 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Gimmick_Poison, "Gimmick.Poison");							// 독 상태이상 (Gimmick)
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_Poison, "State.Status.Immune.Poison");	// 독 면역
 	
 	// Electric Shock 관련 태그
-	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_ElectricShock, "State.Status.ElectricShock");				// 감전 상태이상
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Gimmick_ElectricShock, "Gimmick.ElectricShock");							// 감전 상태이상 (Gimmick)
 	UE_DEFINE_GAMEPLAY_TAG(TAG_State_Status_Immune_ElectricShock, "State.Status.Immune.ElectricShock");	// 감전 면역
 	
 	// Temperature 관련 태그
