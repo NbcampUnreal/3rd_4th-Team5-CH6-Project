@@ -8,6 +8,7 @@
 #include "TSInventoryMasterComponent.generated.h"
 
 
+class ATSPlayerController;
 class ATSEquippedItem;
 struct FItemData;
 struct FItemInstance;
@@ -153,7 +154,7 @@ public:
 	// Client RPC
 	// ========================================
 	// 아이템 습득 HUD 표시용 이벤트 브로드캐스트
-	UFUNCTION(CLient, Reliable, BlueprintCallable, Category = "Inventory|RPC")
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "Inventory|RPC")
 	void ClientNotifyItemAdded(
 		int32 ItemID, int32 Quantity);
 
@@ -181,7 +182,8 @@ public:
 		UTSInventoryMasterComponent* TargetInventory,
 		EInventoryType FromInventoryType, int32 FromSlotIndex,
 		EInventoryType ToInventoryType, int32 ToSlotIndex,
-		bool bIsFullStack = true);
+		bool bIsFullStack = true,
+		ATSPlayerController* RequestingPlayer = nullptr);
 
 	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
 	void Internal_UseItem(int32 SlotIndex);
@@ -298,7 +300,7 @@ protected:
 	FInventoryStructMaster* GetInventoryByType(EInventoryType InventoryType);
 	const FInventoryStructMaster* GetInventoryByType(EInventoryType InventoryType) const;
 	bool IsValidSlotIndex(EInventoryType InventoryType, int32 SlotIndex) const;
-
+	
 	// ========================================
 	// 헬퍼 함수 - 아이템 정보
 	// ========================================

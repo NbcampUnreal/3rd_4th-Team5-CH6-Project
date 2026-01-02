@@ -18,7 +18,8 @@ UTSLampInventory::UTSLampInventory()
 void UTSLampInventory::Internal_TransferItem(UTSInventoryMasterComponent* SourceInventory,
                                              UTSInventoryMasterComponent* TargetInventory,
                                              EInventoryType FromInventoryType, int32 FromSlotIndex,
-                                             EInventoryType ToInventoryType, int32 ToSlotIndex, bool bIsFullStack)
+                                             EInventoryType ToInventoryType, int32 ToSlotIndex,
+                                             bool bIsFullStack, ATSPlayerController* RequestingPlayer)
 {
 	if (!GetOwner()->HasAuthority())
 	{
