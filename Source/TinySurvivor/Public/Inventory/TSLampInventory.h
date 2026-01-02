@@ -26,7 +26,8 @@ protected:
 	virtual void Internal_TransferItem(UTSInventoryMasterComponent* SourceInventory,
 	                                   UTSInventoryMasterComponent* TargetInventory, EInventoryType FromInventoryType,
 	                                   int32 FromSlotIndex, EInventoryType ToInventoryType, int32 ToSlotIndex,
-	                                   bool bIsFullStack = true) override;
+	                                   bool bIsFullStack = true,
+	                                   ATSPlayerController* RequestingPlayer = nullptr) override;
 	virtual bool CanPlaceItemInSlot(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget) override;
 	virtual void ClearSlot(FSlotStructMaster& Slot) override;
 	

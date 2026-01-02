@@ -52,7 +52,8 @@ void ATSPlayerController::ServerTransferItem_Implementation(AActor* SourceActor,
                                                             AActor* TargetActor,
                                                             EInventoryType FromInventoryType, int32 FromSlotIndex,
                                                             EInventoryType ToInventoryType, int32 ToSlotIndex,
-                                                            bool bIsFullStack)
+                                                            bool bIsFullStack,
+                                                            APlayerController* RequestingPlayer)
 {
 	if (!SourceActor || !TargetActor)
 	{
@@ -82,7 +83,8 @@ void ATSPlayerController::ServerTransferItem_Implementation(AActor* SourceActor,
 		FromSlotIndex,
 		ToInventoryType,
 		ToSlotIndex,
-		bIsFullStack
+		bIsFullStack,
+		this
 	);
 }
 
@@ -90,7 +92,8 @@ bool ATSPlayerController::ServerTransferItem_Validate(AActor* SourceActor,
                                                       AActor* TargetActor,
                                                       EInventoryType FromInventoryType, int32 FromSlotIndex,
                                                       EInventoryType ToInventoryType, int32 ToSlotIndex,
-                                                      bool bIsFullStack)
+                                                      bool bIsFullStack,
+                                                      APlayerController* RequestingPlayer)
 {
 	// 기본 검증
 	if (!SourceActor || !TargetActor)
@@ -160,6 +163,11 @@ bool ATSPlayerController::ServerDropItemToWorld_Validate(UTSInventoryMasterCompo
 		return false;
 	}
 	return true;
+}
+
+void ATSPlayerController::ClientNotifyTransferResult_Implementation(bool bSuccess)
+{
+	OnTransferResult.Broadcast(bSuccess);
 }
 
 void ATSPlayerController::InitializePlayerHUD()
@@ -249,12 +257,23 @@ void ATSPlayerController::ToggleInventory()
 	if (Switcher)
 	{
 		int32 ActiveIndex = Switcher->GetActiveWidgetIndex();
-		Switcher->SetActiveWidgetIndex(ActiveIndex == 0 ? 1 : 0);
-		UWidget* ActiveWidget = Switcher->GetActiveWidget();
-
-		if (ActiveWidget && ActiveWidget->Implements<UIWidgetActivation>())
+		if (ActiveIndex == Empty_Backpack)
 		{
-			IIWidgetActivation::Execute_SetContainerData(ActiveWidget, GetPawn(), ContainerInventory);
+			Switcher->SetActiveWidgetIndex(PlayerInventory);
+			UWidget* ActiveWidget = Switcher->GetActiveWidget();
+			if (ActiveWidget && ActiveWidget->Implements<UIWidgetActivation>())
+			{
+				IIWidgetActivation::Execute_SetContainerData(ActiveWidget, GetPawn(), ContainerInventory);
+			}
+		}
+		else
+		{
+			UWidget* ActiveWidget = Switcher->GetActiveWidget();
+			if (ActiveWidget && ActiveWidget->Implements<UIWidgetActivation>())
+			{
+				IIWidgetActivation::Execute_OnCloseContainerUI(ActiveWidget);
+			}
+			Switcher->SetActiveWidgetIndex(Empty_Backpack);
 		}
 		UpdateInputMode();
 	}

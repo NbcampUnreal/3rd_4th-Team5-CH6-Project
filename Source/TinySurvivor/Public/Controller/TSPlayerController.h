@@ -38,6 +38,7 @@ enum class EContentWidgetIndex : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftComplete, int32, SlotIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTransferResult, bool, bSuccess);
 
 UCLASS()
 class TINYSURVIVOR_API ATSPlayerController : public APlayerController
@@ -58,7 +59,8 @@ public:
 		int32 FromSlotIndex,
 		EInventoryType ToInventoryType,
 		int32 ToSlotIndex,
-		bool bIsFullStack = true);
+		bool bIsFullStack = true,
+		APlayerController* RequestingPlayer = nullptr);
 	/** 컨테이너에서 아이템 버리기 (서버 권한) */
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory")
 	void ServerDropItemToWorld(
@@ -74,6 +76,11 @@ public:
 	void ClientNotifyCraftResult(int32 SlotIndex);
 	UPROPERTY(BlueprintAssignable, Category = "Crafting")
 	FOnCraftComplete OnCraftComplete;
+	/** 슬롯 이동 성공여부 브로드캐스트 RPC */
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "Inventory")
+	void ClientNotifyTransferResult(bool bSuccess);
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnTransferResult OnTransferResult;
 	//~=============================================================================
 	// UI Management
 	//~=============================================================================

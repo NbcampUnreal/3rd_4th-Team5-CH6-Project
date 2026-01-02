@@ -4,6 +4,7 @@
 #include "Net/UnrealNetwork.h"
 #include "AbilitySystemComponent.h"
 #include "Character/TSCharacter.h"
+#include "Controller/TSPlayerController.h"
 #include "Item/TSEquippedItem.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Item/Data/ItemData.h"
@@ -272,25 +273,30 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	UTSInventoryMasterComponent* TargetInventory,
 	EInventoryType FromInventoryType, int32 FromSlotIndex,
 	EInventoryType ToInventoryType, int32 ToSlotIndex,
-	bool bIsFullStack)
+	bool bIsFullStack,
+	ATSPlayerController* RequestingPlayer)
 {
 	if (!GetOwner()->HasAuthority())
 	{
 		UE_LOG(LogTemp, Error, TEXT("Internal_TransferItem called on client!"));
+		RequestingPlayer->ClientNotifyTransferResult(false);
 		return;
 	}
 	if (!SourceInventory || !TargetInventory)
 	{
+		RequestingPlayer->ClientNotifyTransferResult(false);
 		return;
 	}
 
 	if (!SourceInventory->IsValidSlotIndex(FromInventoryType, FromSlotIndex))
 	{
+		RequestingPlayer->ClientNotifyTransferResult(false);
 		return;
 	}
 
 	if (!TargetInventory->IsValidSlotIndex(ToInventoryType, ToSlotIndex))
 	{
+		RequestingPlayer->ClientNotifyTransferResult(false);
 		return;
 	}
 
@@ -299,6 +305,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 
 	if (!FromInventory || !ToInventory)
 	{
+		RequestingPlayer->ClientNotifyTransferResult(false);
 		return;
 	}
 
@@ -311,6 +318,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		if (!TargetInventory->CanPlaceItemInSlot(FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex, true))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in target inventory"));
+			RequestingPlayer->ClientNotifyTransferResult(false);
 			return;
 		}
 	}
@@ -320,6 +328,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		if (!SourceInventory->CanPlaceItemInSlot(ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex, false))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in source inventory"));
+			RequestingPlayer->ClientNotifyTransferResult(false);
 			return;
 		}
 	}
@@ -340,6 +349,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 			if(ToSlot.CurrentStackSize > 0 && FromSlot.SlotAccessType==ESlotAccessType::ReadOnly)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Cannot swap read-only slot"));
+				RequestingPlayer->ClientNotifyTransferResult(false);
 				return;
 			}
 			bAddedToActiveSlot = true;
@@ -457,6 +467,7 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	{
 		TargetInventory->HandleInventoryChanged();
 	}
+	RequestingPlayer->ClientNotifyTransferResult(true);
 }
 #pragma endregion
 
@@ -1637,6 +1648,7 @@ bool UTSInventoryMasterComponent::IsValidSlotIndex(EInventoryType InventoryType,
 
 	return SlotIndex >= 0 && SlotIndex < Inventory->InventorySlotContainer.Num();
 }
+
 #pragma endregion
 
 #pragma region ItemInfo
