@@ -51,7 +51,7 @@ void UGA_Emote::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 	{
 		PlayMontage(); // 애니메이션 몽타주 재생
 		
-		if (EmoteSound) // 각 모션 별 사운드 재생
+		if (EmoteSound&& IsLocallyControlled()) // 각 모션 별 개인에게만 사운드 재생 
 		{
 			ActiveEmoteSound = UGameplayStatics::SpawnSoundAttached(
 				EmoteSound,
