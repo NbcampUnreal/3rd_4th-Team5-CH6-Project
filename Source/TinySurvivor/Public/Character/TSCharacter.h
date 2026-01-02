@@ -409,7 +409,7 @@ public:
 	virtual void Interact(ATSCharacter* InstigatorCharacter) override;
 	virtual bool RunOnServer() override;
 	
-	protected:
+protected:
 	// 상호작용 위젯
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
 	TObjectPtr<UWidgetComponent> InteractionWidget;
@@ -417,6 +417,11 @@ public:
 	TSubclassOf<UUserWidget> InteractionWidgetClass;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
 	FText InteractionText = FText::FromString(TEXT("살리기"));
+
+private:
+	// 현재 상호작용 중인지
+	UPROPERTY()
+	bool bIsInteracting = false;
 #pragma endregion
 	
 private:
