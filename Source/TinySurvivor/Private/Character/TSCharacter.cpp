@@ -814,6 +814,18 @@ void ATSCharacter::TickReviveValidation()
 	if (DistSq > MaxDistSq)
 	{
 		ServerStopRevive();
+		return;
+	}
+	
+	// 4. 살리는 중간에 기절하거나 죽으면 소생 취소
+	if (ASC)
+	{
+		bool bHasMatchingDownedOrDeadTags = ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed) || ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Dead);
+		if (bHasMatchingDownedOrDeadTags)
+		{
+			ServerStopRevive();
+			return;
+		}
 	}
 }
 
