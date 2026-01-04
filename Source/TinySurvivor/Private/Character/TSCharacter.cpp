@@ -39,7 +39,7 @@
 #include "System/ResourceControl/TSResourceBaseActor.h"
 
 // 로그 카테고리 정의 (이 파일 내에서만 사용)
-DEFINE_LOG_CATEGORY_STATIC(LogTSCharacter, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 
 ATSCharacter::ATSCharacter()
 {
@@ -283,7 +283,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Hunger 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogCharacter, Warning, TEXT("[서버] Hunger 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -294,7 +294,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Thirst 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogCharacter, Warning, TEXT("[서버] Thirst 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -305,7 +305,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Health 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogCharacter, Warning, TEXT("[서버] Health 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -316,7 +316,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Sanity 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogCharacter, Warning, TEXT("[서버] Sanity 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -327,7 +327,7 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (HasAuthority())
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("[서버] Temperature 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
+				UE_LOG(LogCharacter, Warning, TEXT("[서버] Temperature 변경: %.2f -> %.2f"), Data.OldValue, Data.NewValue);
 			}
 		});
 		
@@ -341,11 +341,11 @@ void ATSCharacter::InitAbilitySystem()
 			// NewCount == 0 : 태그가 제거됨
 			if (NewCount > 0)
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+				UE_LOG(LogCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+				UE_LOG(LogCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
 			}
 		});
 		
@@ -357,11 +357,11 @@ void ATSCharacter::InitAbilitySystem()
 		{
 			if (NewCount > 0)
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
+				UE_LOG(LogCharacter, Warning, TEXT("태그 적용: %s"), *CallbackTag.ToString());
 			}
 			else
 			{
-				UE_LOG(LogTSCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
+				UE_LOG(LogCharacter, Warning, TEXT("태그 제거: %s"), *CallbackTag.ToString());
 			}
 		});
 		
@@ -1965,7 +1965,7 @@ void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
 	// 몽타주 재생 전 유효성 체크 강화
 	if (!Montage->IsValidLowLevel())
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Multicast] 유효하지 않은 몽타주!"));
+		UE_LOG(LogCharacter, Error, TEXT("[Multicast] 유효하지 않은 몽타주!"));
 		return;
 	}
 	
@@ -1978,7 +1978,7 @@ void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
 	// 애니메이션 인스턴스 상태 확인
 	if (!AnimInstance->IsValidLowLevel())
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Multicast] AnimInstance 상태 이상!"));
+		UE_LOG(LogCharacter, Error, TEXT("[Multicast] AnimInstance 상태 이상!"));
 		return;
 	}
 	
@@ -2014,7 +2014,7 @@ void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
 		if (Elapsed >= MontageLength)
 		{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-			UE_LOG(LogTSCharacter, Warning, TEXT("[Client] 몽타주 시작 지연 과다 (경과=%.2fs, 길이=%.2fs) - 재생 스킵"),
+			UE_LOG(LogCharacter, Warning, TEXT("[Client] 몽타주 시작 지연 과다 (경과=%.2fs, 길이=%.2fs) - 재생 스킵"),
 				Elapsed, MontageLength);
 			return; // 재생 스킵
 #endif
@@ -2024,7 +2024,7 @@ void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
 		StartPosition = Elapsed;
 
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTSCharacter, Log, TEXT("[Client] 네트워크 지연 보정: %.2f초 건너뛰고 재생 (전체 %.2fs)"),
+		UE_LOG(LogCharacter, Log, TEXT("[Client] 네트워크 지연 보정: %.2f초 건너뛰고 재생 (전체 %.2fs)"),
 			StartPosition, MontageLength);
 #endif
 	}
@@ -2042,7 +2042,7 @@ void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
 	if (PlayedLength > 0.f)
 	{
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTemp, Log, TEXT("[Multicast] 몽타주 재생: %s (Role: %s, StartPos: %.2fs)"),
+		UE_LOG(LogCharacter, Log, TEXT("[Multicast] 몽타주 재생: %s (Role: %s, StartPos: %.2fs)"),
 			*Montage->GetName(),
 			HasAuthority() ? TEXT("Server") : TEXT("Client"),
 			StartPosition);
@@ -2050,7 +2050,7 @@ void ATSCharacter::Multicast_PlayConsumeMontage_Implementation(
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Multicast] 몽타주 재생 실패: %s"), *Montage->GetName());
+		UE_LOG(LogCharacter, Warning, TEXT("[Multicast] 몽타주 재생 실패: %s"), *Montage->GetName());
 	}
 }
 
@@ -2071,7 +2071,7 @@ void ATSCharacter::Multicast_StopConsumeMontage_Implementation(UAnimMontage* Mon
 	{
 		AnimInstance->Montage_Stop(0.2f, Montage);
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTSCharacter, Log, TEXT("[Multicast] 몽타주 정지: %s (Role: %s)"),
+		UE_LOG(LogCharacter, Log, TEXT("[Multicast] 몽타주 정지: %s (Role: %s)"),
 			*Montage->GetName(), HasAuthority() ? TEXT("Server") : TEXT("Client"));
 #endif
 	}

@@ -690,12 +690,18 @@ void UTSInventoryMasterComponent::Internal_UseItem(int32 SlotIndex)
 		{
 			return;
 		}
+		
+		// PlayerController 가져오기
+		ATSPlayerController* PC = Cast<ATSPlayerController>(Cast<APawn>(GetOwner())->GetController());
+		if (!PC)
+		{
+			UE_LOG(LogInventoryComp, Error, TEXT("Internal_UseItem: PlayerController를 찾을 수 없습니다!"));
+			return;
+		}
+		
+		// Internal_TransferItem()에서 자동으로 EquipArmor() 호출됨
 		Internal_TransferItem(this, this, EInventoryType::HotKey, SlotIndex,
-							  EInventoryType::Equipment, TargetSlotIndex, true);
-		EquipArmor(ItemInfo, TargetSlotIndex);
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTemp, Log, TEXT("Item equipped: ID=%d"), Slot.ItemData.StaticDataID);
-#endif
+			EInventoryType::Equipment, TargetSlotIndex, true, PC);
 	}
 	
 	HandleInventoryChanged();
@@ -1267,10 +1273,10 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem()
 	}
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-	UE_LOG(LogInventoryComp, Log, TEXT("Equipped: ID=%d (Slot %d, Category=%s)"),
-		ActiveSlot.ItemData.StaticDataID,
-		ActiveHotkeyIndex,
-		*UEnum::GetValueAsString(ItemInfo.Category));
+	// UE_LOG(LogInventoryComp, Log, TEXT("Equipped: ID=%d (Slot %d, Category=%s)"),
+	// 	ActiveSlot.ItemData.StaticDataID,
+	// 	ActiveHotkeyIndex,
+	// 	*UEnum::GetValueAsString(ItemInfo.Category));
 #endif
 }
 
@@ -1300,7 +1306,7 @@ void UTSInventoryMasterComponent::UnequipCurrentItem()
 	// 로그 출력 (캐싱된 ID 사용)
 	if (CurrentEquippedItem && CachedEquippedItemID != 0)
 	{
-		UE_LOG(LogInventoryComp, Log, TEXT("Unequipped item: ID=%d"), CachedEquippedItemID);
+		//UE_LOG(LogInventoryComp, Log, TEXT("Unequipped item: ID=%d"), CachedEquippedItemID);
 	}
 #endif
 	
