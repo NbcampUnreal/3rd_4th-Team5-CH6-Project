@@ -12,7 +12,7 @@ public:
 	UGA_Emote();
 	
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	virtual void EndAbility(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
@@ -35,4 +35,7 @@ protected:
 	TObjectPtr<USoundBase> Dance2Sound;
 	UPROPERTY(EditAnywhere, Category = "Sound")
 	TObjectPtr<USoundBase> Dance3Sound;
+	
+	UFUNCTION()
+	void OnMontageEnded();
 };

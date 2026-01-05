@@ -30,4 +30,6 @@ public:
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void UpdateCurrentPlayer();
+	
+	bool bGameOverTriggered = false;
 };

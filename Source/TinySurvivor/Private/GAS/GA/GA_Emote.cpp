@@ -1,13 +1,14 @@
 #include "GAS/GA/GA_Emote.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Character/TSCharacter.h"
 #include "Components/AudioComponent.h"
 #include "EmoteSystem/TSEmoteTypes.h"
-#include "GameplayTags/AbilityGameplayTags.h"
 #include "Kismet/GameplayStatics.h"
 
 UGA_Emote::UGA_Emote()
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }
 
 void UGA_Emote::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
@@ -49,7 +50,7 @@ void UGA_Emote::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 	}
 	if (FirstMontage)
 	{
-		PlayMontage(); // 애니메이션 몽타주 재생
+		// PlayMontage(); // 애니메이션 몽타주 재생
 		
 		if (EmoteSound&& IsLocallyControlled()) // 각 모션 별 개인에게만 사운드 재생 
 		{
@@ -57,6 +58,28 @@ void UGA_Emote::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 				EmoteSound,
 				GetAvatarActorFromActorInfo()->GetRootComponent()
 			);
+		}
+		UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+		   this, 
+		   NAME_None, 
+		   FirstMontage, 
+		   1.0f, 
+		   NAME_None, 
+		   false,
+		   1.0f
+	   );
+		if (MontageTask)
+		{
+			// 정상 종료, 중단(Interrupted), 취소(Cancelled) 모두 종료 처리로 연결
+			MontageTask->OnCompleted.AddDynamic(this, &UGA_Emote::OnMontageEnded);
+			MontageTask->OnInterrupted.AddDynamic(this, &UGA_Emote::OnMontageEnded);
+			MontageTask->OnCancelled.AddDynamic(this, &UGA_Emote::OnMontageEnded);
+           
+			MontageTask->ReadyForActivation();
+		}
+		else
+		{
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 		}
 	} else
 	{
@@ -74,4 +97,8 @@ void UGA_Emote::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGamep
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+void UGA_Emote::OnMontageEnded()
+{
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 }

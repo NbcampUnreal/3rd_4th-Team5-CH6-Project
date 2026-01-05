@@ -18,12 +18,17 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
+	TSubclassOf<UGameplayEffect> JumpStateTagEffectClass;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
-	TSubclassOf<UGameplayEffect> ClimbCostEffectClass; // 0.125초당 스태미나 -1
+	TSubclassOf<UGameplayEffect> ClimbStateTagEffectClass; 
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
-	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass; // EndAbility 후 1초 딜레이  
+	TSubclassOf<UGameplayEffect> ClimbCostEffectClass; 
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
+	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass; 
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
 	float TraceDistance = 120.f;
@@ -38,18 +43,19 @@ protected:
 	float EyeHeight = 50.f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Climb")
-	UAnimMontage* MantleMontage; // 마지막에 난간 올라가는 몽타주
+	UAnimMontage* MantleMontage;
 	
 private:
 	FTimerHandle ClimbableCheckTimerHandle;
-	FTimerHandle MantleFinishTimerHandle; // 마지막 난간 끝날 때 호출용 타이머
+	FTimerHandle MantleFinishTimerHandle;
 	
 	FActiveGameplayEffectHandle CostHandle;
+	FActiveGameplayEffectHandle ClimbStateTagHandle;
 	
 	//Delegate Handle
 	FDelegateHandle StaminaDelegateHandle;
 	
-	bool ClimbableActor(FHitResult& OutHit); // 클라이밍 가능한 액터가 있는지
+	bool ClimbableActor(FHitResult& OutHit);
 	void StartJump();
 	void StartClimb(const FHitResult& TargetHit);
 	void CheckClimbingState();
