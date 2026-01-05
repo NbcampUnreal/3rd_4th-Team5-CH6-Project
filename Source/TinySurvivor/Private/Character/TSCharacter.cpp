@@ -615,6 +615,10 @@ bool ATSCharacter::IsRescueCharacter() const
 
 void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
 {
+	if (bIsRescuing)
+	{
+		return;
+	}
 	if (IsDowned() || IsDead())
 	{
 		return;
@@ -665,6 +669,10 @@ void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
 
 void ATSCharacter::ServerStopRevive_Implementation()
 {
+	if (!bIsRescuing)
+	{
+		return;
+	}
 	GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
 	CurrentReviveTime = 0.f;
 	ReviveTargetCharacter = nullptr;
@@ -1070,6 +1078,11 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 
 void ATSCharacter::OnStopInteract(const struct FInputActionValue& Value)
 {
+	if (!bIsInteracting)
+	{
+		return;
+	}
+	bIsInteracting = false;
 	ServerStopRevive();
 	ServerSendStopInteractEvent();
 }
