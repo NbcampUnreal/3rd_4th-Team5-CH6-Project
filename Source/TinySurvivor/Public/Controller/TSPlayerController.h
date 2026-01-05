@@ -37,8 +37,9 @@ enum class EContentWidgetIndex : uint8
 	Settings = 5 UMETA(DisplayName="Settings")
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftComplete, int32, SlotIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTransferResult, bool, bSuccess);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnShowNotification, FText, Message);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCraftingSlotAssigned, int32, SlotIndex);
 
 UCLASS()
 class TINYSURVIVOR_API ATSPlayerController : public APlayerController
@@ -65,22 +66,36 @@ public:
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory")
 	void ServerDropItemToWorld(
 			UTSInventoryMasterComponent* Inventory, EInventoryType InventoryType, int32 SlotIndex, int32 Quantity);
+	/** 제작대 슬롯 매핑 요청 서버로 전달 */
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Crafting")
+	void ServerRequestAssignSlot(UTSCraftingTableInventory* CraftingInventory);
 	/** 제작 요청 서버로 전달 */
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Crafting")
 	void ServerRequestCraft(ATSCraftingTable* CraftingTable, int32 RecipeID);
 	/** 제작대 종료 RPC */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Crafting")
 	void ServerNotifyCraftingTableClosed(UTSCraftingTableInventory* CraftingInventory);
-	/** 제작 완료 브로드캐스트 RPC */
+	/** 제작대 매핑된 슬롯 인덱스 브로드캐스트 RPC */
 	UFUNCTION(Client, Reliable, Category = "Crafting")
-	void ClientNotifyCraftResult(int32 SlotIndex);
-	UPROPERTY(BlueprintAssignable, Category = "Crafting")
-	FOnCraftComplete OnCraftComplete;
+	void ClientNotifyCraftingSlotAssigned(int32 SlotIndex);
 	/** 슬롯 이동 성공여부 브로드캐스트 RPC */
 	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "Inventory")
 	void ClientNotifyTransferResult(bool bSuccess);
+	/** HUD에 알림 메시지 표시(로컬) */
+	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "UI")
+	void ClientShowNotificationOnHUD(const FText& Message);
+
+	//~=============================================================================
+	// Delegate
+	//~=============================================================================
+	UPROPERTY(BlueprintAssignable, Category = "Crafting")
+	FOnCraftingSlotAssigned OnCraftingSlotAssigned;
+	
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnTransferResult OnTransferResult;
+	
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnShowNotification OnShowNotification;
 	//~=============================================================================
 	// UI Management
 	//~=============================================================================
@@ -92,7 +107,7 @@ public:
 	/** 캐릭터 데이터로 HUD 업데이트 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void UpdateHUDWithCharacter(ATSCharacter* TSCharacter);
-
+	
 	/** 인벤토리 UI 토글 */
 	UFUNCTION(BlueprintCallable, Category = "UI")
 	void ToggleInventory();
