@@ -60,6 +60,12 @@ protected:
 	// 플레이어 아이템 내구도 업데이트 이벤트 발송
 	void SendItemDurabilityEvent(UAbilitySystemComponent* ASC);
 	
+	// 태그 추가용 변수
+	UPROPERTY(ReplicatedUsing = OnRep_IsBlockBuilding)
+	bool bIsBlockBuilding = false;
+	UFUNCTION()
+	void OnRep_IsBlockBuilding();
+	
 	// 스폰 사운드 재생
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_PlaySpawnEffect() const;

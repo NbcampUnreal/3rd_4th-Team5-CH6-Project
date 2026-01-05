@@ -75,34 +75,13 @@ void ATSBuildingActorBase::PostInitializeComponents()
 	{
 		CachedIDS = GI->GetSubsystem<UItemDataSubsystem>();
 	}
-
-
-#if WITH_EDITOR
-	// 충돌 설정 디버그 출력
-	if (MeshComponent)
-	{
-		ECollisionEnabled::Type CollisionType = MeshComponent->GetCollisionEnabled();
-		ECollisionChannel ObjectType = MeshComponent->GetCollisionObjectType();
-
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Collision Enabled: %d, ObjectType: %d"),
-		       *GetName(), (int32)CollisionType, (int32)ObjectType);
-
-		UE_LOG(LogTemp, Warning, TEXT("[%s] Response to Pawn: %d"),
-		       *GetName(), (int32)MeshComponent->GetCollisionResponseToChannel(ECC_Pawn));
-	}
-
-	// 태그 출력
-	for (const FName& Tag : Tags)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[%s] Has Tag: %s"), *GetName(), *Tag.ToString());
-	}
-#endif
 }
 
 void ATSBuildingActorBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ATSBuildingActorBase, ItemInstance);
+	DOREPLIFETIME(ATSBuildingActorBase, bIsBlockBuilding);
 }
 
 void ATSBuildingActorBase::InitializeFromBuildingData(const FBuildingData& BuildingInfo, const int32 StaticDataID)
@@ -121,7 +100,12 @@ void ATSBuildingActorBase::InitializeFromBuildingData(const FBuildingData& Build
 		// 빌딩 오버랩 감지용 태그 추가
 		if (!BuildingInfo.bIsSurface)
 		{
-			Multicast_AddBlockBuildingTag();
+			bIsBlockBuilding = true;
+			if (!Tags.Contains(FName("BlockBuilding")))
+			{
+				// 빌딩 오버랩 감지용 태그 추가
+				Tags.Add(FName("BlockBuilding"));
+			}
 		}
 	}
 }
@@ -250,6 +234,15 @@ void ATSBuildingActorBase::SendItemDurabilityEvent(UAbilitySystemComponent* ASC)
 	EventData.Instigator = ASC->GetAvatarActor();
 	EventData.Target = ASC->GetAvatarActor();
 	ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
+}
+
+void ATSBuildingActorBase::OnRep_IsBlockBuilding()
+{
+	if (bIsBlockBuilding && !Tags.Contains(FName("BlockBuilding")))
+	{
+		// 빌딩 오버랩 감지용 태그 추가
+		Tags.Add(FName("BlockBuilding"));
+	}
 }
 
 void ATSBuildingActorBase::Multicast_PlaySpawnEffect_Implementation() const
