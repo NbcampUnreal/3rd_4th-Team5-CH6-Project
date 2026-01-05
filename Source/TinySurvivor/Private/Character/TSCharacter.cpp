@@ -1677,7 +1677,22 @@ void ATSCharacter::SetInteractionText(FText WidgetText)
 
 bool ATSCharacter::CanInteract(ATSCharacter* InstigatorCharacter)
 {
-	if (IsValid(ASC) && ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed))
+	if (!IsValid(InstigatorCharacter))
+	{
+		return false;
+	}
+	if (!IsValid(InstigatorCharacter->ASC) || !IsValid(ASC))
+	{
+		return false;
+	}
+	// 상호작용 실행할 플레이어 상태 확인
+	if (InstigatorCharacter->ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed)
+		|| InstigatorCharacter->ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Dead))
+	{
+		return false;
+	}
+	// 상호작용 대상 플레이어 상태 확인
+	if (ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed))
 	{
 		return true;
 	}
