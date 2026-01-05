@@ -11,6 +11,8 @@
 #include "Item/Runtime/DecayManager.h"
 #include "GameplayTags/ItemGameplayTags.h"
 #include "GameplayTags/AbilityGameplayTags.h"
+#include "GameplayTags/NofiticationTags.h"
+#include "GameplayTags/System/GameplayDisplaySubSystem.h"
 #include "GAS/AttributeSet/TSAttributeSet.h"
 #include "Item/System/WorldItemPoolSubsystem.h"
 
@@ -50,6 +52,13 @@ void UTSInventoryMasterComponent::BeginPlay()
 	if (!CachedIDS)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to get ItemDataSubsystem!"));
+	}
+	
+	// 게임플레이 태그 디스플레이 데이터 서브시스템 초기화
+	CachedGTDS = UGameplayTagDisplaySubsystem::Get(this);
+	if (!CachedGTDS)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get GameplayTagDisplaySubsystem!"));
 	}
 	
 	// WeaponStatEffectClass가 설정되지 않은 경우 출력
@@ -285,18 +294,24 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	if (!SourceInventory || !TargetInventory)
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
+		RequestingPlayer->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
 	if (!SourceInventory->IsValidSlotIndex(FromInventoryType, FromSlotIndex))
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
+		RequestingPlayer->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
 	if (!TargetInventory->IsValidSlotIndex(ToInventoryType, ToSlotIndex))
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
+		RequestingPlayer->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
@@ -306,6 +321,8 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 	if (!FromInventory || !ToInventory)
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
+		RequestingPlayer->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
@@ -319,6 +336,8 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in target inventory"));
 			RequestingPlayer->ClientNotifyTransferResult(false);
+			RequestingPlayer->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_CannotPlace));
 			return;
 		}
 	}
@@ -329,6 +348,8 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Cannot place item in source inventory"));
 			RequestingPlayer->ClientNotifyTransferResult(false);
+			RequestingPlayer->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_CannotPlace));
 			return;
 		}
 	}
@@ -350,6 +371,8 @@ void UTSInventoryMasterComponent::Internal_TransferItem(
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Cannot swap read-only slot"));
 				RequestingPlayer->ClientNotifyTransferResult(false);
+				RequestingPlayer->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_CannotPlace));
 				return;
 			}
 			bAddedToActiveSlot = true;

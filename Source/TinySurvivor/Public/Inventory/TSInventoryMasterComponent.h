@@ -8,6 +8,7 @@
 #include "TSInventoryMasterComponent.generated.h"
 
 
+class UGameplayTagDisplaySubsystem;
 class ATSPlayerController;
 class ATSEquippedItem;
 struct FItemData;
@@ -410,6 +411,9 @@ private:
 #pragma endregion
 	
 private:
+	// 태그 기반 디스플레이 서브시스템 캐싱
+	mutable UGameplayTagDisplaySubsystem* CachedGTDS = nullptr;
+	
 	// 현재 장착된 아이템 ID
 	int32 CachedEquippedItemID = 0;
 	

@@ -6,6 +6,8 @@
 #include "Controller/TSPlayerController.h"
 #include "Character/TSCharacter.h"
 #include "Crafting/System/CraftingDataSubsystem.h"
+#include "GameplayTags/NofiticationTags.h"
+#include "GameplayTags/System/GameplayDisplaySubSystem.h"
 #include "Inventory/TSCraftingTableInventory.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "Item/System/ItemDataSubsystem.h"
@@ -49,18 +51,32 @@ bool ATSCraftingTable::RunOnServer()
 
 void ATSCraftingTable::ServerRequestCraft_Implementation(int32 RecipeID, ATSCharacter* InstigatorCharacter)
 {
+	UGameplayTagDisplaySubsystem* TagDisplaySubsystem = UGameplayTagDisplaySubsystem::Get(this);
+	
+	ATSPlayerController* PC = Cast<ATSPlayerController>(InstigatorCharacter->GetController());
+	if (!PC)
+	{
+		return;
+	}
+	FText Message = FText::FromString("");
 	UCraftingDataSubsystem* CraftingDataSub = UCraftingDataSubsystem::GetCraftingDataSubsystem(GetWorld());
 	if (!CraftingDataSub)
 	{
+		Message = TagDisplaySubsystem->GetDisplayName_KR(NotificationTags::TAG_Notification_Crafting_Failed);
+		PC->ClientShowNotificationOnHUD(Message);
 		return;
 	}
 	FCraftingData RecipeData;
 	if (!CraftingDataSub->GetCraftingDataSafe(RecipeID, RecipeData))
 	{
+		Message = TagDisplaySubsystem->GetDisplayName_KR(NotificationTags::TAG_Notification_Crafting_Failed);
+		PC->ClientShowNotificationOnHUD(Message);
 		return;
 	}
 	if (!CanCraft(RecipeID, InstigatorCharacter))
 	{
+		Message = TagDisplaySubsystem->GetDisplayName_KR(NotificationTags::TAG_Notification_Crafting_LackingIngredients);
+		PC->ClientShowNotificationOnHUD(Message);
 		return;
 	}
 	StartCrafting(RecipeID, InstigatorCharacter);
@@ -142,6 +158,4 @@ void ATSCraftingTable::StartCrafting(int32 RecipeID, ATSCharacter* InstigatorCha
 		UE_LOG(LogTemp, Error, TEXT("Failed to place craft result"));
 		return;
 	}
-	// 제작 완료 브로드캐스트
-	PC->ClientNotifyCraftResult(SlotIndex);
 }
