@@ -592,7 +592,6 @@ void ATSPlayerController::ShowDownedUI()
 	}
 	if (!DownedWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("  DownedWidgetClass is NULL!"));
 		return;
 	}
 	DownedWidget = CreateWidget<UUserWidget>(this, DownedWidgetClass);
@@ -622,7 +621,6 @@ void ATSPlayerController::ShowGameOverUI()
 	}
 	if (!GameOverWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("  GameOverWidgetClass is NULL!"));
 		return;
 	}
 	GameOverWidget = CreateWidget<UUserWidget>(this, GameOverWidgetClass);
@@ -650,7 +648,6 @@ void ATSPlayerController::ShowPingUI()
 	}
 	if (!PingWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("  PingWidgetClass is NULL!"));
 		return;
 	}
 	PingWidget = CreateWidget<UUserWidget>(this, PingWidgetClass);
@@ -706,7 +703,6 @@ void ATSPlayerController::ShowEmoteUI()
 	}
 	if (!EmoteWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("  EmoteWidgetClass is NULL!"));
 		return;
 	}
 	EmoteWidget = CreateWidget<UUserWidget>(this, EmoteWidgetClass);
