@@ -79,6 +79,7 @@ void ATSStreetLamp::InitializeFromBuildingData(const FBuildingData& BuildingInfo
 void ATSStreetLamp::BeginPlay()
 {
 	Super::BeginPlay();
+	SetNetUpdateFrequency(30.f);
 	if (HasAuthority())
 	{
 		LampInventory->SetMaintenanceCostID(MaintenanceCostID);

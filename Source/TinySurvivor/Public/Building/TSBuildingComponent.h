@@ -8,6 +8,8 @@
 #include "TSBuildingComponent.generated.h"
 
 
+class ATSPlayerController;
+class UGameplayTagDisplaySubsystem;
 class UItemDataSubsystem;
 class ATSCharacter;
 
@@ -106,4 +108,5 @@ private:
 	bool bLastCanPlace = false;
 
 	mutable UItemDataSubsystem* CachedIDS = nullptr;
+	mutable UGameplayTagDisplaySubsystem* CachedGTDS = nullptr;
 };

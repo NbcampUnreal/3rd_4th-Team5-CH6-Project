@@ -34,7 +34,7 @@ void UTSLampInventory::Internal_TransferItem(UTSInventoryMasterComponent* Source
 
 	Super::Internal_TransferItem(SourceInventory, TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType,
 	                             ToSlotIndex,
-	                             bIsFullStack);
+	                             bIsFullStack, RequestingPlayer);
 	SetFuelSlot();
 }
 

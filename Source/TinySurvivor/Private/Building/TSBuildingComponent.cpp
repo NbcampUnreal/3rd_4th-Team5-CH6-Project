@@ -9,6 +9,9 @@
 #include "GameFramework/Pawn.h"
 #include "Inventory/TSInventoryMasterComponent.h"
 #include "Building/Actor/TSBuildingActorBase.h"
+#include "Controller/TSPlayerController.h"
+#include "GameplayTags/NofiticationTags.h"
+#include "GameplayTags/System/GameplayDisplaySubSystem.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -42,6 +45,12 @@ void UTSBuildingComponent::BeginPlay()
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to get ItemDataSubsystem!"));
 	}
+	// 게임플레이 태그 디스플레이 데이터 서브시스템 초기화
+	CachedGTDS = UGameplayTagDisplaySubsystem::Get(this);
+	if (!CachedGTDS)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get GameplayTagDisplaySubsystem!"));
+	}
 }
 
 
@@ -61,6 +70,7 @@ void UTSBuildingComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 void UTSBuildingComponent::ServerStartBuildingMode_Implementation(int32 RecipeID)
 {
 	int32 BuildingDataID = 0;
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetOwner()->GetInstigatorController());
 	// 재료 확인
 	if (!CanBuild(RecipeID, BuildingDataID))
 	{
@@ -69,6 +79,8 @@ void UTSBuildingComponent::ServerStartBuildingMode_Implementation(int32 RecipeID
 	// 레시피 결과물 빌딩 ID 확인
 	if (BuildingDataID <= 0)
 	{
+		PC->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_Failed));
 		return;
 	}
 	// 빌딩 모드 시작
@@ -316,12 +328,16 @@ bool UTSBuildingComponent::ValidatePlacement(FHitResult HitResult)
 
 bool UTSBuildingComponent::CanBuild(int32 RecipeID, int32& OutResultID)
 {
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetOwner()->GetInstigatorController());
+
 	// 레시피 데이터 조회
 	UBuildingRecipeDataSubsystem* BuildingRecipeDataSub =
 		UBuildingRecipeDataSubsystem::GetBuildingRecipeDataSubsystem(GetWorld());
 	FBuildingRecipeData RecipeData;
 	if (!BuildingRecipeDataSub->GetBuildingRecipeDataSafe(RecipeID, RecipeData))
 	{
+		PC->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_Failed));
 		return false;
 	}
 
@@ -333,6 +349,8 @@ bool UTSBuildingComponent::CanBuild(int32 RecipeID, int32& OutResultID)
 		GetOwner()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
 	if (!PlayerInventoryComp)
 	{
+		PC->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_Failed));
 		return false;
 	}
 
@@ -342,6 +360,8 @@ bool UTSBuildingComponent::CanBuild(int32 RecipeID, int32& OutResultID)
 		int32 ItemCount = PlayerInventoryComp->GetItemCount(Ingredient.MaterialID);
 		if (ItemCount < Ingredient.Count)
 		{
+			PC->ClientShowNotificationOnHUD(
+				CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_LackingIngredients));
 			return false;
 		}
 	}
@@ -382,8 +402,11 @@ bool UTSBuildingComponent::ConsumeIngredients(int32 RecipeID)
 
 void UTSBuildingComponent::ConfirmPlacement()
 {
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetOwner()->GetInstigatorController());
 	if (!bIsBuildingMode || !bCanPlace)
 	{
+		PC->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_CannotPlace));
 		return;
 	}
 	ServerSpawnBuilding(CurrentBuildingDataID, LastTransform);
@@ -411,18 +434,25 @@ bool UTSBuildingComponent::ServerRotateBuilding_Validate(float InputValue)
 
 void UTSBuildingComponent::ServerSpawnBuilding_Implementation(int32 BuildingDataID, FTransform SpawnTransform)
 {
+	ATSPlayerController* PC = Cast<ATSPlayerController>(GetOwner()->GetInstigatorController());
 	// 재료 소비
 	if (!ConsumeIngredients(CurrentRecipeID))
 	{
+		PC->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_LackingIngredients));
 		return;
 	}
 	// 빌딩 액터 스폰
 	if (!GetBuildingData(BuildingDataID, CachedBuildingData))
 	{
+		PC->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_Failed));
 		return;
 	}
 	if (!CachedBuildingData.ActorClass)
 	{
+		PC->ClientShowNotificationOnHUD(
+			CachedGTDS->GetDisplayName_KR(NotificationTags::TAG_Notification_Building_Failed));
 		return;
 	}
 	// 액터 지연 스폰

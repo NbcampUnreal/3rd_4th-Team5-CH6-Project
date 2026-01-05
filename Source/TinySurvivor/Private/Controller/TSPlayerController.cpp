@@ -135,11 +135,6 @@ bool ATSPlayerController::ServerRequestCraft_Validate(ATSCraftingTable* Crafting
 	return CraftingTable && RecipeID > 0;
 }
 
-void ATSPlayerController::ClientNotifyCraftResult_Implementation(int32 SlotIndex)
-{
-	OnCraftComplete.Broadcast(SlotIndex);
-}
-
 void ATSPlayerController::ServerNotifyCraftingTableClosed_Implementation(UTSCraftingTableInventory* CraftingInventory)
 {
 	if (CraftingInventory)
@@ -168,6 +163,27 @@ bool ATSPlayerController::ServerDropItemToWorld_Validate(UTSInventoryMasterCompo
 void ATSPlayerController::ClientNotifyTransferResult_Implementation(bool bSuccess)
 {
 	OnTransferResult.Broadcast(bSuccess);
+}
+
+void ATSPlayerController::ClientShowNotificationOnHUD_Implementation(const FText& Message)
+{
+	OnShowNotification.Broadcast(Message);
+}
+
+void ATSPlayerController::ServerRequestAssignSlot_Implementation(UTSCraftingTableInventory* CraftingInventory)
+{
+	int32 SlotIdx = CraftingInventory->GetorAssignSlotForPlayer(this);
+	ClientNotifyCraftingSlotAssigned(SlotIdx);
+}
+
+bool ATSPlayerController::ServerRequestAssignSlot_Validate(UTSCraftingTableInventory* CraftingInventory)
+{
+	return IsValid(CraftingInventory);
+}
+
+void ATSPlayerController::ClientNotifyCraftingSlotAssigned_Implementation(int32 SlotIndex)
+{
+	OnCraftingSlotAssigned.Broadcast(SlotIndex);
 }
 
 void ATSPlayerController::InitializePlayerHUD()

@@ -1212,6 +1212,7 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 	{
 		// 친구를 찾았고 + 기절 상태라면?
 		ServerStartRevive(ReviveTarget);
+		bIsInteracting = true;
 		return; 
 		
 	}
@@ -1567,9 +1568,10 @@ void ATSCharacter::LineTrace()
 	LastHitActor = CurrentHitActor;
 	CurrentHitActor = HitResult.GetActor();
 	
-	// 같은 걸 바라보면 아무것도 하지 않음.
+	// 같은 액터 처리
 	if (CurrentHitActor == LastHitActor)
 	{
+		// 같은 액터지만 상호작용 불가능으로 바뀐 경우 처리
 		if (IsValid(CurrentHitActor.Get()))
 		{
 			if (CurrentHitActor->Implements<UIInteraction>())
@@ -1578,6 +1580,11 @@ void ATSCharacter::LineTrace()
 				if (InteractionInterface && !InteractionInterface->CanInteract(this))
 				{
 					InteractionInterface->HideInteractionWidget();
+					if (bIsInteracting)
+					{
+						OnReticleInteractionEnd.Broadcast();
+						bIsInteracting = false;
+					}
 				}
 			}
 		}
@@ -1591,14 +1598,14 @@ void ATSCharacter::LineTrace()
 		if (LastHitActor->Implements<UIInteraction>())
 		{
 			IIInteraction* InteractionInterface = Cast<IIInteraction>(LastHitActor);
-			if (InteractionInterface)
+			if (InteractionInterface && InteractionInterface->CanInteract(this))
 			{
 				InteractionInterface->HideInteractionWidget();
 				OnReticleInteractionEnd.Broadcast();
 			}
 		}
-		// 자원원천, 클라이밍 레티클 상호작용 끝내기
-		else if(LastHitActor->IsA(ATSResourceBaseActor::StaticClass()) || LastHitActor->ActorHasTag("Climbable"))
+		// 클라이밍 레티클 상호작용 끝내기
+		else if(LastHitActor->ActorHasTag("Climbable"))
 		{
 			OnReticleInteractionEnd.Broadcast();
 		}
@@ -1620,8 +1627,8 @@ void ATSCharacter::LineTrace()
 				InteractionInterface->HideInteractionWidget();
 			}
 		}
-		// 자원원천, 클라이밍 레티클 상호작용 시작
-		else if(CurrentHitActor->IsA(ATSResourceBaseActor::StaticClass()) || CurrentHitActor->ActorHasTag("Climbable"))
+		// 클라이밍 레티클 상호작용 시작
+		else if(CurrentHitActor->ActorHasTag("Climbable"))
 		{
 			OnReticleInteractionBegin.Broadcast();
 		}
@@ -1670,7 +1677,22 @@ void ATSCharacter::SetInteractionText(FText WidgetText)
 
 bool ATSCharacter::CanInteract(ATSCharacter* InstigatorCharacter)
 {
-	if (IsValid(ASC) && ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed))
+	if (!IsValid(InstigatorCharacter))
+	{
+		return false;
+	}
+	if (!IsValid(InstigatorCharacter->ASC) || !IsValid(ASC))
+	{
+		return false;
+	}
+	// 상호작용 실행할 플레이어 상태 확인
+	if (InstigatorCharacter->ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed)
+		|| InstigatorCharacter->ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Dead))
+	{
+		return false;
+	}
+	// 상호작용 대상 플레이어 상태 확인
+	if (ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed))
 	{
 		return true;
 	}
