@@ -13,30 +13,24 @@ class TINYSURVIVOR_API UGA_Sprint : public UTSGameplayAbilityBase
 	
 public:
 	UGA_Sprint();
-	
-	// Stamina > 0 && Thrist > 0 이어야 발동
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags = nullptr, const FGameplayTagContainer* TargetTags = nullptr, FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
-	
-	// 활성화 (GE 적용)
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	
-	// 종료 (GE 제거 후 Delay GE 적용)
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sprint")
-	TSubclassOf<UGameplayEffect> SprintCostEffectClass; //0.1초당 스태미나 -1
+	TSubclassOf<UGameplayEffect> SprintCostEffectClass;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sprint")
-	TSubclassOf<UGameplayEffect> SprintSpeedEffectClass; //스피드 + 400 
+	TSubclassOf<UGameplayEffect> SprintSpeedEffectClass; 
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Sprint")
-	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass; //EndAbility 후 1초 딜레이
+	TSubclassOf<UGameplayEffect> StaminaDelayEffectClass;
 	
 private:
 	FActiveGameplayEffectHandle CostHandle;
 	FActiveGameplayEffectHandle SpeedHandle;
-	FTimerHandle MovementCheckTimerHandle; // 스프린트 중 속도 체크용
+	FTimerHandle MovementCheckTimerHandle;
 	
 	//Delegate Handle
 	FDelegateHandle StaminaDelegateHandle;

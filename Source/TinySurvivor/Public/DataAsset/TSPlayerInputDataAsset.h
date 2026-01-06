@@ -32,10 +32,6 @@ public:
 	// ShoulderSwitch
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> ShoulderSwitchAction;
-	// -- 여기까지 GAS 안씀 --
-
-	
-	//-- 여기서부턴 GAS 씀 --
 	//jump and climb  
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> JumpOrClimbAction;
@@ -48,11 +44,9 @@ public:
 	//sprint
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> SprintAction;
-	//lyingdown 삭제
-
 
 	///////////// InteractionInputMappingContext /////////////
-	//Open Bag -> 얘는 가스 안씀 (그냥 가방 열기 닫기 토글)
+	//Open Bag 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> OpenBagAction;
 	//bulid

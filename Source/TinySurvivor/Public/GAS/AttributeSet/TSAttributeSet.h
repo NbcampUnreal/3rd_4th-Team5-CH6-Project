@@ -117,12 +117,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat", ReplicatedUsing = OnRep_DamageReflectionBonus)
 	FGameplayAttributeData DamageReflectionBonus;
 	
-	// 13. Downed Health (기절 체력)
-	UPROPERTY(BlueprintReadOnly,Category = "Vital", ReplicatedUsing = OnRep_DownedHealth)
-	FGameplayAttributeData DownedHealth;
-	
-	UPROPERTY(BlueprintReadOnly,Category = "Vital", ReplicatedUsing = OnRep_MaxDownedHealth)
-	FGameplayAttributeData MaxDownedHealth;
 	// 매크로
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, Health)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxHealth)
@@ -148,8 +142,6 @@ public:
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, DamageReductionBonus)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, BaseDamageReflection)
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, DamageReflectionBonus)
-	ATTRIBUTE_ACCESSORS(UTSAttributeSet, DownedHealth)
-	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxDownedHealth)
 	
 protected:
 	//OnRep 클라 반영
@@ -201,8 +193,4 @@ protected:
 	void OnRep_BaseDamageReflection(const FGameplayAttributeData& OldValue);
 	UFUNCTION()
 	void OnRep_DamageReflectionBonus(const FGameplayAttributeData& OldValue);
-	UFUNCTION()
-	void OnRep_DownedHealth(const FGameplayAttributeData& OldDownedHealth);
-	UFUNCTION()
-	void OnRep_MaxDownedHealth(const FGameplayAttributeData& OldMaxDownedHealth);
 };

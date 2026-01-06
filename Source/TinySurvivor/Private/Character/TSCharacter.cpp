@@ -55,7 +55,7 @@ ATSCharacter::ATSCharacter()
 	CameraComponent->bUsePawnControlRotation = false;
 
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = true; //카메라 시야랑 캐릭터 눈이랑 맞아야할걸? << 기획파트한테 물어봐야함
+	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 
 	GetCharacterMovement()->bOrientRotationToMovement = false;
@@ -92,7 +92,7 @@ void ATSCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	InitAbilitySystem();
-	InitializeAbilities(); //어빌리티 부여
+	InitializeAbilities();
 	if (!ASC)
 	{
 		return;
@@ -207,23 +207,8 @@ void ATSCharacter::PossessedBy(AController* NewController)
 		}
 	}
 	
-	// 빛 탐지를 위한 0.1초 타이머 시작
-	GetWorld()->GetTimerManager().SetTimer(LightCheckTimerHandle,this,&ATSCharacter::CheckInLightSource,0.1f,true);
-	
-	//테스트 코드 GE_TempHot,GE_TempCold 잘 되는지 테스트 하는 용도
-	// 이 GE는 추후 삭제 예정 (체온 원하는 값으로 override 할 수 있는 GE)
-	// 현재 값 : 30으로 되어있음. 체온에 관한 아이템 적용 되면 삭제할 예정
-	if (TempTESTClass)
-	{
-		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-		ContextHandle.AddSourceObject(this);
-		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(TempTESTClass, 1, ContextHandle);
-		if (SpecHandle.IsValid())
-		{
-			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-		}
-	}
-	// 여기까지 체온 테스트 코드
+	// 빛 탐지를 위한 1초 타이머 시작
+	GetWorld()->GetTimerManager().SetTimer(LightCheckTimerHandle,this,&ATSCharacter::CheckInLightSource,1.0f,true);
 }
 
 void ATSCharacter::OnRep_PlayerState()
@@ -418,7 +403,6 @@ void ATSCharacter::InitializeAbilities()
 	// 자원
 	GiveByTag(InteractTag::INTERACTTAG_RESOURCE_STARTINTERACT.GetTag());
 	
-	// Hit 나중에 네이티브로 바꾸셈
 	GiveByTag(AbilityTags::TAG_Ability_HotKey.GetTag());
 }
 
@@ -431,6 +415,7 @@ void ATSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	DOREPLIFETIME(ATSCharacter, bIsDownedState);
 	DOREPLIFETIME(ATSCharacter, bIsDeadState);
 	DOREPLIFETIME(ATSCharacter, bIsClimbState);
+	DOREPLIFETIME(ATSCharacter, bIsCrouching);
 }
 
 void ATSCharacter::BecomeDowned()
@@ -439,7 +424,6 @@ void ATSCharacter::BecomeDowned()
 	{
 		return;
 	}
-	// 1. 기존 행동 취소 및 Downed 태그 부착
 	if (ASC)
 	{
 		if (DownedTagEffectClass)
@@ -454,8 +438,6 @@ void ATSCharacter::BecomeDowned()
 			}
 		}
 	}
-
-	// 2. 이동속도 감소 GE 적용
 	if (ProneMoveSpeedEffectClass)
 	{
 		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
@@ -467,20 +449,6 @@ void ATSCharacter::BecomeDowned()
 			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
-	
-	// 3. DownedHealth 감소 GE 적용
-	if (DownedEffectClass)
-	{
-		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-		ContextHandle.AddSourceObject(this);
-		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DownedEffectClass, 1, ContextHandle);
-            
-		if (SpecHandle.IsValid())
-		{
-			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-		}
-	}
-	// 4. 클라이언트 애니메이션 동기화
 	bIsDownedState = true;
 	
 	if (HasAuthority())
@@ -524,10 +492,8 @@ void ATSCharacter::Die()
 {
 	if (bIsDeadState)
 	{
-		return; // 이미 죽었으면 return
+		return;
 	}
-
-	// 1. 태그 Downed -> Dead 교체
 	if (ASC)
 	{
 		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Downed));
@@ -543,15 +509,12 @@ void ATSCharacter::Die()
 			}
 		}
 	}
-	// 2. 상태 변수 업데이트 
 	bIsDownedState = false;
 	bIsDeadState = true;
-	// 3. 입력 차단
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
 		DisableInput(PC);
 	}
-	// 4. 서버에서도 Ragdoll 물리 적용
 	OnRep_IsDeadState();
 	
 	if (HasAuthority())
@@ -578,12 +541,9 @@ void ATSCharacter::OnRep_IsDeadState()
 {
 	if (bIsDeadState)
 	{
-		// 1. 캡슐 콜리전 끄기 (시체 통과 가능하게)
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		// 2. 메쉬 물리 켜기 (철퍼덕)
 		GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
 		GetMesh()->SetSimulatePhysics(true);
-		// 3. 이동 컴포넌트 정지
 		if (GetCharacterMovement())
 		{
 			GetCharacterMovement()->StopMovementImmediately();
@@ -594,16 +554,9 @@ void ATSCharacter::OnRep_IsDeadState()
 
 ATSCharacter* ATSCharacter::DetectReviveTarget()
 {
-	// ---------------Downed Character 탐지용 트레이스---------------
-	
-	// 오직 로컬 플레이어 컨트롤러에서만 실행
 	APlayerController* PC = Cast<APlayerController>(Controller);
 	if (!IsValid(PC) || !PC->IsLocalController()) return nullptr;
-	
-	// 화면 중앙 위치 가져오기
 	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return nullptr;
-	
-	// 화면 중앙 좌표 계산
 	FVector2D ViewportSize;
 	if (GEngine && GEngine->GameViewport) GEngine->GameViewport->GetViewportSize(ViewportSize);
 	FVector2D Center = ViewportSize / 2.f;
@@ -621,39 +574,28 @@ ATSCharacter* ATSCharacter::DetectReviveTarget()
 
 	FHitResult HitResult;
 	bool bHit = GetWorld()->SweepSingleByObjectType(HitResult, TraceStart, TraceEnd, FQuat::Identity, ObjectParams, Shape, Params);
-    
-	// 디버그
-	//if (bLineTraceDebugDraw && bHit)
-	//{
-	//	DrawDebugCapsule(GetWorld(), HitResult.Location, 50.0f, 40.0f, FQuat::Identity, FColor::Red, false, 1.0f);
-	//}
 
 	if (bHit)
 	{
 		return Cast<ATSCharacter>(HitResult.GetActor());
 	}
 	return nullptr;
-	
 }
 
-void ATSCharacter::Revive() // Downed된 친구가 부활하는 함수
+void ATSCharacter::Revive()
 {
 	if (IsDead())
 	{
 		return;
 	}
-	// 1. Downed 태그 제거
 	if (ASC)
 	{
 		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Downed));
 	}
-	// 2. Health 50 회복, DownedHealth 100 초기화
 	if (UTSAttributeSet* AS = GetAttributeSet())
 	{
 		AS->SetHealth(50.0f);
-		AS->SetDownedHealth(AS->GetMaxDownedHealth());
 	}
-	// 3. 변수 초기화
 	bIsDownedState = false;
 	
 	if (HasAuthority())
@@ -664,7 +606,6 @@ void ATSCharacter::Revive() // Downed된 친구가 부활하는 함수
 
 bool ATSCharacter::IsRescueCharacter() const
 {
-	// 구조 중 상태 확인
 	if (ASC)
 	{
 		return ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Rescuing);
@@ -674,7 +615,10 @@ bool ATSCharacter::IsRescueCharacter() const
 
 void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
 {
-	// 1. 구조자 상태, 타겟 상태, 거리 확인, 대상 탐지
+	if (bIsRescuing)
+	{
+		return;
+	}
 	if (IsDowned() || IsDead())
 	{
 		return;
@@ -695,18 +639,13 @@ void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
 	{
 		return;
 	}
-	// 2. 타이머 중복 방지 (정리)
 	if (GetWorldTimerManager().IsTimerActive(ReviveTimerHandle))
 	{
 		GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
 	}
-	
-	// 3. 소생 상태 설정
-	ReviveTargetCharacter = Target; // 소생 대상을 변수에 저장
+	ReviveTargetCharacter = Target;
 	CurrentReviveTime = 0.f;
 	bIsRescuing = true;
-	
-	// 4. Rescue 태그 부착
 	if (ASC)
 	{
 		if (RescuingTagEffectClass)
@@ -721,62 +660,48 @@ void ATSCharacter::ServerStartRevive_Implementation(ATSCharacter* Target)
 			}
 		}
 	}
-	
-	// 5. 내 움직임 봉인 // 구조 중 이동 불가
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
 		MoveComp->SetMovementMode(MOVE_None);
 	}
-    
-	// 6. 타이머 시작 (5초)
 	GetWorldTimerManager().SetTimer(ReviveTimerHandle, this, &ATSCharacter::OnReviveFinished, ReviveDuration, false);
 }
 
 void ATSCharacter::ServerStopRevive_Implementation()
 {
-	// 1. 타이머 정리
+	if (!bIsRescuing)
+	{
+		return;
+	}
 	GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
 	CurrentReviveTime = 0.f;
-	
-	// 2. 변수 초기화
 	ReviveTargetCharacter = nullptr;
 	bIsRescuing = false;
-	
-	// 2. Rescue 태그 제거
 	if (ASC)
 	{
 		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Rescuing));
 	}
-	
-	// 4. 이동상태 복구
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-	
-	// 5. 클라이언트 동기화
 	ClientForceStopRevive();
 }
 
 void ATSCharacter::ClientForceStopRevive_Implementation()
 {
-	GetCharacterMovement()->SetMovementMode(MOVE_Walking); // 소생 강제 해제 -> 움직임 복구
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }
 
 void ATSCharacter::OnReviveFinished()
 {
-	// 1. 타이머 정리
 	GetWorldTimerManager().ClearTimer(ReviveTimerHandle);
 	CurrentReviveTime = 0.f;
-	// 2. 타겟 정리 및 변수 초기화
 	ATSCharacter* Target = ReviveTargetCharacter;
 	ReviveTargetCharacter = nullptr;
-	// 3. 태그 제거
 	if (ASC)
 	{
 		ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(AbilityTags::TAG_State_Status_Rescuing));
 	}
-	// 4. 이동상태 복구
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	bIsRescuing = false;
-	// 5. 살려주기 + 안전성 검사
 	if (!IsValid(Target))
 	{
 		return;
@@ -794,30 +719,23 @@ void ATSCharacter::TickReviveValidation()
 	{
 		return;
 	}
-	// 1. 대상이 사라짐 -> 취소
 	if (!IsValid(ReviveTargetCharacter))
 	{
 		ServerStopRevive();
 		return;
 	}
-
-	// 2. 대상이 그 사이에 죽어버렸거나, 이미 일어남 -> 취소
 	if (ReviveTargetCharacter->IsDead() || !ReviveTargetCharacter->IsDowned())
 	{
 		ServerStopRevive();
 		return;
 	}
-
-	// 3. 거리 계산 (기어가서 멀어짐 방지)
 	float DistSq = FVector::DistSquared(GetActorLocation(), ReviveTargetCharacter->GetActorLocation());
-	float MaxDistSq = MaxReviveDistance * MaxReviveDistance; // sqrt 말고 곱셈으로..
+	float MaxDistSq = MaxReviveDistance * MaxReviveDistance;
 	if (DistSq > MaxDistSq)
 	{
 		ServerStopRevive();
 		return;
 	}
-	
-	// 4. 살리는 중간에 기절하거나 죽으면 소생 취소
 	if (ASC)
 	{
 		bool bHasMatchingDownedOrDeadTags = ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Downed) || ASC->HasMatchingGameplayTag(AbilityTags::TAG_State_Status_Dead);
@@ -842,13 +760,12 @@ void ATSCharacter::OnRep_IsRescuing()
 
 void ATSCharacter::CheckInLightSource()
 {
-	// 빛구역인지 확인하자
 	TArray<AActor*> LightActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(),AErosionLightSourceSubActor::StaticClass(), LightActors);
 	const FGameplayTag InLightTag = AbilityTags::TAG_State_Status_InLightSourceRange;
 	if (LightActors.Num() == 0)
 	{
-		if (ASC->HasMatchingGameplayTag(InLightTag)) //주변에 빛 액터 없는데 라이트 태그 갖고있으면 없애기
+		if (ASC->HasMatchingGameplayTag(InLightTag))
 		{
 			ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(InLightTag));
 		}
@@ -861,12 +778,10 @@ void ATSCharacter::CheckInLightSource()
 	
 	AErosionLightSourceSubActor* NearestLight = Cast<AErosionLightSourceSubActor>(NearestActor);
 	
-	const float LightRange = 5000.0f; // 50 미터?
+	const float LightRange = 5000.0f;
 	
 	if (NearestLight && NearestDistance <= LightRange)
 	{
-		// 빛도 있고 가까우면
-		// 이건 빛구역이다 -> 태그 넣기
 		if (!ASC -> HasMatchingGameplayTag(InLightTag))
 		{
 			if (InLightTagEffectClass)
@@ -883,7 +798,6 @@ void ATSCharacter::CheckInLightSource()
 		}
 	} else
 	{
-		// 어둠 구역이니까 라이트 태그 떼기
 		if (ASC->HasMatchingGameplayTag(InLightTag))
 		{
 			ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(InLightTag));
@@ -896,13 +810,14 @@ void ATSCharacter::BeginPlay()
 	Super::BeginPlay();
 	if (SpringArmComponent)
 	{
-		BaseSpringArmSocketOffset = SpringArmComponent -> SocketOffset;
-		SpringArmBaseLocation = SpringArmComponent->GetRelativeLocation();
-		SpringArmRightLocation = SpringArmBaseLocation + FVector(0.f, RightShoulderOffset, 0.f); // +40
-		SpringArmLeftLocation = SpringArmBaseLocation + FVector(0.f, LeftShoulderOffset, 0.f); // -80
-
-		SpringArmComponent->SetRelativeLocation(SpringArmRightLocation);
-		bIsRightShoulder = true;
+		FVector StartLocation = SpringArmComponent->GetRelativeLocation();
+		StartLocation.Y = 0.0f;
+		SpringArmComponent->SetRelativeLocation(StartLocation);
+		
+		FVector StartOffset = SpringArmComponent->SocketOffset;
+		StartOffset.Y = 40.0f;
+		SpringArmComponent->SocketOffset = StartOffset;
+		bIsRightShoulder= true;
 	}
 	APlayerController* PlayerController = Cast<APlayerController>(Controller);
 	if (PlayerController && PlayerController->IsLocalController())
@@ -929,50 +844,6 @@ void ATSCharacter::BeginPlay()
 	}
 }
 
-void ATSCharacter::OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
-{
-	Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
-	OriginalCrouchHeightAdjust = ScaledHalfHeightAdjust; // 캡슐 줄어든 크기 저장해서 이만큼 카메라 들어올리기
-}
-
-void ATSCharacter::OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)
-{
-	Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
-	OriginalCrouchHeightAdjust = ScaledHalfHeightAdjust; // 캡슐이 커진 크기 저장
-}
-
-void ATSCharacter::UpdateCrouchCamera()
-{
-	if (IsLocallyControlled())
-	{
-		if (SpringArmComponent)
-		{
-			UAnimInstance* Anim = GetMesh()->GetAnimInstance();
-			if (Anim)
-			{
-				float Alpha = Anim->GetCurveValue(CrouchCurveName);
-				Alpha = FMath::Clamp(Alpha, 0.f, 1.f); //애니메이션 커브값 가져오기
-				
-				const float TargetZ=FMath::Lerp(StandCameraZ,CrouchCameraZ,Alpha);
-				const float Adjust = OriginalCrouchHeightAdjust;
-				// crouched 상태면 캡슐 낮아졌으니 카메라를 위로 보정
-				// 반대면 캡슐이 높아졌으니 카메라를 아래로 보정
-				const float JumpCancel = bIsCrouched ? (Adjust * (1.f - Alpha)) : (-Adjust * Alpha);
-				
-				FVector NewOffset = BaseSpringArmSocketOffset;
-				NewOffset.Z += (TargetZ + JumpCancel);
-				
-				SpringArmComponent->SocketOffset = NewOffset;
-			}
-		}
-	}
-}
-
-void ATSCharacter::UnlockCrouchToggle()
-{
-	bCrouchToggleLocked = false;
-}
-
 void ATSCharacter::Move(const FInputActionValue& Value)
 {
 	const FVector2D Input = Value.Get<FVector2D>();
@@ -981,29 +852,23 @@ void ATSCharacter::Move(const FInputActionValue& Value)
 	{
 		FGameplayTagContainer CancelTags;
 		CancelTags.AddTag(AbilityTags::TAG_Ability_Interact_Emote);
-		//감정표현 취소
 		ASC->CancelAbilities(&CancelTags);
 	}
-	
-	// 클라이밍 이동 로직 Cross Product 언리얼에선 왼손 규칙 씀
 	if (IsClimbing())
 	{
-		//오른쪽 이동 방향 구하기 (cross product 외적 -> 벽의 법선과 월드 위쪽을 섞으면 오른쪽방향 나온다고 함........)
 		const FVector RightDirection = FVector::CrossProduct(CurrentWallNormal, FVector::UpVector).GetSafeNormal();
-		// 위쪽 이동 방향 구하기 (cross product 외적 -> 구한 오른쪽과 법선을 다시 섞으면 위쪽 방향이 나온다고 함..)
 		const FVector ForwardDirection = FVector::CrossProduct(RightDirection,CurrentWallNormal).GetSafeNormal();
 		
-		if (!FMath::IsNearlyZero(Input.Y)) // w s 키 
+		if (!FMath::IsNearlyZero(Input.Y))
 		{
 			AddMovementInput(ForwardDirection, Input.Y);
 		}
-		if (!FMath::IsNearlyZero(Input.X)) // a d 키
+		if (!FMath::IsNearlyZero(Input.X))
 		{
 			AddMovementInput(RightDirection, Input.X);
 		}
 		return;
 	}
-	//기본 이동 로직 (걷기) wasd
 	const FRotator ControlRot = Controller->GetControlRotation();
 	const FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
 	const FVector Forward = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
@@ -1035,33 +900,22 @@ void ATSCharacter::ShoulderSwitch(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("q pressed"));
 	if (!SpringArmComponent) return;
-	if (bIsSwitchingShoulder) return; //이미 전환중이면 무시
-	
-	bIsSwitchingShoulder = true; 
-	ShoulderSwitchElapsed = 0.f;
-	
-	ShoulderStartOffset = SpringArmComponent->GetRelativeLocation();
-	ShoulderTargetOffset = bIsRightShoulder ? SpringArmLeftLocation : SpringArmRightLocation;
 	bIsRightShoulder = !bIsRightShoulder;
+	FVector NewLocation = SpringArmComponent->GetRelativeLocation();
+	if (bIsRightShoulder)
+	{
+		NewLocation.Y = RightShoulderOffset;
+	} else
+	{
+		NewLocation.Y = LeftShoulderOffset;
+	}
+	SpringArmComponent->SocketOffset = NewLocation;
 }
 
-//---- Non GAS
-
-//GAS
 void ATSCharacter::OnJumpOrClimbStarted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("SpaceBar pressed"));
 	const FGameplayTag JumpOrClimbTag = AbilityTags::TAG_Ability_Move_JumpOrClimb.GetTag();
-	const FGameplayTag CrouchStateTag = AbilityTags::TAG_State_Move_Crouch.GetTag();
-
-	// 앉아있으면 먼저 GA_Crouch 취소
-	if (ASC->HasMatchingGameplayTag(CrouchStateTag))
-	{
-		const FGameplayTag CrouchAbilityTag = AbilityTags::TAG_Ability_Move_Crouch.GetTag();
-		FGameplayTagContainer CancelTags;
-		CancelTags.AddTag(CrouchAbilityTag);
-		ASC->CancelAbilities(&CancelTags);
-	}
 
 	if (ASC && JumpOrClimbTag.IsValid())
 	{
@@ -1095,48 +949,29 @@ void ATSCharacter::OnCrouch(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("c pressed"));
 	if (!ASC) return;
-	//연타방지
-	if (bCrouchToggleLocked) return;
-	bCrouchToggleLocked = true;
 	const FGameplayTag CrouchTag = AbilityTags::TAG_Ability_Move_Crouch.GetTag();
-	const FGameplayTag CrouchStateTag = AbilityTags::TAG_State_Move_Crouch.GetTag();
-	
-	if ( ASC->HasMatchingGameplayTag(CrouchStateTag))
+	for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
 	{
-		FGameplayTagContainer WithTags;
-		WithTags.AddTag(CrouchTag);
-		ASC->CancelAbilities(&WithTags);
-	}
-	else
-	{
-		if (ASC && CrouchTag.IsValid())
+		const bool bMatch = Spec.DynamicAbilityTags.HasTag(CrouchTag) || (Spec.Ability && Spec.Ability->AbilityTags.HasTag(CrouchTag));
+		if (bMatch)
 		{
-			ASC->TryActivateAbilitiesByTag(CrouchTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
+			if (Spec.IsActive())
+			{
+				ASC->CancelAbility(Spec.Ability);
+			} else
+			{
+				ASC->TryActivateAbility(Spec.Handle);
+			}
+			return;
 		}
 	}
-	const float Delay = ASC->HasMatchingGameplayTag(CrouchStateTag) ? 0.62f : 0.65f;
-	
-	GetWorld()->GetTimerManager().SetTimer(CrouchTimerHandle, this, &ATSCharacter::UnlockCrouchToggle, Delay, false);
 }
 
 void ATSCharacter::OnSprintStarted(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("shift pressed"));
 	if (!ASC) return;
-	const FGameplayTag CrouchStateTag = AbilityTags::TAG_State_Move_Crouch.GetTag();
-	const FGameplayTag CrouchAbilityTag = AbilityTags::TAG_Ability_Move_Crouch.GetTag(); 
 	const FGameplayTag SprintTag = AbilityTags::TAG_Ability_Move_Sprint.GetTag(); 
-
-	
-	if (ASC->HasMatchingGameplayTag(CrouchStateTag))
-	{
-		// 앉기 어빌리티 취소 -> GA_Crouch 종료 -> EndAbility 호출
-		FGameplayTagContainer CancelTags;
-		CancelTags.AddTag(CrouchAbilityTag);
-		ASC->CancelAbilities(&CancelTags);
-		
-		return;
-	}
 	if (ASC && SprintTag.IsValid())
 	{
 		ASC->TryActivateAbilitiesByTag(SprintTag.GetSingleTagContainer(), /*bAllowRemoteActivation=*/true);
@@ -1200,8 +1035,6 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 	{
 		return;
 	}
-	
-	// 1. 내가 다운 || 죽음이면 못함
 	if (IsDowned() || IsDead())
 	{
 		return;
@@ -1210,7 +1043,6 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
     
 	if (ReviveTarget)
 	{
-		// 친구를 찾았고 + 기절 상태라면?
 		ServerStartRevive(ReviveTarget);
 		bIsInteracting = true;
 		return; 
@@ -1246,6 +1078,11 @@ void ATSCharacter::OnInteract(const struct FInputActionValue& Value)
 
 void ATSCharacter::OnStopInteract(const struct FInputActionValue& Value)
 {
+	if (!bIsInteracting)
+	{
+		return;
+	}
+	bIsInteracting = false;
 	ServerStopRevive();
 	ServerSendStopInteractEvent();
 }
@@ -1312,15 +1149,6 @@ void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
 		return;
 	}
 	FVector SpawnLocation = FVector::ZeroVector;
-	//if (NowPingType == ETSPingType::LOCATION || NowPingType == ETSPingType::HELP)
-	//{
-		// 내 위치 || 도움 -> 캐릭터 위치에 핑 찍기
-		//SpawnLocation = GetActorLocation();
-		
-	//} else
-	//{
-	// 위험 || 발견 알림이면 라인 트레이스 -> 힛 부분에 찍기
-	// 라인트레이스 쏘고 힛 부분 or 끝부분에 핑 찍기
 	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
 	FVector2D ViewPortSize = FVector2D::ZeroVector;
 	GEngine->GameViewport->GetViewportSize(ViewPortSize);
@@ -1329,7 +1157,7 @@ void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
 	FVector TraceStart;
 	FVector Forward;
 	bool bDeprojectSuccess = UGameplayStatics::DeprojectScreenToWorld(
-		PC,              // GetFirstPlayerController 대신 PC 사용 (더 안전)
+		PC,
 		ViewportCenter, 
 		TraceStart, 
 		Forward
@@ -1351,8 +1179,7 @@ void ATSCharacter::OnPingCompleted(const struct FInputActionValue& Value)
 	{
 		SpawnLocation = TraceEnd;
 	}
-		
-	//}
+	
 	if (PC)
 	{
 		PC->PingSuccess();
@@ -1432,7 +1259,7 @@ void ATSCharacter::OnEsc(const struct FInputActionValue& Vaule)
 void ATSCharacter::OnHotKey1(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("1 pressed"));
-	ServerSendHotKeyEvent(0); //1번키 = 0번 슬롯!!!
+	ServerSendHotKeyEvent(0);
 }
 
 void ATSCharacter::OnHotKey2(const struct FInputActionValue& Value)
@@ -1486,7 +1313,7 @@ void ATSCharacter::OnHotKey9(const struct FInputActionValue& Value)
 void ATSCharacter::OnHotKey0(const struct FInputActionValue& Value)
 {
 	UE_LOG(LogTemp, Log, TEXT("0 pressed"));
-	ServerSendHotKeyEvent(9); // 0번키 = 9번 슬롯 !!!!!!!!
+	ServerSendHotKeyEvent(9);
 }
 
 void ATSCharacter::OnMoveSpeedChanged(const FOnAttributeChangeData& Data)
@@ -1499,7 +1326,6 @@ void ATSCharacter::Landed(const FHitResult& Hit)
 {
 	float FallingSpeed_Z = GetVelocity().Z;
 	Super::Landed(Hit);
-	// 착지 사운드
 	if (FootstepComponent)
 	{
 		FootstepComponent->PlayFootstepSoundFromHit(Hit);
@@ -1508,15 +1334,13 @@ void ATSCharacter::Landed(const FHitResult& Hit)
 	{
 		return;
 	}
-	// v=g*t니까 낙하속도가 1000이면 대충 1초 지났을 때부터 데미지 받음
-	// h=1/2 * g * t^2이니까 0.5*10(대충)*1*1 =5미터부터 데미지 받음 -> 너무 빡세면 낙하 기준 속도 올리면 됨 
-	float FallSpeed = FallingSpeed_Z * (-1.0); //낙하속도는 음수라 -1 곱하기 
-	float StandSpeed = 1000.0f; // 데미지 판정 기준 : 속도 1000 이상일때만 데미지 닳도록
+	float FallSpeed = FallingSpeed_Z * (-1.0);
+	float StandSpeed = 1000.0f;
 	if ( FallSpeed < StandSpeed)
 	{
-		return; // 살살 떨어졌으니 데미지 없음
+		return;
 	}
-	float FallDamage = (FallSpeed - StandSpeed) * 0.1; //데미지 공식 아직 미정
+	float FallDamage = (FallSpeed - StandSpeed) * 0.1;
 	
 	if (FallDamageEffectClass && FallDamage > 0.0f)
 	{
@@ -1535,25 +1359,16 @@ void ATSCharacter::Landed(const FHitResult& Hit)
 
 void ATSCharacter::LineTrace()
 {
-	// 오직 로컬 플레이어 컨트롤러에서만 실행
 	APlayerController* PC = Cast<APlayerController>(Controller);
 	if (!IsValid(PC) || !PC->IsLocalController()) return;
-	
-	// 화면 중앙 위치 가져오기
 	if (!IsValid(GEngine) || !IsValid(GEngine->GameViewport)) return;
-	
 	FVector2D ViewPortSize = FVector2D::ZeroVector;
 	GEngine->GameViewport->GetViewportSize(ViewPortSize);
 	const FVector2D ViewportCenter = ViewPortSize / 2.f;
-	
-	FVector TraceStart; // 시작 점 
+	FVector TraceStart;
 	FVector Forward;
-	
-	// "화면 중앙 픽셀"이 실제 3D 세계에서 어느 방향을 가리키는가? -> 성공 여부 반환
 	bool DeprojectScreenToWorld= UGameplayStatics::DeprojectScreenToWorld(GetWorld()->GetFirstPlayerController(), ViewportCenter, TraceStart, Forward);
 	if (!DeprojectScreenToWorld) return;
-	
-	// 끝 위치
 	const FVector TraceEnd = TraceStart + Forward * TraceLength;
 	FHitResult HitResult;
 	    
@@ -1590,8 +1405,6 @@ void ATSCharacter::LineTrace()
 		}
 		return;
 	}
-
-
 	// 이전 액터 처리
 	if (IsValid(LastHitActor.Get()))
 	{
@@ -1610,7 +1423,6 @@ void ATSCharacter::LineTrace()
 			OnReticleInteractionEnd.Broadcast();
 		}
 	}
-
 	// 현재 액터 처리
 	if (IsValid(CurrentHitActor.Get()))
 	{
@@ -1754,8 +1566,7 @@ void ATSCharacter::ServerSendHotKeyEvent_Implementation(int HotKeyIndex)
 
 	EventData.Instigator = this;
 	EventData.Target = this;
-
-	//페이로드 데이터를 사용하여 해당 액터에 대한 능력을 트리거하는데 사용하는 함수. 저는 페이로드라고 안쓰고 EventData로 사용함
+	
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this/*Actor*/, EventTag, EventData/*Payload*/);
 }
 
@@ -1817,25 +1628,6 @@ void ATSCharacter::ServerSendStopInteractEvent_Implementation()
 void ATSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (bIsSwitchingShoulder && SpringArmComponent)
-	{
-		ShoulderSwitchElapsed += DeltaTime;
-
-		if (ShoulderSwitchElapsed > ShoulderSwitchDuration)
-		{
-			ShoulderSwitchElapsed = ShoulderSwitchDuration;
-		}
-		float Alpha = ShoulderSwitchElapsed / ShoulderSwitchDuration;
-		
-		const FVector NewLoc = FMath::Lerp(ShoulderStartOffset, ShoulderTargetOffset, Alpha);
-		SpringArmComponent->SetRelativeLocation(NewLoc);
-
-		if (ShoulderSwitchElapsed >= ShoulderSwitchDuration)
-		{
-			bIsSwitchingShoulder = false;
-		}
-	}
-	
 	if (HasAuthority() && bIsRescuing)
 	{
 		TickReviveValidation(); // 구조 중이면 -? 매 프레임 거리와 상태 체크
@@ -1892,7 +1684,6 @@ void ATSCharacter::Tick(float DeltaTime)
 	//[E]=====================================================================================
 	
 	LineTrace();
-	UpdateCrouchCamera();
 }
 
 void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -1917,7 +1708,6 @@ void ATSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		                                   &ATSCharacter::OnRoll);
 		EnhancedInputComponent->BindAction(InputDataAsset->CrouchAction, ETriggerEvent::Started, this,
 										   &ATSCharacter::OnCrouch);
-		//LyingDown 삭제
 		EnhancedInputComponent->BindAction(InputDataAsset->OpenBagAction, ETriggerEvent::Started, this,
 									   &ATSCharacter::OnOpenBag);
 		EnhancedInputComponent->BindAction(InputDataAsset->BuildAction, ETriggerEvent::Started, this,

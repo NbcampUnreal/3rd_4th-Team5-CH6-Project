@@ -34,8 +34,6 @@ void UTSGameplayAbilityBase::EndAbility(const FGameplayAbilitySpecHandle Handle,
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-//몽타주
-
 void UTSGameplayAbilityBase::PlayMontage()
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
@@ -62,14 +60,13 @@ void UTSGameplayAbilityBase::PlayMontage()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No MontageTask"));
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
 	}
 }
 
 void UTSGameplayAbilityBase::OnMontageStarted()
 {
-	//나중에 상속받아서 구현하기..
+
 }
 
 void UTSGameplayAbilityBase::OnMontageBlendOut()

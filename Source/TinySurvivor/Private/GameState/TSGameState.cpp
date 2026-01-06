@@ -6,7 +6,7 @@
 
 void ATSGameState::CheckGameOver()
 {
-	if (!HasAuthority())
+	if (!HasAuthority() || bGameOverTriggered)
 	{
 		return;
 	}
@@ -23,21 +23,34 @@ void ATSGameState::CheckGameOver()
 		{
 			if (!Character->IsDowned() && !Character->IsDead())
 			{
-				// 캐릭터가 기절 상태도 아니고 죽은 상태도 아니면 -> 살아있는 상태
 				bIsAnyoneAlive = true;
-				break; // 한 명이라도 살아있으면 게임 오버 아님.
+				break;
 			}
 		}
 	}
 	if (!bIsAnyoneAlive)
 	{
+		bGameOverTriggered = true;
+		for (APlayerState* PS : PlayerArray)
+		{
+			if (PS)
+			{
+				ATSCharacter* Character = Cast<ATSCharacter>(PS->GetPawn());
+				if (Character)
+				{
+					if (!Character->IsDead())
+					{
+						Character->Die();
+					}
+				}
+			}
+		}
 		Multicast_GameOver();
 	}
 }
 
 void ATSGameState::Multicast_GameOver_Implementation()
 {
-
 	for (FConstPlayerControllerIterator PCI = GetWorld()->GetPlayerControllerIterator(); PCI; ++PCI)
 	{
 		ATSPlayerController* PC = Cast<ATSPlayerController>(PCI->Get());
@@ -55,7 +68,6 @@ void ATSGameState::Multicast_GameOver_Implementation()
 
 void ATSGameState::DecreaseSanityToAll(bool bIsDeath)
 {
-	UE_LOG(LogTemp, Error, TEXT("###############################Sanity -10 ####################"));
 	if (!HasAuthority())
 	{
 		return;

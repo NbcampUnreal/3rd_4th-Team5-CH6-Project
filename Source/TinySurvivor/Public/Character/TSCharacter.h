@@ -39,8 +39,8 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UTSAttributeSet* GetAttributeSet() const;
 	
-	virtual void PossessedBy(AController* NewController) override; //서버빙의시호출
-	virtual void OnRep_PlayerState() override; //클라 복제시 호출
+	virtual void PossessedBy(AController* NewController) override; 
+	virtual void OnRep_PlayerState() override; 
 
 #pragma region Camera
 	FORCEINLINE USpringArmComponent* GetSpringArmComponent() const { return SpringArmComponent; }
@@ -58,18 +58,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "ShoulderSwitchCamera")
 	float LeftShoulderOffset = -80.0f;
 	
-	UPROPERTY(EditAnywhere, Category="ShoulderSwitchCamera")
-	float ShoulderSwitchDuration = 0.5f; //0.5초 동안 이동
-
-	bool bIsRightShoulder = true; //현재 오른쪽 어깨 카메라인가?
-	bool bIsSwitchingShoulder = false; // 전환 중인지
-	float ShoulderSwitchElapsed = 0.f; // 경과 시간
-	
-	FVector ShoulderStartOffset; // 시작 위치
-	FVector ShoulderTargetOffset; // 목표 위치
-	FVector SpringArmBaseLocation;
-	FVector SpringArmRightLocation;
-	FVector SpringArmLeftLocation;
+	bool bIsRightShoulder = true; 
 #pragma endregion
 
 #pragma region Input
@@ -108,84 +97,69 @@ public:
 #pragma endregion
 	
 #pragma region Downed & Dead & Revive
-	// ------------------------------------------------
-	// ------------------ Downed 상태 ------------------
-	// ------------------------------------------------
-	virtual void BecomeDowned(); // Health<=0 일 때 캐릭터 Downed 상태로 만드는 함수
-	
+	// Downed 
+	virtual void BecomeDowned();
 	UFUNCTION(BlueprintCallable, Category = "State")
-	bool IsDowned() const; // 현재 캐릭터가 Downed 상태인지 확인 (태그로 확인)
-	
+	bool IsDowned() const;
 	UPROPERTY(ReplicatedUsing = OnRep_IsDownedState, BlueprintReadOnly, Category = "State")
-	bool bIsDownedState = false; // 기절 상태 클라 동기화 함수 
-	
+	bool bIsDownedState = false; 
 	UFUNCTION()
 	void OnRep_IsDownedState();
-	// ----------------------------------------------
-	// ------------------ Dead 상태 ------------------
-	// ----------------------------------------------
-	virtual void Die(); // Down 상태에서 DownedHealth 0 되면 호출
+	// Dead 
+	virtual void Die();
 	
 	UFUNCTION(BlueprintCallable, Category = "State")
-	bool IsDead() const; // 현재 캐릭터가 Dead 상태인지 확인 (살릴 수 있나 없나) 
+	bool IsDead() const; 
 	
 	UPROPERTY(ReplicatedUsing = OnRep_IsDeadState, BlueprintReadOnly, Category = "State")
-	bool bIsDeadState ; // 클라로 Dead 여부 동기화
+	bool bIsDeadState ;
 	
 	UFUNCTION()
-	void OnRep_IsDeadState(); // 클라에서 Dead true면 호출 (죽는 모션 동기화)
+	void OnRep_IsDeadState();
+	// Revive
+	ATSCharacter* DetectReviveTarget();
 	
-	// ------------------------------------------------
-	// ------------------ Revive 상태 ------------------
-	// ------------------------------------------------
-	ATSCharacter* DetectReviveTarget(); // Target 감지
-	
-	virtual void Revive(); // Downed 캐릭터를 살려주는 함수
+	virtual void Revive();
 	
 	UFUNCTION(BlueprintCallable, Category = "State")
-	bool IsRescueCharacter() const; // 내가 지금 친구를 살려주고 있는가
+	bool IsRescueCharacter() const;
 	
 	UFUNCTION(Server, Reliable)
-	void ServerStartRevive(ATSCharacter* Target); // 소생 시작 요청
+	void ServerStartRevive(ATSCharacter* Target);
 	
 	UFUNCTION(Server, Reliable)
-	void ServerStopRevive(); // 소생 중단 요청
+	void ServerStopRevive();
 	
 	UFUNCTION(Client, Reliable)
-	void ClientForceStopRevive(); // 서버에서 강제로 소생 중당 -> 클라 알림
+	void ClientForceStopRevive();
 	
-	void OnReviveFinished(); // 서버 타이머가 ReviveDuration 만큼 지난 후 호출되는 콜백함수
+	void OnReviveFinished();
 	
-	void TickReviveValidation(); // 죽었는지, Downed이 아닌지, 거리 멀진 않은지 확인
+	void TickReviveValidation();
 	
 	UPROPERTY(Replicated)
-	ATSCharacter* ReviveTargetCharacter; // 소생 중인 대상 (기절된 친구)
+	ATSCharacter* ReviveTargetCharacter;
 	
 	UPROPERTY(ReplicatedUsing = OnRep_IsRescuing,BlueprintReadOnly, Category = "State")
-	bool bIsRescuing; // 기절한 친구를 살려주고 있는지
+	bool bIsRescuing;
 	
 	UFUNCTION()
-	void OnRep_IsRescuing(); // bIsRescuing 이 변경될 때마다 클라에서 이동 모드 동기화하는 함수
+	void OnRep_IsRescuing();
 	
-	FTimerHandle ReviveTimerHandle; // 5초 Revive 타이머 핸들
+	FTimerHandle ReviveTimerHandle;
 	
 	UPROPERTY()
-	float CurrentReviveTime = 0.f; // 소생 진행 시간 (현재 진행 시간 누적 값)
+	float CurrentReviveTime = 0.f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Revive")
-	float ReviveDuration = 5.0f; // 소생 소요시간 5초
+	float ReviveDuration = 5.0f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Revive")
-	float MaxReviveDistance = 250.0f; // 소생 유지 최대 거리 (친구가 기어가서 더 멀어지면 소생 끊김)
-	
+	float MaxReviveDistance = 250.0f;
 	
 	// ------------------ GE ------------------
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
 	TSubclassOf<UGameplayEffect> ProneMoveSpeedEffectClass; // 기절 시 MoveSpeed 200 설정
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
-	TSubclassOf<UGameplayEffect> DownedEffectClass; // 기절 시 DownedHealth 1초당 -5씩 깎는 GE
-
 #pragma endregion
 #pragma region Sanity
 	
@@ -199,26 +173,9 @@ protected:
 	virtual void BeginPlay() override;
 
 #pragma region Crouch
-	virtual void OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override;
-	virtual void OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust) override; 
-	
-	void UpdateCrouchCamera(); // 매 프레임 카메라 위치 갱신
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
-	float StandCameraZ = 0.f; // 서있을때 카메라 높이 보정
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
-	float CrouchCameraZ = 0.f; // 앉았을때 카메라 높이 보정
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Crouch")
-	FName CrouchCurveName = "CrouchCameraAlpha"; //애니메이션 커브 이름
-	
-	float OriginalCrouchHeightAdjust = 0.f; //캡슐 높이 변화량
-	FVector BaseSpringArmSocketOffset = FVector::ZeroVector; //초기 스프링암 오프셋
-	
-	FTimerHandle CrouchTimerHandle;
-	void UnlockCrouchToggle(); //잠금 해제 함수
-	bool bCrouchToggleLocked = false;
+public:
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Crouch")
+	bool bIsCrouching = false;
 #pragma endregion
 	
 #pragma region SurvivalAttribute
@@ -255,7 +212,7 @@ protected:
 	
 	
 public:
-	//------------------------------------------------- 태그 적용 이펙트
+	// 태그 적용 이펙트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
 	TSubclassOf<UGameplayEffect> DownedTagEffectClass;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
@@ -265,7 +222,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
 	TSubclassOf<UGameplayEffect> InLightTagEffectClass;
 	
-	//------------------------------------------------- 여긴 AS 태그 적용 이벤트
+	// AS 태그 적용 이벤트
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
 	TSubclassOf<UGameplayEffect> ThirstTagEffectClass;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
@@ -286,18 +243,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> FullRecoverHealthEffectClass; // Full 시 health recover 하는 GE
 protected:
-	// test -> 체온 상태이상에 따라 GE 적용 되는지 보기 위한 GE 적용 테스트 코드
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
-	TSubclassOf<UGameplayEffect> TempTESTClass;
-	
 #pragma endregion
 #pragma region Function
-	// GAS 안쓰는 함수
+	// Move
 	void Move(const struct FInputActionValue& Value);
 	void Look(const struct FInputActionValue& Value);
 	void ShoulderSwitch(const struct FInputActionValue& Value);
-
-	// GAS 어빌리티 매니저 호출 함수
 	void OnJumpOrClimbStarted(const struct FInputActionValue& Value);
 	void OnJumpOrClimbCompleted(const struct FInputActionValue& Value);
 	void OnRoll(const struct FInputActionValue& Value);
@@ -305,13 +256,13 @@ protected:
 	void OnSprintStarted(const struct FInputActionValue& Value);
 	void OnSprintCompleted(const struct FInputActionValue& Value);
 	
-	// Interaction 함수들
+	// Interaction
 	void OnOpenBag(const struct FInputActionValue& Value);
 	void OnBuild(const struct FInputActionValue& Value);
 	void OnInteract(const struct FInputActionValue& Value);
 	void OnStopInteract(const struct FInputActionValue& Value);
-	void OnLeftClick(const struct FInputActionValue& Value); //얘넨 모르겠다 (한 키에 여러가지 함수?)
-	void OnRightClick(const struct FInputActionValue& Value); // 얘넨 모르겠다.
+	void OnLeftClick(const struct FInputActionValue& Value); 
+	void OnRightClick(const struct FInputActionValue& Value);
 	void OnPingStarted(const struct FInputActionValue& Value);
 	void OnPingCompleted(const struct FInputActionValue& Value);
 	void OnEmoteStarted(const struct FInputActionValue& Value);
@@ -319,7 +270,7 @@ protected:
 	void OnWheelScroll(const struct FInputActionValue& Vaule);
 	void OnEsc(const struct FInputActionValue& Vaule);
 	
-	//hot key 함수들
+	//hot key
 	void OnHotKey1(const struct FInputActionValue& Value);
 	void OnHotKey2(const struct FInputActionValue& Value);
 	void OnHotKey3(const struct FInputActionValue& Value);
@@ -340,13 +291,13 @@ private:
 	void LineTrace();
 	
 	UPROPERTY(EditAnywhere,Category = "LineTrace")
-	float TraceLength = 500.f; // 상호작용 가능한 최대 거리
+	float TraceLength = 500.f;
 	UPROPERTY(EditAnywhere,Category = "LineTrace")
-	TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Visibility; //탐지에 사용할 트레이스 채널
+	TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Visibility;
 	UPROPERTY()
-	TWeakObjectPtr<AActor> CurrentHitActor; //현재 라인트레이스에 맞고 있는 액터
+	TWeakObjectPtr<AActor> CurrentHitActor;
 	UPROPERTY()
-	TWeakObjectPtr<AActor> LastHitActor; //직전 프레임에서 맞고 있던 액터
+	TWeakObjectPtr<AActor> LastHitActor;
 #pragma endregion
 
 #pragma region Climb
@@ -449,7 +400,6 @@ public:
 	void Multicast_StopConsumeMontage(UAnimMontage* Montage);
 #pragma endregion
 	
-	// 줍는 몽타주 하나 추가
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
 	TObjectPtr<UAnimMontage> PickUpMontage;
 	

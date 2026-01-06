@@ -26,8 +26,8 @@ UTSAttributeSet::UTSAttributeSet()
 	InitSanity(70.0f);
 	InitMaxSanity(100.0f);
 	
-	InitTemperature(36.5f); //36.5??
-	InitMaxTemperature(100.0f); //36.5? max는 한 39? 일단 100으로 다 맞춰둠
+	InitTemperature(36.5f); 
+	InitMaxTemperature(100.0f); 
 	
 	InitMoveSpeed(600.f);
 	InitMaxMoveSpeed(1000.0f);
@@ -47,8 +47,6 @@ UTSAttributeSet::UTSAttributeSet()
 	InitBaseDamageReflection(0.0f);	// 0% 기본
 	InitDamageReflectionBonus(0.0f);	// 장비/버프 추가
 	
-	InitDownedHealth(100.0f); // 기절 시 다운헬스 100 설정
-	InitMaxDownedHealth(100.0f);
 }
 //***********************************************
 //복제 설정
@@ -82,8 +80,6 @@ void UTSAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DamageReductionBonus, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BaseDamageReflection, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DamageReflectionBonus, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DownedHealth, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxDownedHealth, COND_None, REPNOTIFY_Always);
 }
 //***********************************************
 //값 변경 전 Clamp
@@ -275,32 +271,10 @@ void UTSAttributeSet::PostGameplayEffectExecute(const struct FGameplayEffectModC
 	{
 		if (GetHealth() <= 0.0f)
 		{
-			///////////////////
-			// 내 캐릭터 Down //
-			///////////////////
-			if (Char && !Char -> IsDowned()) // Downed 상태가 아니라면 
+			// 캐릭터 기절
+			if (Char && !Char -> IsDowned()) 
 			{
-				// Downed Health 를 Max 로 세팅 해주고
-				if (UTSAttributeSet* AS = Char->GetAttributeSet())
-				{
-					AS->SetDownedHealth(AS->GetMaxDownedHealth());
-				}
-				// Downed 상태 진입
 				Char -> BecomeDowned();
-			}
-		}
-	}
-	if (Data.EvaluatedData.Attribute == GetDownedHealthAttribute())
-	{
-		if (GetHealth() <= 0.0f && GetDownedHealth() <= 0.0f)
-		{
-			//////////////////
-			// 내 캐릭터 사망 //
-			//////////////////
-			if (Char) 
-			{
-				// 다운하도록
-				Char -> Die();
 			}
 		}
 	}
@@ -440,8 +414,7 @@ void UTSAttributeSet::ClampBeforeChange(const FGameplayAttribute& Attribute, flo
 			 Attribute == GetMaxHungerAttribute() || 
 			 Attribute == GetMaxThirstAttribute() ||
 			 Attribute == GetMaxSanityAttribute() || 
-			 Attribute == GetMaxTemperatureAttribute() ||
-			 Attribute == GetMaxDownedHealthAttribute())
+			 Attribute == GetMaxTemperatureAttribute())
 	{
 		NewValue = FMath::Max(1.0f, NewValue);
 	}
@@ -465,10 +438,6 @@ void UTSAttributeSet::ClampBeforeChange(const FGameplayAttribute& Attribute, flo
 	{
 		NewValue = FMath::Clamp(NewValue, -1.0f, 1.0f); 
 		// 또는 필요 시 0~1만 허용
-	}
-	else if (Attribute == GetDownedHealthAttribute())
-	{
-		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxDownedHealth());
 	}
 }
 void UTSAttributeSet::ClampAfterEffect(const struct FGameplayEffectModCallbackData& Data)
@@ -497,10 +466,6 @@ void UTSAttributeSet::ClampAfterEffect(const struct FGameplayEffectModCallbackDa
 	else if (Data.EvaluatedData.Attribute == GetTemperatureAttribute())
 	{
 		SetTemperature(FMath::Clamp(GetTemperature(), 0.0f, GetMaxTemperature()));
-	}
-	else if (Data.EvaluatedData.Attribute == GetDownedHealthAttribute())
-	{
-		SetDownedHealth(FMath::Clamp(GetDownedHealth(), 0.0f, GetMaxDownedHealth()));
 	}
 }
 //***********************************************
@@ -624,13 +589,4 @@ void UTSAttributeSet::OnRep_BaseDamageReflection(const FGameplayAttributeData& O
 void UTSAttributeSet::OnRep_DamageReflectionBonus(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DamageReflectionBonus, OldValue);
-}
-void UTSAttributeSet::OnRep_DownedHealth(const FGameplayAttributeData& OldDownedHealth)
-{
-	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DownedHealth, OldDownedHealth);
-}
-
-void UTSAttributeSet::OnRep_MaxDownedHealth(const FGameplayAttributeData& OldMaxDownedHealth)
-{
-	GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxDownedHealth, OldMaxDownedHealth);
 }
