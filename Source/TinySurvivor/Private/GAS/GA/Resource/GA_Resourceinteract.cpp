@@ -76,7 +76,7 @@ void UGA_Resourceinteract::BoxTrace()
 	TArray<AActor*> Ignored;
 	Ignored.Add(Character);
 
-	if (bool bHit = UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxHalfSize, Character->GetActorRotation(),UEngineTypes::ConvertToTraceType(ECC_Visibility), false, Ignored, EDrawDebugTrace::ForDuration, Hits, true))
+	if (bool bHit = UKismetSystemLibrary::BoxTraceMulti(this, Start, End, BoxHalfSize, Character->GetActorRotation(),UEngineTypes::ConvertToTraceType(ECC_Visibility), false, Ignored, EDrawDebugTrace::None, Hits, true))
 	{
 		for (auto& Hit : Hits)
 		{
