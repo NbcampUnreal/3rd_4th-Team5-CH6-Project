@@ -1375,8 +1375,8 @@ void ATSCharacter::LineTrace()
 	FCollisionQueryParams Params;
 	Params.AddIgnoredActor(this);
 	
-	// GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, TraceChannel);
-	if (!GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Pawn, Params))
+	bool bHitPawn = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Pawn, Params);	
+	if (!bHitPawn || (HitResult.GetActor() && !HitResult.GetActor()->IsA(ATSCharacter::StaticClass())))
 	{
 		GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, TraceChannel, Params);
 	}
