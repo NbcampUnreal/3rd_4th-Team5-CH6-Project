@@ -41,6 +41,7 @@ bool AGC_ElectricShock_Material::OnActive_Implementation(
 	OriginalMaterials.Empty();
 	CurrentBlinkCount = 0;
 	TargetActor.Reset();
+	bIsSkullSkin = false;
 	
 	// 타이머가 남아있을 수 있으므로 정리
 	if (BlinkTimerHandle.IsValid())
@@ -49,8 +50,8 @@ bool AGC_ElectricShock_Material::OnActive_Implementation(
 	}
 	
 	TargetActor = MyTarget;
-	LoadMaterials();
-	CacheOriginalMaterials(MyTarget);
+	CacheOriginalMaterials(MyTarget); // 원본 머티리얼 저장 및 해골 스킨 감지
+	LoadMaterials(); // 깜빡임용 해골 머티리얼 로드 (Dynamic Material 대신 skin4 로드)
 	StartBlinkEffect(MyTarget);
 	
 	// 사운드 재생
@@ -71,10 +72,10 @@ bool AGC_ElectricShock_Material::WhileActive_Implementation(
 	AActor* MyTarget,
 	const FGameplayCueParameters& Parameters)
 {
-	// While Active에서는 해골 머티리얼 유지
-	if (MyTarget && SkullMaterial)
+	// WhileActive에서는 원본 머티리얼 유지
+	if (MyTarget && OriginalMaterials.Num() > 0)
 	{
-		ApplyMaterialToActor(MyTarget, SkullMaterial);
+		ApplyMaterialToActor(MyTarget, OriginalMaterials);
 	}
 	
 	return Super::WhileActive_Implementation(MyTarget, Parameters);
@@ -109,6 +110,7 @@ bool AGC_ElectricShock_Material::OnRemove_Implementation(
 	OriginalMaterials.Empty();
 	CurrentBlinkCount = 0;
 	TargetActor.Reset();
+	bIsSkullSkin = false;
 	
 	return Super::OnRemove_Implementation(MyTarget, Parameters);
 }
@@ -117,53 +119,38 @@ bool AGC_ElectricShock_Material::OnRemove_Implementation(
 #pragma region LoadMaterials
 void AGC_ElectricShock_Material::LoadMaterials()
 {
-	// 기본 머티리얼 로드
-	DefaultMaterial = Cast<UMaterialInterface>(
+	// 해골 머티리얼 로드 (검은 배경 + 흰 해골) - 일반 스킨용
+	BlackSkullMaterial = Cast<UMaterialInterface>(
 		StaticLoadObject(UMaterialInterface::StaticClass(),
 		nullptr,
-		*DefaultMaterialPath));
-	if (!DefaultMaterial)
+		*BlackSkullMaterialPath));
+	
+	if (!BlackSkullMaterial)
 	{
-		UE_LOG(LogGCElectricShockMaterial, Warning,
-			TEXT("DefaultMaterial 로드 실패: %s, Fallback 사용"), *DefaultMaterialPath);
-		DefaultMaterial = UMaterial::GetDefaultMaterial(MD_Surface); // 엔진 기본 머티리얼
+		UE_LOG(LogGCElectricShockMaterial, Error,
+			TEXT("BlackSkullMaterial 로드 실패: %s"), *BlackSkullMaterialPath);
 	}
 	
-	// 해골 머티리얼 로드
-	SkullMaterial = Cast<UMaterialInterface>(
+	// 반전 해골 머티리얼 로드 (화이트 배경 + 검은 해골) - 해골 스킨용
+	WhiteSkullMaterial = Cast<UMaterialInterface>(
 		StaticLoadObject(UMaterialInterface::StaticClass(),
 		nullptr,
-		*SkullMaterialPath));
-	if (!SkullMaterial)
+		*WhiteSkullMaterialPath));
+	
+	if (!WhiteSkullMaterial)
 	{
-		UE_LOG(LogGCElectricShockMaterial, Warning,
-			TEXT("SkullMaterial 로드 실패: %s, DefaultMaterial 사용"), *SkullMaterialPath);
-		SkullMaterial = DefaultMaterial; // fallback
+		UE_LOG(LogGCElectricShockMaterial, Error,
+			TEXT("WhiteSkullMaterial 로드 실패: %s"), *WhiteSkullMaterialPath);
 	}
 	
-	// 화이트 머티리얼 생성 (다이나믹 머티리얼 인스턴스)
-	UMaterialInterface* BaseMaterial = Cast<UMaterialInterface>(
-		StaticLoadObject(UMaterialInterface::StaticClass(),
-		nullptr,
-		*WhiteMaterialPath));
-	if (!BaseMaterial)
-	{
-		UE_LOG(LogGCElectricShockMaterial, Warning,
-			TEXT("WhiteMaterial 로드 실패: %s, DefaultMaterial 사용"), *WhiteMaterialPath);
-		BaseMaterial = DefaultMaterial;
-	}
-	
-	// Dynamic 생성
-	if (BaseMaterial)
-	{
-		WhiteMaterialInstance = UMaterialInstanceDynamic::Create(BaseMaterial, this);
-		if (WhiteMaterialInstance)
-		{
-			// 화이트 색상 설정 (Emissive를 사용하여 밝은 흰색 구현)
-			WhiteMaterialInstance->SetVectorParameterValue(FName("BaseColor"), WhiteColor);
-			WhiteMaterialInstance->SetScalarParameterValue(FName("Emissive"), 10.0f); // 밝게
-		}
-	}
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogGCElectricShockMaterial, Log,
+		TEXT("[%s] 깜빡임 머티리얼 로드 완료 - 해골 스킨 여부: %s, BlackSkull: %s, WhiteSkull: %s"),
+		*GetName(), 
+		bIsSkullSkin ? TEXT("Yes") : TEXT("No"),
+		BlackSkullMaterial ? TEXT("OK") : TEXT("Failed"),
+		WhiteSkullMaterial ? TEXT("OK") : TEXT("Failed"));
+#endif
 }
 #pragma endregion
 
@@ -175,40 +162,33 @@ void AGC_ElectricShock_Material::CacheOriginalMaterials(AActor* Target)
 		return;
 	}
 	
-	// 캐릭터의 메시 컴포넌트 찾기
 	USkeletalMeshComponent* MeshComp = Target->FindComponentByClass<USkeletalMeshComponent>();
-	if (MeshComp)
+	if (!MeshComp)
 	{
-		OriginalMaterials.Empty();
-		for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
-		{
-			UMaterialInterface* CurrentMat = MeshComp->GetMaterial(i);
-			
-			// 이미 해골/화이트 머티리얼이 적용되어 있으면 DefaultMaterial 사용
-			if (CurrentMat == SkullMaterial ||
-				CurrentMat == WhiteMaterialInstance ||
-				(SkullMaterialPath.Len() > 0 && CurrentMat &&
-				 CurrentMat->GetPathName().Contains(TEXT("skin1"))))
-			{
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-				UE_LOG(LogGCElectricShockMaterial, Warning,
-					TEXT("[%s] 이미 효과 머티리얼이 적용됨. DefaultMaterial로 대체: Slot %d"),
-					*GetName(), i);
-#endif
-				
-				OriginalMaterials.Add(DefaultMaterial);
-			}
-			else
-			{
-				OriginalMaterials.Add(CurrentMat);
-			}
-		}
-#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogGCElectricShockMaterial, Log,
-			TEXT("[%s] 원본 머티리얼 캐시 완료 - Target: %s, Count: %d"),
-			*GetName(), *Target->GetName(), OriginalMaterials.Num());
-#endif
+		return;
 	}
+	
+	OriginalMaterials.Empty();
+	bIsSkullSkin = false;
+	
+	for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
+	{
+		UMaterialInterface* CurrentMat = MeshComp->GetMaterial(i);
+		OriginalMaterials.Add(CurrentMat);
+		
+		// 해골 스킨 감지 (skin1 키워드 포함 여부)
+		if (CurrentMat && CurrentMat->GetPathName().Contains(SkullSkinKeyword))
+		{
+			bIsSkullSkin = true;
+		}
+	}
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogGCElectricShockMaterial, Log,
+		TEXT("[%s] 원본 머티리얼 캐시 완료 - Target: %s, Count: %d, 해골 스킨: %s"),
+		*GetName(), *Target->GetName(), OriginalMaterials.Num(), 
+		bIsSkullSkin ? TEXT("Yes") : TEXT("No"));
+#endif
 }
 #pragma endregion
 
@@ -243,23 +223,45 @@ void AGC_ElectricShock_Material::ToggleBlink()
 	}
 	
 	AActor* Target = TargetActor.Get();
+	USkeletalMeshComponent* MeshComp = Target->FindComponentByClass<USkeletalMeshComponent>();
 	
-	// 짝수: 화이트, 홀수: 해골
+	if (!MeshComp)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BlinkTimerHandle);
+		return;
+	}
+	
+	// 짝수: 깜빡임 머티리얼, 홀수: 원본 머티리얼
 	if (CurrentBlinkCount % 2 == 0)
 	{
-		// 화이트 머티리얼 적용
-		if (WhiteMaterialInstance)
+		// 깜빡임 머티리얼 적용
+		if (bIsSkullSkin)
 		{
-			ApplyMaterialToActor(Target, WhiteMaterialInstance);
+			// 해골 스킨 -> 화이트 해골 머티리얼(skin4) 적용
+			if (WhiteSkullMaterial)
+			{
+				for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
+				{
+					MeshComp->SetMaterial(i, WhiteSkullMaterial);
+				}
+			}
+		}
+		else
+		{
+			// 일반 스킨: 검은 해골 머티리얼(skin1) 적용
+			if (BlackSkullMaterial)
+			{
+				for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
+				{
+					MeshComp->SetMaterial(i, BlackSkullMaterial);
+				}
+			}
 		}
 	}
 	else
 	{
-		// 해골 머티리얼 적용
-		if (SkullMaterial)
-		{
-			ApplyMaterialToActor(Target, SkullMaterial);
-		}
+		// 원본 머티리얼 적용
+		ApplyMaterialToActor(Target, OriginalMaterials);
 	}
 	
 	CurrentBlinkCount++;
@@ -268,8 +270,6 @@ void AGC_ElectricShock_Material::ToggleBlink()
 	if (CurrentBlinkCount >= BlinkCount * 2)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(BlinkTimerHandle);
-		
-		// 깜빡임 종료 후 원본 머티리얼 복원
 		RestoreOriginalMaterials(Target);
 	}
 }
@@ -278,9 +278,9 @@ void AGC_ElectricShock_Material::ToggleBlink()
 #pragma region ApplyMaterialToActor
 void AGC_ElectricShock_Material::ApplyMaterialToActor(
 	AActor* Target,
-	UMaterialInterface* Material)
+	const TArray<UMaterialInterface*>& Materials)
 {
-	if (!Target || !Material)
+	if (!Target || Materials.Num() == 0)
 	{
 		return;
 	}
@@ -288,9 +288,12 @@ void AGC_ElectricShock_Material::ApplyMaterialToActor(
 	USkeletalMeshComponent* MeshComp = Target->FindComponentByClass<USkeletalMeshComponent>();
 	if (MeshComp)
 	{
-		for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
+		for (int32 i = 0; i < Materials.Num() && i < MeshComp->GetNumMaterials(); ++i)
 		{
-			MeshComp->SetMaterial(i, Material);
+			if (Materials[i])
+			{
+				MeshComp->SetMaterial(i, Materials[i]);
+			}
 		}
 	}
 }
@@ -304,16 +307,12 @@ void AGC_ElectricShock_Material::RestoreOriginalMaterials(AActor* Target)
 		return;
 	}
 	
-	USkeletalMeshComponent* MeshComp = Target->FindComponentByClass<USkeletalMeshComponent>();
-	if (MeshComp)
-	{
-		for (int32 i = 0; i < OriginalMaterials.Num() && i < MeshComp->GetNumMaterials(); ++i)
-		{
-			if (OriginalMaterials[i])
-			{
-				MeshComp->SetMaterial(i, OriginalMaterials[i]);
-			}
-		}
-	}
+	ApplyMaterialToActor(Target, OriginalMaterials);
+	
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+	UE_LOG(LogGCElectricShockMaterial, Log,
+		TEXT("[%s] 원본 머티리얼 복원 완료 - Target: %s"),
+		*GetName(), *Target->GetName());
+#endif
 }
 #pragma endregion
