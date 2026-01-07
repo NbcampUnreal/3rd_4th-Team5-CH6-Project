@@ -1,11 +1,14 @@
 ﻿#include "System/ResourceControl/TSResourceBaseActor.h"
 #include "AbilitySystemComponent.h"
+#include "Controller/TSPlayerController.h"
 #include "Item/WorldItem.h"
 #include "Item/System/ItemDataSubsystem.h"
 #include "System/ResourceControl/TSResourceControlSubSystem.h"
 #include "Item/LootComponent.h"
 #include "System/ResourceControl/TSResourcePoint.h"
 #include "GameplayTags/ItemGameplayTags.h"
+#include "GameplayTags/NofiticationTags.h"
+#include "GameplayTags/System/GameplayDisplaySubSystem.h"
 #include "Kismet/GameplayStatics.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
@@ -237,18 +240,20 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 			IsFoundMatchTypeNone = true;
 		}
 	}
+	if (ResourceRuntimeData.RequiredToolTypes.Contains(EItemAnimType::INTERACT) && IsLeftMouseClicked)
+	{
+		UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] EItemAnimType::INTERACT 입니다. 왼쪽 마우스 클릭으로는 호출할 수 없습니다."));
+		ShowNotification(ASC, NotificationTags::TAG_Notification_Resource_Interact);
+		return;
+	}
 	
 	if (IsFoundAnyMatchType == false)
 	{
 		UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] RequiredToolID is NOT matching"));
+		ShowNotification(ASC, NotificationTags::TAG_Notification_Resource_NotToolMatch);
 		return;
 	}
-	
-	if (ResourceRuntimeData.RequiredToolTypes.Contains(EItemAnimType::INTERACT) && IsLeftMouseClicked)
-	{
-		UE_LOG(ResourceControlSystem, Warning,TEXT("[GetItemFromResource] EItemAnimType::NONE 입니다. 왼쪽 마우스 클릭으로는 호출할 수 없습니다."));
-		return;
-	}
+
 
 #pragma endregion
 	
@@ -325,6 +330,39 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 	}
 }
 
+void ATSResourceBaseActor::ShowNotification(UAbilitySystemComponent* ASC, const FGameplayTag& NotificationTag)
+{
+	if (!ASC) return;
+
+	// 캐싱된 서브시스템 확인 및 초기화
+	if (!CachedGTDS)
+	{
+		if (UGameInstance* GI = GetWorld()->GetGameInstance())
+		{
+			CachedGTDS = GI->GetSubsystem<UGameplayTagDisplaySubsystem>();
+		}
+	}
+
+	if (!CachedGTDS) return;
+
+	// ASC를 통해 플레이어 컨트롤러 찾기
+	APlayerController* PC = nullptr;
+	if (AActor* Avatar = ASC->GetAvatarActor())
+	{
+		if (APawn* Pawn = Cast<APawn>(Avatar))
+		{
+			PC = Cast<APlayerController>(Pawn->GetController());
+		}
+	}
+
+	// 클라이언트 전용 알림 호출 (RPC)
+	ATSPlayerController* TSPC = Cast<ATSPlayerController>(PC);
+	if (TSPC)
+	{
+		TSPC->ClientShowNotificationOnHUD(CachedGTDS->GetDisplayName_KR(NotificationTag));
+	}
+}
+
 void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& ATK, FVector& TargetLocation, FVector& SpawnOriginLocation, bool& IsHasHealth)
 {
 	if (IsValid(LootComponent))
@@ -339,8 +377,8 @@ void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& A
 	
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 성공"));
 	
-		
-	PlaySound(); // 자원 획득 시 효과음 재생
+	USoundBase* Sound = CurrentDestroySound.LoadSynchronous();	
+	Multicast_PlaySound(Sound); // 자원 획득 시 모든 플레이어 효과음 재생
 	
 	// 만약 체력이 안 쓴다? 그러면 죽어.
 	if (false == IsHasHealth)
@@ -354,7 +392,7 @@ void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& A
 	{
 		if (CurrentResourceHealth <= 0.f)
 		{
-			if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("체력을 없으므로 삭제"));
+			if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("체력이 없으므로 삭제"));
 			RequestSpawnResource();
 		}
 	}
@@ -390,21 +428,28 @@ void ATSResourceBaseActor::RequestSpawnResource()
 	Destroy();
 }
 
-void ATSResourceBaseActor::PlaySound()
+void ATSResourceBaseActor::Multicast_PlaySound_Implementation(USoundBase* SoundToPlay)
 {
 	//  파괴 사운드 재생
-	if (!CurrentDestroySound.IsNull())
+	if (SoundToPlay)
 	{
-		USoundBase* Sound = CurrentDestroySound.LoadSynchronous();
-		if (Sound)
-		{
-			UGameplayStatics::PlaySoundAtLocation(
-				this,
-				Sound,
-				GetActorLocation()
-			);
-		}
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			SoundToPlay,
+			GetActorLocation(),
+			FRotator::ZeroRotator,
+			1.0f, // Volume Multiplier
+			1.0f, // Pitch Multiplier
+			0.0f, // Start Time
+			DistanceAttenuation
+		);
 	}
+}
+
+
+TArray<EItemAnimType>& ATSResourceBaseActor::GetResourceRequiredToolTypes()
+{
+	return ResourceRuntimeData.RequiredToolTypes;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	

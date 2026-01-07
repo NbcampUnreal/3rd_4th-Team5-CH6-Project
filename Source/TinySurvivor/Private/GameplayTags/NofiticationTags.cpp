@@ -24,4 +24,12 @@ namespace NotificationTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Notification_Inventory_Failed, "Notification.Inventory.Failed");
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Notification_Inventory_CannotPlace, "Notification.Inventory.CannotPlace");
 #pragma endregion
+#pragma region Resource
+	//========================================
+	// 자원원천 알림
+	//========================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Notification_Resource_NotToolMatch, "Notification.Resource.NotToolMatch");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Notification_Resource_NotInteract, "Notification.Resource.NotInteract");
+	UE_DEFINE_GAMEPLAY_TAG(TAG_Notification_Resource_Interact, "Notification.Resource.Interact");
+#pragma endregion
 }

@@ -12,6 +12,7 @@
 class UAbilitySystemComponent;
 class ATSResourcePoint;
 class ULootComponent;
+class UGameplayTagDisplaySubsystem;
 
 UCLASS()
 class TINYSURVIVOR_API ATSResourceBaseActor : public AActor, public IIInteraction, public ITSResourceItemInterface
@@ -40,6 +41,7 @@ public:
 	void SetSpawnPoint(ATSResourcePoint* Point);
 	void InitFromResourceData(FResourceData& Data);
 	void SetMeshComp(UStaticMesh* MeshComp);
+	TArray<EItemAnimType>& GetResourceRequiredToolTypes();
 
 	// 어빌리티로 트레이스 날려서 맞춘 놈이 이 액터인지 확인하고 이 API로 요청하면 됨.
 	UFUNCTION(BlueprintCallable)
@@ -55,8 +57,12 @@ protected:
 	// 스폰 요청 
 	void RequestSpawnResource();
 	
-	// 효과음 재생
-	void PlaySound();
+	// 알림 유틸리티
+	void ShowNotification(UAbilitySystemComponent* ASC, const FGameplayTag& NotificationTag);
+	
+	// 효과음 재생 
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlaySound(USoundBase* SoundToPlay);
 
 	// 껍데기
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -78,6 +84,10 @@ protected:
 	// 현재 아이템 파괴 사운드
 	TSoftObjectPtr<USoundBase> CurrentDestroySound;
 	
+	// 사운드 감쇠 설정 (거리에 따른 음량 조절)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Resource | Audio")
+	TObjectPtr<USoundAttenuation> DistanceAttenuation;
+	
 	// 아이템 스폰용 root comp
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<ULootComponent> LootComponent;
@@ -98,6 +108,9 @@ protected:
 	// 디버깅
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
 	bool bShowDebug = false;
+	
+	// HUD
+	mutable UGameplayTagDisplaySubsystem* CachedGTDS = nullptr;
 	
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 

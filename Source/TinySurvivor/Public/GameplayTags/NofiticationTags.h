@@ -32,4 +32,12 @@ namespace NotificationTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Notification_Inventory_Failed);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Notification_Inventory_CannotPlace);
 #pragma endregion
+#pragma region Resource
+	//========================================
+	// 자원원천 알림
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Notification_Resource_NotToolMatch);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Notification_Resource_NotInteract);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Notification_Resource_Interact);
+#pragma endregion
 }
