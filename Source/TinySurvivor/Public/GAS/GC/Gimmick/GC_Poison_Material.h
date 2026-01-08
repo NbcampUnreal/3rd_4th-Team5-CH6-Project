@@ -98,6 +98,11 @@ private:
 	UPROPERTY()
 	TArray<UMaterialInstanceDynamic*> DynamicMaterials;
 	
+	// 현재 효과가 적용된 Target 추적
+	// 같은 Target에 재적용 시 원본 머티리얼 중복 저장 방지
+	UPROPERTY()
+	AActor* CurrentTarget = nullptr;
+	
 	// Fade 타이머 핸들 및 상태
 	FTimerHandle FadeTimerHandle;
 	float FadeElapsedTime = 0.0f;
