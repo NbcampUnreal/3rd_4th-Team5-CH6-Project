@@ -50,6 +50,44 @@ bool AGC_Poison_Material::OnActive_Implementation(
 // 		return true;
 // 	}
 	
+	// 같은 Target에 이미 효과가 적용 중인 경우
+	// 원본 머티리얼은 이미 저장되어 있으므로 Fade만 다시 시작
+	if (CurrentTarget == MyTarget && !DynamicMaterials.IsEmpty())
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogGCPoisonMaterial, Log,
+			TEXT("[PoisonMaterial] 동일 Target 재적용 - Fade만 재시작: %s"),
+			*MyTarget->GetName());
+#endif
+		
+		// 기존 타이머 정리 (FadeOut 중이었을 수도 있음)
+		if (FadeTimerHandle.IsValid())
+		{
+			GetWorldTimerManager().ClearTimer(FadeTimerHandle);
+		}
+		
+		// Fade만 다시 시작 (머티리얼은 그대로 유지)
+		StartFadeIn();
+		return true;
+	}
+	
+	// 다른 Target이면 이전 상태 정리
+	// 새로운 Target에 적용하기 전에 이전 Target의 머티리얼 복구
+	if (CurrentTarget != nullptr && CurrentTarget != MyTarget)
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogGCPoisonMaterial, Warning,
+			TEXT("[PoisonMaterial] Target 변경 감지 - 이전 Target 정리: %s -> %s"),
+			*CurrentTarget->GetName(), *MyTarget->GetName());
+#endif
+		
+		RestoreOriginalMaterials();
+	}
+	
+	// 현재 Target 저장
+	CurrentTarget = MyTarget;
+	
+	// 최초 적용 또는 새로운 Target
 	ApplyPoisonMaterial(MyTarget);
 	StartFadeIn();
 	
@@ -72,6 +110,19 @@ bool AGC_Poison_Material::OnRemove_Implementation(
 	// {
 	// 	return true;
 	// }
+	
+	// Target 일치 여부 확인
+	// 다른 Target의 OnRemove가 호출되면 무시
+	if (CurrentTarget != MyTarget)
+	{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogGCPoisonMaterial, Warning,
+			TEXT("[PoisonMaterial] Target 불일치로 OnRemove 무시: Current=%s, Param=%s"),
+			CurrentTarget ? *CurrentTarget->GetName() : TEXT("None"),
+			*MyTarget->GetName());
+#endif
+		return true;
+	}
 	
 	StartFadeOut();
 	
@@ -108,6 +159,18 @@ void AGC_Poison_Material::ApplyPoisonMaterial(AActor* Target)
 			continue;
 		}
 		
+		// 이미 처리된 MeshComponent는 스킵
+		// 재진입 시 이미 저장된 원본을 보호
+		if (OriginalMaterials.Contains(MeshComp))
+		{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+			UE_LOG(LogGCPoisonMaterial, Log,
+				TEXT("[PoisonMaterial] 이미 처리된 Mesh 스킵: %s"),
+				*MeshComp->GetName());
+#endif
+			continue; // 원본은 이미 저장됨, DynMat도 이미 생성됨
+		}
+		
 		// 원본 머티리얼 저장
 		TArray<UMaterialInterface*> OrigMats;
 		int32 NumMaterials = MeshComp->GetNumMaterials();
@@ -115,6 +178,21 @@ void AGC_Poison_Material::ApplyPoisonMaterial(AActor* Target)
 		for (int32 i = 0; i < NumMaterials; i++)
 		{
 			UMaterialInterface* OrigMat = MeshComp->GetMaterial(i);
+			
+			// DynamicMaterial이 이미 적용된 경우 검사
+			// 버그 상황 감지용 (정상적으로는 이 분기에 들어오면 안 됨)
+			if (UMaterialInstanceDynamic* ExistingDynMat = Cast<UMaterialInstanceDynamic>(OrigMat))
+			{
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+				UE_LOG(LogGCPoisonMaterial, Error,
+					TEXT("[PoisonMaterial] 이미 DynMat이 적용된 상태 감지! Slot %d"),
+					i);
+#endif
+				// 이미 DynMat이면 원본을 알 수 없으므로 스킵
+				// 이 경우는 CurrentTarget 체크가 제대로 작동하면 발생하지 않아야 함
+				continue;
+			}
+			
 			OrigMats.Add(OrigMat);
 			
 			// Dynamic Material Instance 생성
@@ -164,6 +242,7 @@ void AGC_Poison_Material::ApplyPoisonMaterial(AActor* Target)
 			}
 		}
 		
+		// 원본 머티리얼 저장 (최초 1회만 실행됨)
 		OriginalMaterials.Add(MeshComp, OrigMats);
 	}
 	
@@ -199,6 +278,10 @@ void AGC_Poison_Material::RestoreOriginalMaterials()
 	
 	OriginalMaterials.Empty();
 	DynamicMaterials.Empty();
+	
+	//CurrentTarget 초기화
+	// 다음 적용 시 새로운 Target으로 인식되도록
+	CurrentTarget = nullptr;
 	
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	UE_LOG(LogGCPoisonMaterial, Log, TEXT("[PoisonMaterial] 원본 머티리얼 복구 완료"));
