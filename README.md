@@ -1,3 +1,6 @@
+### 팀 노션 링크
+https://www.notion.so/teamsparta/28f2dc3ef51480979124cc43f3ae45a0
+
 # TINYSCAPE (타이니스케이프)
 > 작은 인간, 거대한 폐가, 살아남기 위한 협동 생존 액션
 
@@ -72,9 +75,6 @@
 - UE5.6 기본 모듈
 - Niagara / VFX
 - SFX 및 애니메이션 관련 플러그인
-
-### 팀 노션 링크
-https://www.notion.so/teamsparta/28f2dc3ef51480979124cc43f3ae45a0
 
 ## 6. 라이선스 (License)
 All rights reserved by 소인 연구소. Steam 배포 관련 규정 준수.
