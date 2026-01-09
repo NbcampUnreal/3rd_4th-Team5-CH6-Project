@@ -27,8 +27,7 @@
 - **레벨/게임 플레이 영상 (Gameplay / Cinematics):**
   - [Gameplay Video](링크)
   - 주요 스크린샷:
-    ![Screenshot1](링크)
-    ![Screenshot2](링크)
+    ![Image](https://github.com/user-attachments/assets/52899d2c-c169-4a5e-91a9-6e10b24d197d)
 
 ---
 
