@@ -34,6 +34,7 @@
     <img src="https://github.com/user-attachments/assets/c8e50b5e-c575-4096-8c4e-31a199dad30f" width="400">
     <img src="https://github.com/user-attachments/assets/a77d96b4-b661-4f48-a6d7-c31509743a43" width="400">
   </div>
+- **[🕹️게임 브로셔 링크](https://www.notion.so/teamsparta/3-4-5-TinyScape-2d22dc3ef51480888f81c29cc595513f)**
 
 ---
 
@@ -51,8 +52,8 @@
   - 정채은: 기획 및 밸런스 조정 (캐릭터, 아이템), 관리 (에셋, 데이터 테이블, 자원 원천), 총무
   - 한국인: UI 디자인, UI 기획, UI 애니메이션, 아이콘
 
-- **팀 노션 링크:**
-https://www.notion.so/teamsparta/28f2dc3ef51480979124cc43f3ae45a0
+- **[👻팀 노션 링크](https://www.notion.so/teamsparta/28f2dc3ef51480979124cc43f3ae45a0)**
+
 ---
 
 ## 4. 설치 및 실행 (Installation / How to Run)
