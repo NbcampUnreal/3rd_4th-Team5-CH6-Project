@@ -46,6 +46,8 @@
   - 정채은: 기획 및 밸런스 조정 (캐릭터, 아이템), 관리 (에셋, 데이터 테이블, 자원 원천), 총무
   - 한국인: UI 디자인, UI 기획, UI 애니메이션, 아이콘
 
+- **팀 노션 링크:**
+https://www.notion.so/teamsparta/28f2dc3ef51480979124cc43f3ae45a0
 ---
 
 ## 4. 설치 및 실행 (Installation / How to Run)
@@ -75,7 +77,3 @@
 
 ## 6. 라이선스 (License)
 All rights reserved by 소인 연구소. Steam 배포 관련 규정 준수.
-
-
-## 7. 팀 노션 링크
-https://www.notion.so/teamsparta/28f2dc3ef51480979124cc43f3ae45a0
