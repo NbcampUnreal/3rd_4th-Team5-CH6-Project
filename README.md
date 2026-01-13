@@ -24,8 +24,8 @@
   - **전투:** 몬스터와 거인 상대, 협동 전투  
   - **탐험:** 폐가 곳곳 탐험, 재료 수집, 아이템 제작, 건축
 
-- **레벨/게임 플레이 영상 (Gameplay / Cinematics):**
-  - [Gameplay Video](링크)
+- **프로젝트 게임 플레이 영상 (Gameplay / Cinematics):**
+  - [Gameplay Video (YouTube)](https://youtu.be/gdj8vDSDO7A)
   - 주요 스크린샷:
   <div>
     <img src="https://github.com/user-attachments/assets/52899d2c-c169-4a5e-91a9-6e10b24d197d" width="400">
