@@ -68,6 +68,9 @@
 2. UE5.6 실행 후 `TINYSCAPE.uproject` 열기
 3. Play 클릭 또는 패키징 빌드 실행
 
+### 패키징 빌드 (Build / Demo)
+- [🎮Windows Build (Google Drive)](https://drive.google.com/file/d/1bz4R9quggDNwll74TzAGVZ3vNfcSEqgn/view)
+
 ---
 
 ## 5. 시스템 및 기술 스택 (Systems / Tech Stack)
