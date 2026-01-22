@@ -225,6 +225,12 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 		return;
 	}
 	
+	// 이미 파괴 예약 상태면 추가 처리 막기 (중복 스폰/중복 요청 방지)
+	if (bPendingDestroy)
+	{
+		return;
+	}
+	
 	bool IsFoundAnyMatchType = false;
 	bool IsFoundMatchTypeNone = false;
 	
@@ -280,22 +286,60 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("GetItemFromResource 시작"));
 	
+	// (추가) "이번 함수 호출(=한 번의 공격)"에서 사운드는 딱 1번만 재생
+	bool bPlayedSoundThisCall = false;
+	auto PlaySoundOnce = [&]()
+	{
+		if (bPlayedSoundThisCall) return;
+		bPlayedSoundThisCall = true;
+
+		USoundBase* Sound = CurrentDestroySound.LoadSynchronous();
+		Multicast_PlaySound(Sound);
+	};
+	
 	// none 타입의 경우 시간 차로 얻어야 함.
 	if (IsFoundMatchTypeNone)
 	{
 		bool NoHealth = false;
 		DoHarvestLogic(ASC, ATK,PlayerLocation, FinalSpawnLocation, NoHealth);
+		
+		PlaySoundOnce();
+		
+		bPendingDestroy = true;
+		RequestSpawnResource();
+		return;
 	}
 	
 	// none 타입이 아닌 경우 (펀치 등등 다른 모든 타입)
 	if (IsFoundAnyMatchType == true)
 	{
 		bool YesHealth = true;
-		float CurrentHPPercent = CurrentResourceHealth / ResourceRuntimeData.ResourceHealth;
 		
-		CurrentResourceHealth = CurrentResourceHealth - ATK;
+		// ResourceHealth가 0(또는 음수)인 데이터는 "체력 미사용 자원"으로 처리
+		// -> 1회 스폰 후 즉시 리스폰/파괴 (기존 IsHasHealth==false 루트의 대체)
+		if (ResourceRuntimeData.ResourceHealth <= 0.0f)
+		{
+			bool NoHealth = false;
+			DoHarvestLogic(ASC, ATK, PlayerLocation, FinalSpawnLocation, NoHealth);
+
+			PlaySoundOnce();
+
+			bPendingDestroy = true;
+			RequestSpawnResource();
+			return;
+		}
+
+		// 피격 전/후 를 계산하여 스폰 실행 => 한 번에 체력이 0이 될 수 있기 때문에
+		const float MaxHP = FMath::Max(1.0f, ResourceRuntimeData.ResourceHealth);
+		const float OldHP = CurrentResourceHealth;
+		const float NewHP = CurrentResourceHealth - ATK;
+
+		const float OldPercent = OldHP / MaxHP;
+		const float NewPercent = NewHP / MaxHP;
+
+		CurrentResourceHealth = NewHP;
 		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 체력 %f"), CurrentResourceHealth);
-		
+	
 		// ASC 이벤트 태그 전송  (도구 내구도 감소)
 		FGameplayEventData EventData;
 		EventData.EventTag = ItemTags::TAG_Event_Item_Tool_Harvest;
@@ -305,27 +349,46 @@ void ATSResourceBaseActor::GetItemFromResource(UAbilitySystemComponent* ASC, EIt
 		ASC->HandleGameplayEvent(ItemTags::TAG_Event_Item_Tool_Harvest, &EventData);
 		if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("이벤트 전송함"));
 	
-		
-		// 70퍼센트
-		if (CurrentHPPercent > 0.3f && CurrentHPPercent <= 0.7f) 
+		// 이번 공격에서 스폰이 실제로 몇 번 발생했는지 (사운드 중복 재생 방지)
+		int32 SpawnCountThisCall = 0;
+
+		// 70% 
+		if (!bDoOnceSpawnedIn70 && OldPercent > 0.7f && NewPercent <= 0.7f)
 		{
-			if (bDoOnceSpawnedIn70) return;
 			bDoOnceSpawnedIn70 = true;
 			DoHarvestLogic(ASC, ATK,PlayerLocation, FinalSpawnLocation, YesHealth);
-		} 
-		// 30퍼센트
-		else if (CurrentHPPercent > 0.f && CurrentHPPercent <= 0.3f) 
+			SpawnCountThisCall++;
+		}
+
+		// 30% 
+		if (!bDoOnceSpawnedIn30 && OldPercent > 0.3f && NewPercent <= 0.3f)
 		{
-			if (bDoOnceSpawnedIn30) return;
 			bDoOnceSpawnedIn30 = true;
 			DoHarvestLogic(ASC, ATK,PlayerLocation, FinalSpawnLocation, YesHealth);
-		} 
-		// 0퍼센트
-		else if (CurrentHPPercent <= 0.0f)
+			SpawnCountThisCall++;
+		}
+
+		// 0%
+		if (!bDoOnceSpawnedIn00 && OldPercent > 0.0f && NewPercent <= 0.0f)
 		{
-			if (bDoOnceSpawnedIn00) return;
 			bDoOnceSpawnedIn00 = true;
 			DoHarvestLogic(ASC, ATK,PlayerLocation, FinalSpawnLocation, YesHealth);
+			SpawnCountThisCall++;
+		}
+
+		// 스폰이 1번이라도 발생했으면 사운드 재생
+		if (SpawnCountThisCall > 0)
+		{
+			PlaySoundOnce();
+		}
+
+		// 파괴/리스폰은 모든 스폰 처리 후 마지막에 실행
+		if (CurrentResourceHealth <= 0.0f)
+		{
+			bPendingDestroy = true;
+			if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("체력이 없으므로 삭제"));
+			RequestSpawnResource();
+			return;
 		}
 	}
 }
@@ -374,28 +437,9 @@ void ATSResourceBaseActor::DoHarvestLogic(UAbilitySystemComponent* ASC, int32& A
 			return;
 		}
 	}
-	
+
 	if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("현재 자원 아이템 스폰 성공"));
-	
-	USoundBase* Sound = CurrentDestroySound.LoadSynchronous();	
-	Multicast_PlaySound(Sound); // 자원 획득 시 모든 플레이어 효과음 재생
-	
-	// 만약 체력이 안 쓴다? 그러면 죽어.
-	if (false == IsHasHealth)
-	{
-		UE_LOG(ResourceControlSystem, Error, TEXT("체력을 안 쓰는 놈이 삭제"));
-		RequestSpawnResource();
-	}
-	
-	// 만약 체력 없다? 그러면 죽어.
-	else
-	{
-		if (CurrentResourceHealth <= 0.f)
-		{
-			if (bShowDebug) UE_LOG(ResourceControlSystem, Error, TEXT("체력이 없으므로 삭제"));
-			RequestSpawnResource();
-		}
-	}
+
 }
 
 void ATSResourceBaseActor::RequestSpawnResource()

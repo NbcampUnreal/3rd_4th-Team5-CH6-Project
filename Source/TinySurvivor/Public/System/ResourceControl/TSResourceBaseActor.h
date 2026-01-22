@@ -105,6 +105,9 @@ protected:
 	bool bDoOnceSpawnedIn30 = false;
 	bool bDoOnceSpawnedIn00 = false;
 	
+	// 파괴 예약 상태(중복 처리 방지)
+	bool bPendingDestroy = false;
+	
 	// 디버깅
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Erosion | Debug")
 	bool bShowDebug = false;
