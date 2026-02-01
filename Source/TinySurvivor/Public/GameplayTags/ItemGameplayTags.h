@@ -1,0 +1,199 @@
+// ItemGameplayTags.h
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
+#include "NativeGameplayTags.h"
+
+/*
+	아이템 시스템 전용 네이티브 게임플레이 태그
+	기획 명세 기반 계층 구조 정의
+ */
+namespace ItemTags
+{
+#pragma region Item_Root
+	//========================================
+	// 아이템 루트 태그
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item);
+#pragma endregion
+	
+#pragma region HarvestTarget
+	//========================================
+	// 채취 대상 자원 태그 (HarvestTarget)
+	// 도구가 채취할 수 있는 자원 원천의 재료 타입
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Paper);		// 종이 자원 (책, 신문 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Plastic);		// 플라스틱 자원 (병, 용기 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Wood);		// 나무 자원 (이쑤시개, 나무토막 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Stone);		// 돌 자원 (자갈, 암석 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Metal);		// 금속 자원 (캔, 철조각 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Glass);		// 유리 자원 (유리병, 유리조각 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Rubber);		// 고무 자원 (고무줄, 고무장갑 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Fabric);		// 섬유 자원 (천, 실 등)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_HarvestTarget_Food);		// 식량 자원 (쌀자루, 밀가루 봉지 등)
+#pragma endregion
+	
+#pragma region Effect
+	//========================================
+	// 소모품 효과 태그 (ConsumableEffect)
+	// 기획서 C-4-1: 소모품의 LogicTag 매핑
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect);					// 모든 아이템 효과 기본 태그
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_HP_HEAL);			// 체력 회복
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_SANITY_RESTORE);		// 정신력 회복
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_TEMP_SPEED_BUFF);	// 이동속도 증가 버프
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_CURE_DEBUFF);		// 디버프 해제
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_TEMP_ADJUST);		// 온도 조절
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_THIRST_RESTORE);		// 목마름 회복
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_HUNGER_RESTORE);		// 배고픔 회복
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_POISON_HEAL);		// 해독 (독 해제)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Effect_HP_DAMAGE);			// 체력 감소
+#pragma endregion
+	
+#pragma region Data
+	//========================================
+	// SetByCaller 데이터 전달용 태그
+	// GameplayEffect에서 동적으로 값을 전달받기 위한 태그
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_ItemID);
+	
+	// 무기 스탯 전달용 태그 추가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackDamage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackSpeed);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_AttackRange);
+	
+	// 방어구 스탯 전달용 태그 추가
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_HealthBonus);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_DamageReflection);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_DamageReduction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Data_Armor_MoveSpeed);
+#pragma endregion
+	
+#pragma region Ability
+	//========================================
+	// 아이템 관련 Ability 태그
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Item_Consume);
+#pragma endregion
+	
+#pragma region Event
+	//========================================
+	// 아이템 관련 이벤트 태그
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Item_Consumed);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Item_Tool_Harvest);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Item_Weapon_Attack);
+#pragma endregion
+	
+#pragma region PlacementArea
+	//========================================
+	// 설치 구역 (PlacementArea)
+	//========================================
+	
+	// 건축물 관련 태그의 루트 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building);
+	
+	// SafetyZone
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_SafetyZone);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_SafetyZone_LIGHT);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_SafetyZone_DEFENSE);
+	
+	// LightSource
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource_CRAFTING);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Building_PlacementArea_LightSource_STORAGE);
+#pragma endregion
+	
+#pragma region Temp
+	//========================================
+	// (임시)
+	// 아이템 티어 (등급)
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Tier);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Tier_T1);             // T1
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Tier_T2);             // T2
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Tier_T3);             // T3
+	
+	//========================================
+	// 스탯 표시에 사용
+	// 아이템 등급 (Rarity)
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_None);         // 등급 없음
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Common);       // 일반
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Normal);       // 보통
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Rare);         // 희귀
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Rarity_Unique);       // 유니크
+	
+	//========================================
+	// (임시)
+	// 사용 대상 (UseTarget)
+	// 기획: 자신, 타인, 필드
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_UseTarget);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_UseTarget_Self);      // 자신
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_UseTarget_Other);     // 타인
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_UseTarget_Field);     // 필드
+	
+	//========================================
+	// (임시)
+	// 획득 방식 (SourceType)
+	//========================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Harvest);      // 자원 채취
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_MonsterDrop);  // 몬스터 드롭
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Chest);        // 상자
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Craft);        // 크래프팅
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Interaction);  // 상호작용 (필드 내 오브젝트)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Item_Acquisition_Install);      // 설치 (건축물)
+#pragma endregion
+	
+#pragma region DisplayStat
+	//========================================
+	// 아이템 상세페이지 - 스탯 (DisplayStat)
+	//========================================
+	
+	// 아이템 스탯
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_HarvestTarget);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_AttackDamage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Durability);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_AttackRange);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_EquipSlot);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Head);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Torso);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Leg);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_EffectDuration);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaxStack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_DecayRate);
+	
+	// 빌딩 스탯
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_LightRadius);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_ErosionReduction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaxMaintenance);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_MaintenanceInterval);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_Rarity);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Display_Stat_StorageSlots);
+
+#pragma endregion
+	
+#pragma region ItemCategory
+	//========================================
+	// 아이템/빌딩 카테고리 (ItemCategory)
+	//========================================
+	
+	// 아이템 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Tool);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Weapon);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Armor);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Consumable);
+	
+	// 빌딩 카테고리
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Storage);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Lighting);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Crafting);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Category_Struct);
+#pragma endregion
+}

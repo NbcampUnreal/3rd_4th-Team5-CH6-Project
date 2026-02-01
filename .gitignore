@@ -1,0 +1,40 @@
+
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+*.VC.db
+*.VC.VC.opendb
+
+*.log
+*.tmp
+
+.DS_Store
+
+.vscode/
+.idea/
+
+# Visual Studio cache
+.vs/
+*.ipch
+
+
+# Content 내 모든 하위 경로를 포함해, 지정된 이름의 폴더 무시
+Content/ThirdParty/
+
+# Plugins 폴더를 추가함으로써 규칙 추가
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+Plugins/*/Content/
+Plugins/*/Resources/
+
+# Claude 폴더 제외
+/.claude/
+CLAUDE.md
+*.DotSettings*

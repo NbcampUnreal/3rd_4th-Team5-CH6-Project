@@ -1,0 +1,13 @@
+//
+// rdMeshlets.usf
+//
+// Copyright (c) 2025 Recourse Design ltd. All rights reserved.
+//
+// Creation Date: 1st February 2025
+// Last Modified: 1st February 2025
+//
+// More information on the rdInst SourceCode can be found at https://recourse.nz/index.php/rdinst-source-code/
+//
+
+
+//IMPLEMENT_SHADER_TYPE(,FrdMeshlets,TEXT("/rdInst/Shaders/rdMeshlets.usf"),TEXT("MainVS"),SF_Vertex)

@@ -1,0 +1,29 @@
+#include "PlayerState/TSPlayerState.h"
+#include "AbilitySystemComponent.h"
+#include "GAS/AttributeSet/TSAttributeSet.h"
+
+ATSPlayerState::ATSPlayerState()
+{
+	bReplicates = true;
+	
+	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));
+	ASC -> SetIsReplicated(true);
+	ASC -> SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+
+	Attributes = CreateDefaultSubobject<UTSAttributeSet>(TEXT("Attributes"));
+}
+
+void ATSPlayerState::BeginPlay()
+{
+	Super::BeginPlay();
+	SetNetUpdateFrequency(100.f);
+}
+
+UAbilitySystemComponent* ATSPlayerState::GetAbilitySystemComponent() const
+{
+	return ASC;
+}
+UTSAttributeSet* ATSPlayerState::GetAttributeSet() const
+{
+	return Attributes;
+}
