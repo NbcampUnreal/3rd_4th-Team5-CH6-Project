@@ -123,6 +123,11 @@ namespace AbilityTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Enemy_Damage);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Hit);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Event_Play_Emote);
+	
+	//================================
+	// GameplayCue 관련 태그
+	//================================
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GameplayCue_Hit);
 }
 
 namespace MonsterTags

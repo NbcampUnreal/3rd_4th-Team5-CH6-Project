@@ -110,6 +110,11 @@ namespace AbilityTags
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Ability_Hit, "Ability.Hit");
 	
 	UE_DEFINE_GAMEPLAY_TAG(TAG_Event_Play_Emote, "Event.Play.Emote");
+	
+	//================================
+	// GameplayCue 관련 태그
+	//================================
+	UE_DEFINE_GAMEPLAY_TAG(TAG_GameplayCue_Hit, "GameplayCue.Hit");
 }
 
 namespace MonsterTags
