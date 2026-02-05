@@ -14,6 +14,13 @@ UGA_Emote::UGA_Emote()
 void UGA_Emote::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	
+	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
+	if (Character)
+	{
+		Character->bUseControllerRotationYaw = false;
+	}
+	
 	if (!TriggerEventData)
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
@@ -94,6 +101,19 @@ void UGA_Emote::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGamep
 	if (ActiveEmoteSound && ActiveEmoteSound->IsPlaying())
 	{
 		ActiveEmoteSound->Stop();
+	}
+	
+	ATSCharacter* Character = Cast<ATSCharacter>(GetAvatarActorFromActorInfo());
+	if (Character )
+	{
+		if (AController* Controller = Character->GetController())
+		{
+			FRotator CurrentCharacterDir = Character -> GetActorRotation();
+			FRotator CurrentCameraDir = Controller->GetControlRotation(); 
+			FRotator AfterEmoteDir = FRotator(CurrentCameraDir.Pitch, CurrentCharacterDir.Yaw, 0.0f);
+			Controller -> SetControlRotation(AfterEmoteDir);
+		}
+		Character->bUseControllerRotationYaw = true;
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
