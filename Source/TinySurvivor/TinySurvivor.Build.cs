@@ -44,6 +44,9 @@ public class TinySurvivor : ModuleRules
 			// DeveloperSettings 모듈 (UDeveloperSettings 관련) 
 			"DeveloperSettings",
 			
+			// 게임 플레이 메시지 시스템 모듈
+			"GameplayMessageRuntime",
+			
 		});
 
 #if WITH_EDITOR
