@@ -1,0 +1,13 @@
+﻿// All CopyRight From YulRyongGameStudio //
+
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "NativeGameplayTags.h"
+
+namespace InteractTag
+{
+	TINYSURVIVOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(INTERACTTAG_RESOURCE_STARTINTERACT);
+	TINYSURVIVOR_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(INTERACTTAG_STOPINTERACT);
+}

@@ -1,4 +1,5 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// All CopyRight From YulRyongGameStudio //
+
 
 #include "TinySurvivor.h"
 #include "Modules/ModuleManager.h"

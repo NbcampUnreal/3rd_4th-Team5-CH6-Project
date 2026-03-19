@@ -1,0 +1,160 @@
+﻿// All CopyRight From YulRyongGameStudio //
+
+
+#include "A_FOR_INGAME/SECTION_ITEM/Crafting/TSCraftingTable.h"
+#include "A_FOR_INGAME/SECTION_PLAYER/Controller/TSPlayerController.h"
+#include "A_FOR_INGAME/SECTION_PLAYER/Character/TSCharacter.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Crafting/System/CraftingDataSubsystem.h"
+#include "A_FOR_COMMON/Tag/NofiticationTags.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Crafting/Data/CraftingData.h"
+#include "A_FOR_INGAME/SECTION_UI/TagDisplay/System/GameplayDisplaySubSystem.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/TSCraftingTableInventory.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/TSInventoryMasterComponent.h"
+
+// Sets default values
+ATSCraftingTable::ATSCraftingTable()
+{
+	CraftingInventory = CreateDefaultSubobject<UTSCraftingTableInventory>(TEXT("CraftingInventory"));
+}
+
+bool ATSCraftingTable::CanInteract(ATSCharacter* InstigatorCharacter)
+{
+	UTSInventoryMasterComponent* CharacterInventoryComp = Cast<UTSInventoryMasterComponent>(
+		InstigatorCharacter->GetComponentByClass(
+			UTSInventoryMasterComponent::StaticClass()));
+	if (!CharacterInventoryComp)
+	{
+		return false;
+	}
+	return true;
+}
+
+void ATSCraftingTable::Interact(ATSCharacter* InstigatorCharacter)
+{
+	if (!InstigatorCharacter || !InstigatorCharacter->IsLocallyControlled())
+	{
+		return;
+	}
+	ATSPlayerController* PC = Cast<ATSPlayerController>(InstigatorCharacter->GetController());
+	if (!PC)
+	{
+		return;
+	}
+	PC->ToggleContainer(EContentWidgetIndex::CraftingMode, this);
+}
+
+bool ATSCraftingTable::RunOnServer()
+{
+	return false;
+}
+
+void ATSCraftingTable::ServerRequestCraft_Implementation(int32 RecipeID, ATSCharacter* InstigatorCharacter)
+{
+	UGameplayTagDisplaySubsystem* TagDisplaySubsystem = UGameplayTagDisplaySubsystem::Get(this);
+	
+	ATSPlayerController* PC = Cast<ATSPlayerController>(InstigatorCharacter->GetController());
+	if (!PC)
+	{
+		return;
+	}
+	FText Message = FText::FromString("");
+	UCraftingDataSubsystem* CraftingDataSub = UCraftingDataSubsystem::GetCraftingDataSubsystem(GetWorld());
+	if (!CraftingDataSub)
+	{
+		Message = TagDisplaySubsystem->GetDisplayName_KR(NotificationTags::TAG_Notification_Crafting_Failed);
+		PC->ClientShowNotificationOnHUD(Message);
+		return;
+	}
+	FCraftingData RecipeData;
+	if (!CraftingDataSub->GetCraftingDataSafe(RecipeID, RecipeData))
+	{
+		Message = TagDisplaySubsystem->GetDisplayName_KR(NotificationTags::TAG_Notification_Crafting_Failed);
+		PC->ClientShowNotificationOnHUD(Message);
+		return;
+	}
+	if (!CanCraft(RecipeID, InstigatorCharacter))
+	{
+		Message = TagDisplaySubsystem->GetDisplayName_KR(NotificationTags::TAG_Notification_Crafting_LackingIngredients);
+		PC->ClientShowNotificationOnHUD(Message);
+		return;
+	}
+	StartCrafting(RecipeID, InstigatorCharacter);
+}
+
+bool ATSCraftingTable::ServerRequestCraft_Validate(int32 RecipeID, ATSCharacter* InstigatorCharacter)
+{
+	return RecipeID > 0 && InstigatorCharacter;
+}
+
+bool ATSCraftingTable::CanCraft(int32 RecipeID, ATSCharacter* InstigatorCharacter)
+{
+	if (!HasAuthority())
+	{
+		return false;
+	}
+	UCraftingDataSubsystem* CraftingDataSub = UCraftingDataSubsystem::GetCraftingDataSubsystem(GetWorld());
+	FCraftingData RecipeData;
+	if (!CraftingDataSub->GetCraftingDataSafe(RecipeID, RecipeData))
+	{
+		return false;
+	}
+
+	UTSInventoryMasterComponent* PlayerInventoryComp = Cast<UTSInventoryMasterComponent>(
+		InstigatorCharacter->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+	if (!PlayerInventoryComp)
+	{
+		return false;
+	}
+
+	for (const FIngredientData& Ingredient : RecipeData.Ingredients)
+	{
+		// 아이템 개수 확인
+		int32 ItemCount = PlayerInventoryComp->GetItemCount(Ingredient.MaterialID);
+		if (ItemCount < Ingredient.Count)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void ATSCraftingTable::StartCrafting(int32 RecipeID, ATSCharacter* InstigatorCharacter)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	UCraftingDataSubsystem* CraftingDataSub = UCraftingDataSubsystem::GetCraftingDataSubsystem(GetWorld());
+	FCraftingData RecipeData;
+	if (!CraftingDataSub->GetCraftingDataSafe(RecipeID, RecipeData))
+	{
+		return;
+	}
+
+	UTSInventoryMasterComponent* PlayerInventoryComp = Cast<UTSInventoryMasterComponent>(
+		InstigatorCharacter->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
+	if (!PlayerInventoryComp)
+	{
+		return;
+	}
+
+	for (const FIngredientData& Ingredient : RecipeData.Ingredients)
+	{
+		// 아이템 소비
+		PlayerInventoryComp->ConsumeItem(Ingredient.MaterialID, Ingredient.Count);
+	}
+	// 제작대 인벤토리 가방에 제작한 아이템 추가
+	int32 RemainingQuantity = RecipeData.ResultCount;
+	ATSPlayerController* PC = Cast<ATSPlayerController>(InstigatorCharacter->GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	int32 SlotIndex = CraftingInventory->PlaceCraftResult(PC, RecipeData.ResultItemID, RemainingQuantity);
+	if (SlotIndex == -1)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to place craft result"));
+		return;
+	}
+}

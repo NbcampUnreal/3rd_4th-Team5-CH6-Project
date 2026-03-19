@@ -1,4 +1,5 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// All CopyRight From YulRyongGameStudio //
+
 
 #pragma once
 
