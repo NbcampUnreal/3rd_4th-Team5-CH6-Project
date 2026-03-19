@@ -10,43 +10,44 @@ public class TinySurvivor : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput",
-			// UI
-			"UMG",
-			"Slate",
-			"SlateCore",
+			
+			// 코어 모듈
+			"Core", "CoreUObject", "Engine",
+				
+			//	입력 모듈
+			"InputCore", "EnhancedInput",
+			
+			// UI 모듈
+			"UMG", "Slate", "SlateCore",
+			
+			// VFX 모듈
 			"Niagara",
-			// AI
-			"AIModule",
-			"NavigationSystem",
-			"StateTreeModule",
-			"GameplayStateTreeModule",
-			"StructUtils",
-			//GAS
-			"GameplayAbilities",
-			"GameplayTags",
-			"GameplayTasks", 
-			// Object Pooling
-			"rdInst",
-			"ActorPoolManager",
-			// DeveloperSettings 모듈 링크 (UDeveloperSettings 관련)
-			"DeveloperSettings",
-			// SoundsByMaterial
+			
+			// SoundsByMaterial 모듈
 			"PhysicsCore",
-			// 스팀 + 보이스
-			"OnlineSubsystem", 
-			"OnlineSubsystemSteam",
-			"AdvancedSessions",
+
+			// AI 모듈
+			"AIModule", "NavigationSystem", "StateTreeModule", "GameplayStateTreeModule",
+			
+			// 구조체 유틸 모듈
+			"StructUtils",
+			
+			// GAS 모듈
+			"GameplayAbilities", "GameplayTags", "GameplayTasks", 
+			
+			// 스팀 + 보이스 모듈
+			"OnlineSubsystem", "OnlineSubsystemSteam", "AdvancedSessions",
+			
+			// Object Pooling 모듈
+			"rdInst", "ActorPoolManager",
+			
+			// DeveloperSettings 모듈 (UDeveloperSettings 관련) 
+			"DeveloperSettings",
+			
 		});
 
 #if WITH_EDITOR
 		PrivateDependencyModuleNames.AddRange(new string[] { "SequencerCore", "AITestSuite" });
 #endif
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
 	}
 }

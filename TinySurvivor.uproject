@@ -3,12 +3,14 @@
 	"EngineAssociation": "5.7",
 	"Category": "",
 	"Description": "",
-	"Modules": [
+	"Modules":
+	[
 		{
 			"Name": "TinySurvivor",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
+			"AdditionalDependencies":
+			[
 				"GameplayAbilities",
 				"GameplayTags",
 				"GameplayTasks",
@@ -18,11 +20,13 @@
 			]
 		}
 	],
-	"Plugins": [
+	"Plugins": 
+	[
 		{
 			"Name": "ModelingToolsEditorMode",
 			"Enabled": true,
-			"TargetAllowList": [
+			"TargetAllowList": 
+			[
 				"Editor"
 			]
 		},
