@@ -28,6 +28,9 @@ Saved/
 # Content 내 모든 하위 경로를 포함해, 지정된 이름의 폴더 무시
 Content/ThirdParty/
 
+# 모든 위치의 .zip 파일 무시
+*.zip
+
 # Plugins 폴더를 추가함으로써 규칙 추가
 Plugins/*/Binaries/
 Plugins/*/Intermediate/
