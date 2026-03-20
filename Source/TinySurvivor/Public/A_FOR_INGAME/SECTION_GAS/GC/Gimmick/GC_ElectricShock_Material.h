@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameplayCueNotify_Actor.h"
-#include "Sound/SoundCue.h"
 #include "GC_ElectricShock_Material.generated.h"
+
+class USoundCue;
 
 /*
 	전기 감전 상태의 머티리얼 효과 GameplayCue
