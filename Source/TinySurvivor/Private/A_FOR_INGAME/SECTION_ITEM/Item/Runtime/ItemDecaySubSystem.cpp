@@ -1,13 +1,13 @@
 // All CopyRight From YulRyongGameStudio //
 
 
-#include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/DecayManager.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemDecaySubSystem.h"
 #include "A_FOR_INGAME/SECTION_WORLD/Time/TimeTickManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDecayManager, Log, All);
 
 #pragma region Lifecycle
-bool UDecayManager::ShouldCreateSubsystem(UObject* Outer) const
+bool UItemDecaySubSystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	if (!Super::ShouldCreateSubsystem(Outer))
 	{
@@ -37,7 +37,7 @@ bool UDecayManager::ShouldCreateSubsystem(UObject* Outer) const
 	return bIsServer;
 }
 
-void UDecayManager::Initialize(FSubsystemCollectionBase& Collection)
+void UItemDecaySubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	
@@ -55,17 +55,17 @@ void UDecayManager::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	
 	// TimeTickManager의 1초 신호 구독
-	TimeTickManager->OnSecondTick.AddDynamic(this, &UDecayManager::OnSecondTick);
+	TimeTickManager->OnSecondTick.AddDynamic(this, &UItemDecaySubSystem::OnSecondTick);
 	
 	UE_LOG(LogDecayManager, Log, TEXT("DecayManager 초기화 완료 (TimeTickManager에 구독됨)"));
 }
 
-void UDecayManager::Deinitialize()
+void UItemDecaySubSystem::Deinitialize()
 {
 	// TimeTickManager가 아직 유효한 경우에만 구독 해제 시도
 	if (IsValid(TimeTickManager))
 	{
-		TimeTickManager->OnSecondTick.RemoveDynamic(this, &UDecayManager::OnSecondTick);
+		TimeTickManager->OnSecondTick.RemoveDynamic(this, &UItemDecaySubSystem::OnSecondTick);
 		UE_LOG(LogDecayManager, Log, TEXT("TimeTickManager 구독 해제 완료"));
 	}
 	else
@@ -83,7 +83,7 @@ void UDecayManager::Deinitialize()
 #pragma endregion
 
 #pragma region TickHandling
-void UDecayManager::OnSecondTick()
+void UItemDecaySubSystem::OnSecondTick()
 {
 	//UE_LOG(LogDecayManager, Log, TEXT("[DecayManager] Before Broadcast"));
 	

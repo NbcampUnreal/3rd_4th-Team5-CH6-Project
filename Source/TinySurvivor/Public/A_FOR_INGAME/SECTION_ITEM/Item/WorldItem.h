@@ -24,7 +24,7 @@
 #include "PoolableActorBase.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Struct/TSInventorySlot.h"
 #include "Engine/StreamableManager.h"
-#include "Runtime/DecayManager.h"
+#include "Runtime/ItemDecaySubSystem.h"
 #include "Components/WidgetComponent.h"
 #include "Interface/IInteraction.h"
 #include "WorldItem.generated.h"
@@ -35,7 +35,7 @@ class ATSCharacter;
 
 // ■ Decay
 //[S]=====================================================================================
-class UDecayManager;
+class UItemDecaySubSystem;
 //[E]=====================================================================================
 
 UCLASS()
@@ -68,7 +68,7 @@ protected:
 		DecayManager 캐시
 	*/
 	UPROPERTY()
-	TObjectPtr<UDecayManager> DecayManager;
+	TObjectPtr<UItemDecaySubSystem> DecayManager;
 	
 	/*
 		부패도 틱 핸들러

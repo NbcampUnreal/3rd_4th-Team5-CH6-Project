@@ -5,7 +5,6 @@
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemInstance.h"
 
 
-// Sets default values for this component's properties
 UTSLampInventory::UTSLampInventory()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -16,53 +15,32 @@ UTSLampInventory::UTSLampInventory()
 	SlotAccessType = ESlotAccessType::ReadWrite;
 }
 
-void UTSLampInventory::Internal_TransferItem(UTSInventoryMasterComponent* SourceInventory,
-                                             UTSInventoryMasterComponent* TargetInventory,
-                                             EInventoryType FromInventoryType, int32 FromSlotIndex,
-                                             EInventoryType ToInventoryType, int32 ToSlotIndex,
-                                             bool bIsFullStack, ATSPlayerController* RequestingPlayer)
+void UTSLampInventory::TransferItem(UTSInventoryMasterComponent* SourceInventory,UTSInventoryMasterComponent* TargetInventory,EInventoryType FromInventoryType, int32 FromSlotIndex,EInventoryType ToInventoryType, int32 ToSlotIndex,bool bIsFullStack, ATSPlayerController* RequestingPlayer)
 {
-	if (!GetOwner()->HasAuthority())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Internal_TransferItem called on client!"));
-		return;
-	}
-	if (SourceInventory->GetSlot(FromInventoryType, FromSlotIndex).ItemData.StaticDataID
-		!= MaintenanceCostID)
-	{
-		return;
-	}
+	if (!GetOwner()->HasAuthority()) return;
+	if (SourceInventory->GetSlot(FromInventoryType, FromSlotIndex).ItemData.StaticDataID != MaintenanceCostID) return;
 
-	Super::Internal_TransferItem(SourceInventory, TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType,
-	                             ToSlotIndex,
-	                             bIsFullStack, RequestingPlayer);
+	Super::TransferItem(SourceInventory, TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType, ToSlotIndex, bIsFullStack, RequestingPlayer);
+	
 	SetFuelSlot();
 }
 
-bool UTSLampInventory::CanPlaceItemInSlot(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex,
-                                          bool IsTarget)
+bool UTSLampInventory::CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex,bool IsTarget)
 {
-	if (Super::CanPlaceItemInSlot(StaticDataID, InventoryType, SlotIndex, IsTarget))
+	if (Super::CanPlaceItemInSlot_internal(StaticDataID, InventoryType, SlotIndex, IsTarget))
 	{
-		if (StaticDataID != MaintenanceCostID)
-		{
-			return false;
-		}
-		if (IsTarget)
-		{
-			if (GetSlot(InventoryType, SlotIndex).CurrentStackSize >= MaintenanceCostQty)
-			{
-				return false;
-			}
-		}
+		if (StaticDataID != MaintenanceCostID) return false;
+		if (IsTarget && GetSlot(InventoryType, SlotIndex).CurrentStackSize >= MaintenanceCostQty) return false;
 	}
+	
 	OnFuelTransferred.Broadcast();
 	return true;
 }
 
-void UTSLampInventory::ClearSlot(FSlotStructMaster& Slot)
+void UTSLampInventory::ClearSlot_internal(FSlotStructMaster& Slot)
 {
-	Super::ClearSlot(Slot);
+	Super::ClearSlot_internal(Slot);
+	
 	Slot.ItemData.StaticDataID = MaintenanceCostID;
 	Slot.MaxStackSize = MaintenanceCostQty;
 }

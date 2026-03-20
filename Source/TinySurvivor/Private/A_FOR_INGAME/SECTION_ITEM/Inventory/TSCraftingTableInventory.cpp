@@ -2,6 +2,8 @@
 
 
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/TSCraftingTableInventory.h"
+
+#include "A_FOR_COMMON/Library/Item/TSItemHelperLibrary.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemInstance.h"
 
 
@@ -17,6 +19,7 @@ UTSCraftingTableInventory::UTSCraftingTableInventory()
 void UTSCraftingTableInventory::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	if (GetOwner()->HasAuthority())
 	{
 		UsedSlot.Init(false, MAX_CRAFTING_SLOTS);
@@ -31,20 +34,13 @@ void UTSCraftingTableInventory::PostInitProperties()
 
 int32 UTSCraftingTableInventory::GetorAssignSlotForPlayer(APlayerController* PC)
 {
-	if (!PC || !GetOwner()->HasAuthority())
-	{
-		return -1;
-	}
-	if (int32* ExistingSlot = PlayerSlotMap.Find(PC))
-	{
-		return *ExistingSlot;
-	}
+	if (!IsValid(PC) || !GetOwner()->HasAuthority()) return -1;
+	
+	if (int32* ExistingSlot = PlayerSlotMap.Find(PC)) return *ExistingSlot;
 
 	int32 EmptySlot = GetUnusedSlot();
-	if (EmptySlot == -1)
-	{
-		return -1;
-	}
+	if (EmptySlot == -1) return -1;
+	
 	PlayerSlotMap.Add(PC, EmptySlot);
 	UsedSlot[EmptySlot] = true;
 	return EmptySlot;
@@ -52,34 +48,21 @@ int32 UTSCraftingTableInventory::GetorAssignSlotForPlayer(APlayerController* PC)
 
 void UTSCraftingTableInventory::OnPlayerClosedUI(APlayerController* PC)
 {
-	if (!GetOwner()->HasAuthority())
-	{
-		return;
-	}
+	if (!GetOwner()->HasAuthority()) return;
+	
 	ReleasePlayerSlot(PC);
 }
 
 int32 UTSCraftingTableInventory::PlaceCraftResult(APlayerController* PC, int32 ResultItemID, int32 Quantity)
 {
-	if (!GetOwner()->HasAuthority())
-	{
-		return -1;
-	}
-	if (!PC || ResultItemID == 0 || Quantity <= 0)
-	{
-		return -1;
-	}
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority()) return -1;
+	
+	if (!IsValid(PC) || ResultItemID == 0 || Quantity <= 0) return -1;
 
 	int32 SlotIndex = GetorAssignSlotForPlayer(PC);
-	if (SlotIndex == -1)
-	{
-		return -1;
-	}
+	if (SlotIndex == -1) return -1;
 
-	if (!IsValidSlotIndex(EInventoryType::BackPack, SlotIndex))
-	{
-		return -1;
-	}
+	if (!IsValidSlotIndex_internal(EInventoryType::BackPack, SlotIndex)) return -1;
 
 	FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[SlotIndex];
 
@@ -90,23 +73,22 @@ int32 UTSCraftingTableInventory::PlaceCraftResult(APlayerController* PC, int32 R
 	}
 
 	FItemData ItemInfo;
-	if (!GetItemData(ResultItemID, ItemInfo))
-	{
-		return -1;
-	}
+	if (!UTSItemHelperLibrary::GetItemData(this, ResultItemID, ItemInfo)) return -1;
+	
 	FItemInstance Result = FItemInstance(ResultItemID, GetWorld()->GetTimeSeconds(), ItemInfo.GetMaxDurability());
+	
 	// 제작 결과물 배치
 	Slot.ItemData = Result;
 	Slot.CurrentStackSize = Quantity;
 	Slot.MaxStackSize = ItemInfo.MaxStack;
 	Slot.bCanStack = ItemInfo.IsStackable();
+	
 	// 부패 시스템 적용
 	if (ItemInfo.IsDecayEnabled())
 	{
-		Slot.ExpirationTime = GetWorld()->GetTimeSeconds()
-			+ ItemInfo.ConsumableData.DecayRate;
+		Slot.ExpirationTime = GetWorld()->GetTimeSeconds() + ItemInfo.ConsumableData.DecayRate;
 	}
-	HandleInventoryChanged();
+	HandleInventoryChanged_internal();
 
 	return SlotIndex;
 }
@@ -115,31 +97,26 @@ int32 UTSCraftingTableInventory::GetUnusedSlot() const
 {
 	for (int32 i = 0; i < MAX_CRAFTING_SLOTS; ++i)
 	{
-		if (!UsedSlot[i])
-		{
-			return i;
-		}
+		if (!UsedSlot[i]) return i;
 	}
+	
 	return -1;
 }
 
 void UTSCraftingTableInventory::ReleasePlayerSlot(APlayerController* PC)
 {
-	if (!PC)
-	{
-		return;
-	}
+	if (!IsValid(PC)) return;
+	
 	int32* SlotIndex = PlayerSlotMap.Find(PC);
-	if (!SlotIndex)
-	{
-		return;
-	}
+	if (!SlotIndex) return;
+	
 	// 슬롯에 아이템이 남아있으면 월드에 드랍
-	if (!IsSlotEmpty(EInventoryType::BackPack, *SlotIndex))
+	if (!IsSlotEmpty_internal(EInventoryType::BackPack, *SlotIndex))
 	{
 		const FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[*SlotIndex];
 		ServerDropItemToWorld(EInventoryType::BackPack, *SlotIndex, Slot.CurrentStackSize);
 	}
+	
 	UsedSlot[*SlotIndex] = false;
 	PlayerSlotMap.Remove(PC);
 }

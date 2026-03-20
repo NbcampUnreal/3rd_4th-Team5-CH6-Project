@@ -84,6 +84,9 @@ struct TINYSURVIVOR_API FSlotStructMaster
 	// 아이템 인스턴스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ItemData")
 	FItemInstance ItemData;
+	
+	bool IsSlotEmpty();
+	
 };
 
 /**
@@ -101,4 +104,12 @@ struct TINYSURVIVOR_API FInventoryStructMaster
 	// 슬롯 컨테이너
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "InventorySlotContainer")
 	TArray<FSlotStructMaster> InventorySlotContainer = {};
+	
+	
+	
+	
+	
+	
+	bool IsValidSlotIndex(int32 SlotIndex);
+	FSlotStructMaster& GetSlot(int32 SlotIndex);
 };
