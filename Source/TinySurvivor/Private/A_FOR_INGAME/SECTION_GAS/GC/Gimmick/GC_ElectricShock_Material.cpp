@@ -3,11 +3,9 @@
 
 #include "A_FOR_INGAME/SECTION_GAS/GC/Gimmick/GC_ElectricShock_Material.h"
 #include "A_FOR_COMMON/Tag/GameplayCueTags.h"
-#include "Materials/MaterialInstanceDynamic.h"
-#include "Components/SkeletalMeshComponent.h"
 #include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "TimerManager.h"
+#include "Sound/SoundCue.h"
 
 //======================================================================================================================
 #pragma region 라이프_사이클
