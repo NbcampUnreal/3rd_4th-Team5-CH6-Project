@@ -56,15 +56,6 @@ bool AGC_ElectricShock_Material::OnActive_Implementation(AActor* InMyTarget, con
 
 bool AGC_ElectricShock_Material::WhileActive_Implementation( AActor* InMyTarget, const FGameplayCueParameters& InParameters)
 {
-	// 타겟 확인
-	if (!IsValid(InMyTarget)) return false;
-	
-	// WhileActive에서는 원본 머티리얼 유지
-	if (InMyTarget && OriginalMaterialsArray.Num() > 0)
-	{
-		ApplyMaterialToActor_internal(InMyTarget, OriginalMaterialsArray);
-	}
-	
 	return Super::WhileActive_Implementation(InMyTarget, InParameters);
 }
 
@@ -102,17 +93,11 @@ void AGC_ElectricShock_Material::LoadMaterials_internal()
 {
 	// 해골 머티리얼 로드 (검은 배경 + 흰 해골) - 일반 스킨용
 	BlackSkullMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass() , nullptr, *BlackSkullMaterialPath));
-	if (!IsValid(BlackSkullMaterial))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("BlackSkullMaterial 로드 실패"));
-	}
+	if (!IsValid(BlackSkullMaterial)) UE_LOG(LogTemp, Warning, TEXT("BlackSkullMaterial 로드 실패"));
 	
 	// 반전 해골 머티리얼 로드 (화이트 배경 + 검은 해골) - 해골 스킨용
 	WhiteSkullMaterial = Cast<UMaterialInterface>(StaticLoadObject(UMaterialInterface::StaticClass(),nullptr, *WhiteSkullMaterialPath));
-	if (!IsValid(WhiteSkullMaterial))
-	{
-		UE_LOG(LogTemp, Warning,TEXT("WhiteSkullMaterial 로드 실패"));
-	}
+	if (!IsValid(WhiteSkullMaterial)) UE_LOG(LogTemp, Warning,TEXT("WhiteSkullMaterial 로드 실패"));
 }
 
 void AGC_ElectricShock_Material::CacheOriginalMaterials_internal(AActor* InTarget)
@@ -128,19 +113,18 @@ void AGC_ElectricShock_Material::CacheOriginalMaterials_internal(AActor* InTarge
 	OriginalMaterialsArray.Empty();
 	bIsSkullSkin = false;
 	
-	// 머티리얼 가져오기
+	// 모든 머티리얼 배열에 넣기 
 	for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
 	{
+		// 머티리얼 검증
 		UMaterialInterface* CurrentMat = MeshComp->GetMaterial(i);
 		if (!CurrentMat) continue;
 		
-		OriginalMaterialsArray.Add(CurrentMat);
-		
 		// 해골 스킨 감지 (skin1 키워드 포함 여부)
-		if (CurrentMat->GetPathName().Contains(SkullSkinKeyword))
-		{
-			bIsSkullSkin = true;
-		}
+		if (CurrentMat->GetPathName().Contains(SkullSkinKeyword)) bIsSkullSkin = true;
+		
+		// 배열에 추가
+		OriginalMaterialsArray.Add(CurrentMat);
 	}
 }
 
@@ -159,57 +143,52 @@ void AGC_ElectricShock_Material::StartBlinkEffect_internal(AActor* InTarget)
 
 void AGC_ElectricShock_Material::StartAudio_internal(AActor* InTarget)
 {
+	// 검증 및 사운드 컴포넌트 생성
 	if (!IsValid(ElectricSoundCue) && !IsValid(InTarget)) return;
 	ElectricAudioComponent = UGameplayStatics::SpawnSoundAttached(ElectricSoundCue, InTarget->GetRootComponent());
 }
 
 void AGC_ElectricShock_Material::ToggleBlink_internal()
 {
+	// 검증
 	if (!TargetActorPtr.IsValid() || !IsValid(TargetActorPtr.Get()))
 	{
 		ClearBlinkTimer_internal();
 		return;
 	}
 	
+	// 스켈레탈 메시 가져오기
 	USkeletalMeshComponent* MeshComp = TargetActorPtr.Get()->FindComponentByClass<USkeletalMeshComponent>();
 	if (!IsValid(MeshComp))
 	{
 		ClearBlinkTimer_internal();
 		return;
 	}
-	
-	// 짝수: 깜빡임 머티리얼, 홀수: 원본 머티리얼
-	if (CurrentBlinkCount % 2 == 0)
-	{
-		// 깜빡임 머티리얼 적용
-		if (bIsSkullSkin)
-		{
-			// 해골 스킨 -> 화이트 해골 머티리얼(skin4) 적용
-			if (WhiteSkullMaterial)
-			{
-				for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
-				{
-					MeshComp->SetMaterial(i, WhiteSkullMaterial);
-				}
-			}
-		}
-		else
-		{
-			// 일반 스킨: 검은 해골 머티리얼(skin1) 적용
-			if (BlackSkullMaterial)
-			{
-				for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
-				{
-					MeshComp->SetMaterial(i, BlackSkullMaterial);
-				}
-			}
-		}
-	}
-	else
+
+	// 홀수 
+	if (CurrentBlinkCount % 2 != 0)
 	{
 		// 원본 머티리얼 적용
 		ApplyMaterialToActor_internal( TargetActorPtr.Get(), OriginalMaterialsArray);
 	}
+	
+	// 짝수
+	else if (CurrentBlinkCount % 2 == 0)
+	{
+		// 해골 스킨 : 화이트 해골 머티리얼(skin4) 적용
+		// 일반 스킨 : 검은 해골 머티리얼(skin1) 적용
+		UMaterialInterface* TargetMat = bIsSkullSkin ? WhiteSkullMaterial : BlackSkullMaterial;
+		if (!IsValid(TargetMat))
+		{
+			ClearBlinkTimer_internal();
+			return;
+		}
+		
+		for (int32 i = 0; i < MeshComp->GetNumMaterials(); ++i)
+		{
+			MeshComp->SetMaterial(i, TargetMat);
+		}
+	}	
 	
 	// 카운트 증가
 	++CurrentBlinkCount;
@@ -238,10 +217,8 @@ void AGC_ElectricShock_Material::ApplyMaterialToActor_internal(AActor* Target, c
 	// 머티리얼 적용
 	for (int32 i = 0; i < Materials.Num() && i < MeshComp->GetNumMaterials(); ++i)
 	{
-		if (Materials[i])
-		{
-			MeshComp->SetMaterial(i, Materials[i]);
-		}
+		if (!IsValid(Materials[i])) continue;
+		MeshComp->SetMaterial(i, Materials[i]);
 	}
 }
 
@@ -265,16 +242,13 @@ bool AGC_ElectricShock_Material::ClearBlinkTimer_internal()
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	
 	// 타이머 정리
-	if (BlinkTimerHandle.IsValid())
-	{
-		TimerManager.ClearTimer(BlinkTimerHandle);
-	}
-	
+	if (BlinkTimerHandle.IsValid()) TimerManager.ClearTimer(BlinkTimerHandle);
 	return true;
 }
 
 void AGC_ElectricShock_Material::ResetState_internal()
 {
+	// 초기화 목록 : 캐싱한 머티리얼, 깜빡임 카운트, 타겟 포인터, 해골 스킨 여부 
 	OriginalMaterialsArray.Empty();
 	CurrentBlinkCount = 0;
 	TargetActorPtr.Reset();
@@ -283,12 +257,12 @@ void AGC_ElectricShock_Material::ResetState_internal()
 
 void AGC_ElectricShock_Material::StopAudio_internal()
 {
+	// 검증
+	if (!IsValid(ElectricAudioComponent)) return;
+
 	// 사운드 정지
-	if (IsValid(ElectricAudioComponent))
-	{
-		ElectricAudioComponent->Stop();
-		ElectricAudioComponent = nullptr;
-	}
+	ElectricAudioComponent->Stop();
+	ElectricAudioComponent = nullptr;
 }
 
 

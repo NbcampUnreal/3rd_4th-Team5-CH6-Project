@@ -152,7 +152,7 @@ private:
 protected:
 	
 	//--------------------
-	// 머티리얼 (공통)
+	// 머티리얼 (깜빡임)
 	//--------------------
 	
 	// 깜빡임 횟수
@@ -164,17 +164,7 @@ protected:
 	float BlinkInterval = 0.3f;
 	
 	//--------------------
-	// 머티리얼 (일반 스킨용)
-	//--------------------
-
-	/*
-	// 기본 머티리얼 경로
-	UPROPERTY(EditDefaultsOnly, Category = "Material Settings",
-	FString DefaultMaterialPath = TEXT("/Game/ThirdParty/SECTION_PLAYER/CardboardWarrior/Materials/Mat_Cardboard_warrior_Body");
-	*/
-	
-	//--------------------
-	// 머티리얼 (해골 스킨용)
+	// 머티리얼 (스킨)
 	//--------------------
 	
 	// 해골 머티리얼 경로 (검은 배경 + 흰 해골)
@@ -188,34 +178,6 @@ protected:
 	// 해골 스킨 감지용 키워드
 	UPROPERTY(EditDefaultsOnly, Category = "Material Settings") 
 	FString SkullSkinKeyword = TEXT("skin1");
-	
-	//--------------------
-	// 컬러 (일반 스킨용)
-	//--------------------
-	
-	// 일반 스킨용 화이트 색상 (밝은 흰색)
-	UPROPERTY(EditDefaultsOnly, Category = "Material Settings") 
-	FLinearColor NormalWhiteColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-	// 일반 스킨용 Emissive 강도
-	UPROPERTY(EditDefaultsOnly, Category = "Material Settings") 
-	float NormalEmissiveStrength = 10.0f;
-
-	//--------------------
-	// 컬러 (해골 스킨용)
-	//--------------------
-
-	// 해골 스킨용 반전 색상 (검은 해골)
-	UPROPERTY(EditDefaultsOnly, Category = "Material Settings") 
-	FLinearColor InvertedSkullColor = FLinearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	
-	// 해골 스킨용 배경 색상 (화이트)
-	UPROPERTY(EditDefaultsOnly, Category = "Material Settings") 
-	FLinearColor InvertedBackgroundColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-	// 해골 스킨용 Emissive 강도
-	UPROPERTY(EditDefaultsOnly, Category = "Material Settings") 
-	float InvertedEmissiveStrength = 5.0f;
 	
 	//--------------------
 	// 사운드
