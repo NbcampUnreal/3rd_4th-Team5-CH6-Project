@@ -83,6 +83,7 @@ TODO : A_FOR_INGAME 아키텍처 룰에 맞게 수정
 		-- DataAsset 파일 진행 상황 : 
 		-- GA 파일 진행 상황 : 
 		-- GC 파일 진행 상황 : 
+				GC_ElectricShock_Material.h : -完-
 		-- GE 파일 진행 상황 : 
 
 - SECTION_GIMMICK 파일 진행 현황 :
