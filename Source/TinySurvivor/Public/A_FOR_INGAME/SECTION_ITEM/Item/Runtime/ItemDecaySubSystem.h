@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
-#include "DecayManager.generated.h"
+#include "ItemDecaySubSystem.generated.h"
 
 class UTimeTickManager;
 
@@ -41,7 +41,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDecayTick);
 		{
 			if (GetOwner()->HasAuthority())  // 서버에서만
 			{
-				UDecayManager* DecayMgr = GetWorld()->GetSubsystem<UDecayManager>();
+				UItemDecaySubSystem* DecayMgr = GetWorld()->GetSubsystem<UItemDecaySubSystem>();
 				DecayMgr->OnDecayTick.AddDynamic(this, &UTSInventoryMasterComponent::OnDecayTick);
 			}
 		}
@@ -58,7 +58,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDecayTick);
 		}
 */
 UCLASS()
-class TINYSURVIVOR_API UDecayManager : public UWorldSubsystem
+class TINYSURVIVOR_API UItemDecaySubSystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 	

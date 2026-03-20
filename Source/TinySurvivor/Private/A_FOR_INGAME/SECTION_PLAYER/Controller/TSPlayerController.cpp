@@ -78,7 +78,7 @@ void ATSPlayerController::ServerTransferItem_Implementation(AActor* SourceActor,
 	}
 
 	// Internal 함수 호출
-	SourceInventory->Internal_TransferItem(
+	SourceInventory->TransferItem(
 		SourceInventory,
 		TargetInventory,
 		FromInventoryType,

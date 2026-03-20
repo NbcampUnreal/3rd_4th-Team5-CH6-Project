@@ -9,7 +9,7 @@
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/ItemData.h"
 #include "TSInventoryMasterComponent.generated.h"
 
-
+#pragma region 전방선언
 class UGameplayTagDisplaySubsystem;
 class ATSPlayerController;
 class ATSEquippedItem;
@@ -17,61 +17,448 @@ struct FItemData;
 struct FItemInstance;
 class UItemDataSubsystem;
 class UAbilitySystemComponent;
-// ========================================
-// 장착한 방어구 구조체
-// ========================================
-USTRUCT()
-struct FEquippedArmor
-{
-	GENERATED_BODY()
+struct FEquippedArmor;
+#pragma endregion
 
-	UPROPERTY()
-	EEquipSlot SlotType = EEquipSlot::HEAD;
-
-	UPROPERTY()
-	TObjectPtr<ATSEquippedItem> EquippedArmor = nullptr;
-	
-	/*
-		현재 장착된 방어구의 스탯 이펙트 핸들
-	*/
-	FActiveGameplayEffectHandle ArmorCommonEffectHandle;	// HealthBonus용
-	FActiveGameplayEffectHandle ArmorEffectHandle;			// EffectTag용
-	
-};
-
-// ========================================
-// 델리게이트 선언
-// ========================================
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventorySlotUpdated, const FInventoryStructMaster&, HotkeyInventory,
-                                               const FInventoryStructMaster&, EquipmentInventory,
-                                               const FInventoryStructMaster&, BagInventory);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot)
-;
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBagSizeChanged, int32, NewSize);
-
+#pragma region 델리게이트_선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryInitialized);
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInventorySlotUpdated, const FInventoryStructMaster&, HotkeyInventory, const FInventoryStructMaster&, EquipmentInventory, const FInventoryStructMaster&, BagInventory);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHotkeyActivated, int32, SlotIndex, const FSlotStructMaster&, ActiveSlot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBagSizeChanged, int32, NewSize);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemAdded, int32, ItemID, int32, Quantity);
+#pragma endregion
 
 UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
 class TINYSURVIVOR_API UTSInventoryMasterComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+	
+	
+	
+	//```````````````````````
+	// 게터, 델리게이트, Rep 섹션
+	//.......................
+	
+//======================================================================================================================
+#pragma region 델리게이트
+
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 델리게이트
+	//━━━━━━━━━━━━━━━━━━━━
 public:
+	
+	UPROPERTY(BlueprintAssignable) FOnInventoryInitialized OnInventoryInitialized;
+	UPROPERTY(BlueprintAssignable) FOnInventorySlotUpdated OnInventoryUpdated;
+	UPROPERTY(BlueprintAssignable) FOnHotkeyActivated OnHotkeyActivated;
+	UPROPERTY(BlueprintAssignable) FOnBagSizeChanged OnBagSizeChanged;
+	UPROPERTY(BlueprintAssignable) FOnItemAdded OnItemAdded;
+
+	
+#pragma endregion
+//======================================================================================================================
+#pragma region REP_API
+	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// REP API
+	//━━━━━━━━━━━━━━━━━━━━
+protected:
+
+	UFUNCTION() void OnRep_ActiveHotkeyIndex();
+	UFUNCTION() void OnRep_HotkeyInventory();
+	UFUNCTION() void OnRep_EquipmentInventory();
+	UFUNCTION() void OnRep_BagInventory();
+	UFUNCTION() void OnRep_CurrentEquippedItem();
+	
+	
+#pragma endregion	
+//======================================================================================================================
+	
+	
+	
+	
+	//```````````````````````
+	// 사이클 섹션
+	//.......................
+	
+//======================================================================================================================
+#pragma region 라이프_사이클
+	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 라이프 사이클
+	//━━━━━━━━━━━━━━━━━━━━
+public:
+	
 	UTSInventoryMasterComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	
+#pragma endregion
+//======================================================================================================================
+
+	
+	
+	
+	//```````````````````````
+	// API 섹션
+	//.......................
+	
+//======================================================================================================================	
+#pragma region UI_관련
+	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// UI 관련
+	//━━━━━━━━━━━━━━━━━━━━
+protected:
+	
+	// 아이템 습득 HUD 표시용 이벤트 브로드캐스트
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_NotifyItemAdded_internal(int32 ItemID, int32 Quantity);
+
+	
+#pragma endregion
+//======================================================================================================================
+#pragma region 아이템_관련_API
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 아이템 관련 API
+	//━━━━━━━━━━━━━━━━━━━━
+
+	
+	//--------------------
+	// 아이템 사용 
+	//--------------------
+	
 public:
+	// 아이템 사용 요청 외부 API 
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void ServerUseItem(int32 SlotIndex);
+	
+protected:
+	// 아이템 사용 처리 내부 API
+	void UseItem_internal(int32 SlotIndex);
+	
+	// 가방 아이템 사용 시 액션 함수 
+	void ActionWithBagItem_internal(FSlotStructMaster& InTargetSlot);
+	
+	// 소모품 사용 시 액션 함수
+	void ActionWithConsumableItem_internal(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
+
+	// 방어구 사용 시 액션 함수
+	void ActionWithArmorItem_internal(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
+
+	//--------------------
+	// 아이템 소비
+	//--------------------
+
+public:
+	// 아이템 소비 API 
+	void ConsumeItem(int32 StaticDataID, int32 Quantity);
+	
+	//--------------------
+	// 아이템 장착
+	//--------------------
+
+protected:
+	
+	// 아이템을 장착하고 있는지 체크
+	bool HasItemEquipped_internal() const;
+	
+	// 핫키 버튼에 따른 아이템 창작
+	void EquipActiveHotkeyItem_internal();
+
+	// 핫키 버튼에 따른 아이템 장착 해제
+	void UnequipCurrentItem_internal();
+
+	// 장착 아이템 변환 발생 시 호출
+	void HandleCurrentEquippedItemChanged_internal();
+
+	//--------------------
+	// 방어구
+	//--------------------
+
+protected:
+		
+	// 방어구 장착
+	void EquipArmor_internal(const FItemData& ItemInfo, int32 ArmorSlotIndex);
+	
+	// 방어구 해제
+	void UnequipArmor_internal(int32 ArmorSlotIndex);
+	
+	// 방어구 피격 이벤트 수신 함수
+	void OnArmorHitEvent_internal(const FGameplayEventData* Payload);
+	
+	//--------------------
+	// 무기 
+	//--------------------
+	
+protected:
+	
+	// 무기 장착
+	void ApplyWeaponStats_internal(const FItemData& ItemInfo);
+	
+	// 무기 해제
+	void RemoveWeaponStats_internal();
+	
+	// 무기 사용 이벤트 수신 함수
+	void OnWeaponAttackEvent_internal(const FGameplayEventData* Payload);
+	
+	//--------------------
+	// 도구 관련
+	//--------------------
+	
+protected:
+	
+	// 도구 장착
+	void ApplyToolTags_internal(const FItemData& ItemInfo);
+
+	// 도구 해제
+	void RemoveToolTags_internal();
+	
+	// 도구 사용 이벤트 수신 함수
+	void OnToolHarvestEvent_internal(const FGameplayEventData* Payload);
+	
+#pragma endregion
+//======================================================================================================================	
+#pragma region 인벤토리_관련_API
+
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인벤토리 관련 API
+	//━━━━━━━━━━━━━━━━━━━━
+	
+	//--------------------
+	// 초기화
+	//--------------------
+protected:
+	
+	void InitializeInventory_internal();
+	
+	//--------------------
+	// 습득
+	//--------------------
+public:
+	
+	UFUNCTION(BlueprintCallable)
+	bool AddItem(const FItemInstance& ItemData, int32 Quantity, int32& OutRemainingQuantity);
+
+protected:
+	
+	bool TryStackSlots_internal(FSlotStructMaster& FromSlot, FSlotStructMaster& ToSlot, bool bIsFullStack);
+	
+	int32 FindEmptySlot_internal(EInventoryType InventoryType);
+	
+	int32 FindEquipmentSlot_internal(EEquipSlot ArmorSlot) const;
+	
+	//--------------------
+	// 드랍
+	//--------------------
+public:
+	
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void ServerDropItemToWorld(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity);
+
+	//--------------------
+	// 아이템 제거
+	//--------------------
+protected:
+	
+	bool RemoveItem_internal(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
+	
+	virtual void ClearSlot_internal(FSlotStructMaster& Slot);
+	
+	//--------------------
+	// 사용
+	//--------------------
+protected:
+	
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void ServerActivateHotkeySlot_internal(int32 SlotIndex);
+	
+	//--------------------
+	// 게터
+	//--------------------
+public:
+
+	UFUNCTION(BlueprintPure, BlueprintCallable)
+	FSlotStructMaster GetSlot(EInventoryType InventoryType, int32 SlotIndex);
+	
+	UFUNCTION(BlueprintCallable)
+	int32 GetItemCount(int32 StaticDataID) const;
+
+protected:
+	
+	UFUNCTION(BlueprintPure, BlueprintCallable)
+	FORCEINLINE int32 GetActiveHotkeyIndex_internal() const { return ActiveHotkeyIndex; }
+	
+	FInventoryStructMaster* GetInventoryByType_internal(EInventoryType InventoryType);
+	
+	FSlotStructMaster GetActiveHotkeySlot_internal() const;
+	
+	//--------------------
+	// 검증
+	//--------------------
+protected:
+	
+	bool IsSlotEmpty_internal(EInventoryType InventoryType, int32 SlotIndex);
+	
+	bool IsValidSlotIndex_internal(EInventoryType InventoryType, int32 SlotIndex);
+	
+	virtual bool CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget);
+	
+	//--------------------
+	// 유틸
+	//--------------------
+public:
+	
+	virtual void TransferItem(UTSInventoryMasterComponent* SourceInventory, UTSInventoryMasterComponent* TargetInventory, EInventoryType FromInventoryType, int32 FromSlotIndex, EInventoryType ToInventoryType, int32 ToSlotIndex, bool bIsFullStack = true, ATSPlayerController* RequestingPlayer = nullptr);
+	
+protected:
+	
+	static void CopySlotData_internal(const FSlotStructMaster& Source, FSlotStructMaster& Target, int32 Quantity = -1);
+	
+	
+	//--------------------
+	// 후 처리 알림 (for UI)
+	//--------------------
+protected:
+	// 인벤토리 변환 발생 시  
+	void HandleInventoryChanged_internal();
+
+	// 핫 키 변환 발생 시   
+	void HandleActiveHotkeyIndexChanged_internal();
+	
+	
+#pragma endregion
+//======================================================================================================================
+#pragma region 가방_시스템_API
+	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인벤토리 관련 API
+	//━━━━━━━━━━━━━━━━━━━━
+public:
+	
+	UFUNCTION(BlueprintPure, BlueprintCallable)
+	int32 GetCurrentBagSlotCount() const { return BagInventory.InventorySlotContainer.Num(); }
+
+protected:
+	
+	bool ExpandBagInventory_internal(int32 AdditionalSlots);
+
+	
+#pragma endregion
+//======================================================================================================================
+#pragma region GAS_관련_API
+    	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// GAS 관련 API
+	//━━━━━━━━━━━━━━━━━━━━
+protected:
+    	// GameplayEvent 수신 함수
+    	void OnItemConsumedEvent_internal(const FGameplayEventData* Payload);
+    
+    	// 소모품 Ability 관련 리소스 정리
+    	void ClearConsumableAbilityResources_internal();
+    	
+    	/*
+    		소모품 Ability를 부여하고 Trigger 예약
+    		@param ItemInfo 아이템 정보
+    		@param SlotIndex 슬롯 인덱스
+    		@param ASC AbilitySystemComponent
+    		@return 성공 여부
+    	*/
+    	bool GrantAndScheduleConsumableAbility_internal(const FItemData& ItemInfo, int32 SlotIndex, UAbilitySystemComponent* ASC);
+    	
+    	// ASC 준비되면 이벤트 리스너 등록
+    	void TryRegisterEventListeners_internal();
+    	
+	
+#pragma endregion	
+//======================================================================================================================
+#pragma region 부패도_관련_API
+	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 부패도 관련 API
+	//━━━━━━━━━━━━━━━━━━━━
+protected:
+	// 부패도 매니저 델리게이트 바인딩 함수
+	void BindDecayManagerDelegate_internal();
+	
+	UFUNCTION()
+	void OnDecayTick_internal();
+	
+	void ConvertToDecayedItem_internal(EInventoryType InventoryType);
+	
+	double UpdateExpirationTime_internal(double CurrentExpirationTime, int CurrentStack, int NewItemStack, float DecayRate) const;
+	
+	float UpdateDecayPercent_internal(double CurrentExpirationTime, float DecayRate) const;
+
+	
+#pragma endregion
+//======================================================================================================================
+	
+	
+	
+	
+	//```````````````````````
+	// 데이터 섹션
+	//.......................
+
+//======================================================================================================================
+#pragma region 인벤토리_관련 데이터
+	
+	// ========================================
+	// 초기 설정
+	// ========================================
+
+public:
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 HotkeySlotCount = 10;
+
+protected:
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	ESlotAccessType SlotAccessType = ESlotAccessType::ReadWrite ;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	TMap<ESlotType, EEquipSlot> EquipmentSlotTypes = {{ESlotType::Head, EEquipSlot::HEAD},{ESlotType::Torso, EEquipSlot::TORSO},{ESlotType::Leg, EEquipSlot::LEG}};
+
+public:
+	
+	/** 가방 초기 슬롯 개수 (0이면 가방 아이템 사용 전까지 사용 불가) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 InitialBagSlotCount = 0;
+
+	
+	/** 가방 최대 슬롯 개수 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 MaxBagSlotCount = 16;
+protected:
+
+	
+	/** 가방 아이템 사용 시 증가하는 슬롯 개수 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 BagSlotIncrement = 4;
+
+	/** 가방 아이템의 StaticDataID */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
+	int32 BagItemID = 999;
+	
+	
 	// ========================================
 	// 인벤토리 데이터
 	// ========================================
+
+public:
 
 	UPROPERTY(ReplicatedUsing = OnRep_HotkeyInventory, BlueprintReadOnly, Category = "Inventory")
 	FInventoryStructMaster HotkeyInventory;
@@ -85,164 +472,14 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveHotkeyIndex, BlueprintReadOnly, Category = "Inventory")
 	int32 ActiveHotkeyIndex = 0;
 
-	// ========================================
-	// 초기 설정
-	// ========================================
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	ESlotAccessType SlotAccessType = ESlotAccessType::ReadWrite ;
+#pragma endregion
+//======================================================================================================================
+#pragma region 장착_아이템_데이터
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 HotkeySlotCount = 10;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	TMap<ESlotType, EEquipSlot> EquipmentSlotTypes = {
-		{ESlotType::Head, EEquipSlot::HEAD},
-		{ESlotType::Torso, EEquipSlot::TORSO},
-		{ESlotType::Leg, EEquipSlot::LEG}
-	};
-
-	/** 가방 초기 슬롯 개수 (0이면 가방 아이템 사용 전까지 사용 불가) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 InitialBagSlotCount = 0;
-
-	/** 가방 최대 슬롯 개수 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 MaxBagSlotCount = 16;
-
-	/** 가방 아이템 사용 시 증가하는 슬롯 개수 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 BagSlotIncrement = 4;
-
-	/** 가방 아이템의 StaticDataID */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 BagItemID = 999;
-
-	// ========================================
-	// 델리게이트
-	// ========================================
-
-	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
-	FOnInventorySlotUpdated OnInventoryUpdated;
-
-	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
-	FOnHotkeyActivated OnHotkeyActivated;
-
-	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
-	FOnBagSizeChanged OnBagSizeChanged;
-
-	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
-	FOnInventoryInitialized OnInventoryInitialized;
-	
-	UPROPERTY(BlueprintAssignable, Category = "Inventory|Events")
-	FOnItemAdded OnItemAdded;
-
-	// ========================================
-	// 리플리케이션 콜백
-	// ========================================
-
-	UFUNCTION()
-	void OnRep_HotkeyInventory();
-
-	UFUNCTION()
-	void OnRep_EquipmentInventory();
-
-	UFUNCTION()
-	virtual void OnRep_BagInventory();
-
-	UFUNCTION()
-	void OnRep_ActiveHotkeyIndex();
-	
-	// ========================================
-	// Client RPC
-	// ========================================
-	// 아이템 습득 HUD 표시용 이벤트 브로드캐스트
-	UFUNCTION(Client, Reliable, BlueprintCallable, Category = "Inventory|RPC")
-	void ClientNotifyItemAdded(
-		int32 ItemID, int32 Quantity);
-
-	// ========================================
-	// Server RPC
-	// ========================================
-
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
-	void ServerDropItemToWorld(
-		EInventoryType InventoryType, int32 SlotIndex, int32 Quantity);
-
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
-	void ServerActivateHotkeySlot(int32 SlotIndex);
-
-	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable, Category = "Inventory|RPC")
-	void ServerUseItem(int32 SlotIndex);
-
-	// ========================================
-	// Internal 함수
-	// ========================================
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
-	virtual void Internal_TransferItem(
-		UTSInventoryMasterComponent* SourceInventory,
-		UTSInventoryMasterComponent* TargetInventory,
-		EInventoryType FromInventoryType, int32 FromSlotIndex,
-		EInventoryType ToInventoryType, int32 ToSlotIndex,
-		bool bIsFullStack = true,
-		ATSPlayerController* RequestingPlayer = nullptr);
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Internal")
-	void Internal_UseItem(int32 SlotIndex);
-
-	// ========================================
-	// 아이템 추가/제거
-	// ========================================
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory")
-	bool AddItem(const FItemInstance& ItemData, int32 Quantity, int32& OutRemainingQuantity);
-
-	UFUNCTION(Category = "Inventory")
-	bool RemoveItem(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
-
-	// ========================================
-	// 슬롯 조회
-	// ========================================
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Search")
-	FSlotStructMaster GetSlot(EInventoryType InventoryType, int32 SlotIndex) const;
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Search")
-	bool IsSlotEmpty(EInventoryType InventoryType, int32 SlotIndex) const;
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Search")
-	int32 FindEmptySlot(EInventoryType InventoryType) const;
-
-	// ========================================
-	// 타입 검증
-	// ========================================
-
-	UFUNCTION(BlueprintPure, Category = "Inventory")
-	virtual bool CanPlaceItemInSlot(
-		int32 StaticDataID,
-		EInventoryType InventoryType,
-		int32 SlotIndex,
-		bool IsTarget);
-
-	// ========================================
-	// 가방 시스템
-	// ========================================
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Bag")
-	int32 GetCurrentBagSlotCount() const { return BagInventory.InventorySlotContainer.Num(); }
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Bag")
-	bool ExpandBagInventory(int32 AdditionalSlots);
-
-	// ========================================
-	// 핫키 아이템 장착 시스템
-	// ========================================
+	// 현재 장착된 아이템 ID
+	int32 CachedEquippedItemID = 0;
 	
 	// ■ 소모품 회복약 사이즈 조정 관련 내용 추가
-	//=======================================================
-	// ReplicatedUsing 추가
-	// UPROPERTY(Replicated)
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentEquippedItem)
 	ATSEquippedItem* CurrentEquippedItem = nullptr;
 	
@@ -250,145 +487,38 @@ public:
 	UPROPERTY(Replicated)
 	FVector EquippedItemScale = FVector(1.0f);
 	
-	// OnRep 함수
-	UFUNCTION()
-	void OnRep_CurrentEquippedItem();
-	//=======================================================
-	
-	UFUNCTION(BlueprintPure, Category = "Inventory|Hotkey")
-	int32 GetActiveHotkeyIndex() const { return ActiveHotkeyIndex; }
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Hotkey")
-	FSlotStructMaster GetActiveHotkeySlot() const;
-
-	UFUNCTION(BlueprintPure, Category = "Inventory|Hotkey")
-	bool HasItemEquipped() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Hotkey")
-	void EquipActiveHotkeyItem();
-
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Hotkey")
-	void UnequipCurrentItem();
-
-	// ========================================
-	// 아이템 검색/소비
-	// ========================================
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Search")
-	int32 GetItemCount(int32 StaticDataID) const;
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Search")
-	void ConsumeItem(int32 StaticDataID, int32 Quantity);
-
-protected:
-	// 부패도 매니저 델리게이트 바인딩 함수
-	UFUNCTION()
-	void OnDecayTick();
-	// ========================================
-	// 헬퍼 함수 - 부패
-	// ========================================
-	UPROPERTY(EditDefaultsOnly, Category = "Inventory|Settings")
-	int32 CachedDecayedItemID;
-	FItemData CachedDecayedItemInfo;
-	void ConvertToDecayedItem(EInventoryType InventoryType);
-
-	// ========================================
-	// 헬퍼 함수 - 슬롯 조작
-	// ========================================
-	virtual void ClearSlot(FSlotStructMaster& Slot);
-	static void CopySlotData(const FSlotStructMaster& Source, FSlotStructMaster& Target, int32 Quantity = -1);
-	bool TryStackSlots(FSlotStructMaster& FromSlot, FSlotStructMaster& ToSlot, bool bIsFullStack);
-
-	// ========================================
-	// 헬퍼 함수 - 인벤토리
-	// ========================================
-	FInventoryStructMaster* GetInventoryByType(EInventoryType InventoryType);
-	const FInventoryStructMaster* GetInventoryByType(EInventoryType InventoryType) const;
-	bool IsValidSlotIndex(EInventoryType InventoryType, int32 SlotIndex) const;
-	
-	// ========================================
-	// 헬퍼 함수 - 아이템 정보
-	// ========================================
-	mutable class UItemDataSubsystem* CachedIDS = nullptr;
-	UItemDataSubsystem* GetItemDataSubsystem() const;
-	bool GetItemData(int32 StaticDataID, FItemData& OutData) const;
-	bool IsItemBagType(int32 StaticDataID) const;
-	double UpdateExpirationTime(double CurrentExpirationTime, int CurrentStack, int NewItemStack,
-	                            float DecayRate) const;
-	float UpdateDecayPercent(double CurrentExpirationTime, float DecayRate) const;
-
-	// ========================================
-	// 헬퍼 함수 - 방어구/무기 착용
-	// ========================================
 	UPROPERTY(Replicated)
 	TArray<FEquippedArmor> EquippedArmors;
 	
-	// 방어구 관련
-	int32 FindEquipmentSlot(EEquipSlot ArmorSlot) const;
-	void EquipArmor(const FItemData& ItemInfo, int32 ArmorSlotIndex);
-	void UnequipArmor(int32 ArmorSlotIndex);
-	
-	// 방어구 피격 이벤트 수신 함수
-	void OnArmorHitEvent(const FGameplayEventData* Payload);
-	
-	// 무기 관련
-	void ApplyWeaponStats(const FItemData& ItemInfo);
-	void RemoveWeaponStats();
-	
-	// 무기 사용 이벤트 수신 함수
-	void OnWeaponAttackEvent(const FGameplayEventData* Payload);
-	
-	// 도구 관련
-	void ApplyToolTags(const FItemData& ItemInfo);
-	void RemoveToolTags();
-	
-	// 도구 사용 이벤트 수신 함수
-	void OnToolHarvestEvent(const FGameplayEventData* Payload);
-	
-	// ========================================
-	// 헬퍼 함수 - ASC
-	// ========================================
-	UAbilitySystemComponent* GetASC();
-
-	// ========================================
-	// 헬퍼 함수 - 델리게이트
-	// ========================================
-	void HandleInventoryChanged();
-	void HandleActiveHotkeyIndexChanged();
-	
-	// ■ ItemConsumed
-	//[S]=====================================================================================
-	// GameplayEvent 수신 함수
-	void OnItemConsumedEvent(const FGameplayEventData* Payload);
-	//[E]=====================================================================================
-
-#pragma region WeaponData
-protected:
-	/*
-		현재 장착된 무기의 스탯 이펙트 핸들
-	*/
+	// 현재 장착된 무기의 스탯 이펙트 핸들
 	FActiveGameplayEffectHandle CurrentWeaponEffectHandle;
 	
-	/*
-		무기 스탯 적용용 GameplayEffect 클래스
-		블루프린트에서 설정 (GE_WeaponStats_Base를 상속한 BP)
-	*/
+	// 무기 스탯 적용용 GameplayEffect 클래스 : 블루프린트에서 설정 (GE_WeaponStats_Base를 상속한 BP)
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon Stats")
 	TSubclassOf<UGameplayEffect> WeaponStatEffectClass;
-#pragma endregion
 	
-#pragma region ArmorData
+	// 방어구 스탯 적용용 GameplayEffect 클래스 : 블루프린트에서 설정 -> GE_ArmorCommonStats_Base
+	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
+	TSubclassOf<UGameplayEffect> ArmorCommonStatEffectClass;
+
+	// GE_ArmorEffectStats_Base
+	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
+	TSubclassOf<UGameplayEffect> ArmorEffectStatEffectClass; 
+	
+#pragma endregion	
+//======================================================================================================================
+#pragma region 부패도_관련_데이터
+
 protected:
-	/*
-		방어구 스탯 적용용 GameplayEffect 클래스
-		블루프린트에서 설정
-	*/
-	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
-	TSubclassOf<UGameplayEffect> ArmorCommonStatEffectClass; // GE_ArmorCommonStats_Base
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
-	TSubclassOf<UGameplayEffect> ArmorEffectStatEffectClass; // GE_ArmorEffectStats_Base
-#pragma endregion
+	int32 CachedDecayedItemID;
 	
-#pragma region ConsumableAbility
+	FItemData CachedDecayedItemInfo;
+
+#pragma endregion	
+//======================================================================================================================
+#pragma region GAS_관련_데이터
+	
 private:
 	// 현재 활성화된 소모품 Ability의 SpecHandle
 	FGameplayAbilitySpecHandle ActiveConsumableAbilityHandle;
@@ -396,35 +526,19 @@ private:
 	// Timer 취소용 핸들
 	FTimerHandle ConsumableAbilityTriggerTimer;
 	
-	// 소모품 Ability 관련 리소스 정리
-	void ClearConsumableAbilityResources();
-	
-	/*
-		소모품 Ability를 부여하고 Trigger 예약
-		@param ItemInfo 아이템 정보
-		@param SlotIndex 슬롯 인덱스
-		@param ASC AbilitySystemComponent
-		@return 성공 여부
-	*/
-	bool GrantAndScheduleConsumableAbility(
-		const FItemData& ItemInfo, 
-		int32 SlotIndex, 
-		UAbilitySystemComponent* ASC);
-#pragma endregion
-	
-private:
-	// 태그 기반 디스플레이 서브시스템 캐싱
-	mutable UGameplayTagDisplaySubsystem* CachedGTDS = nullptr;
-	
-	// 현재 장착된 아이템 ID
-	int32 CachedEquippedItemID = 0;
+	// 타이머 핸들
+	FTimerHandle ASCCheckTimerHandle;
 	
 	// ASC 초기화 대기 중 플래그
 	bool bEventListenersRegistered = false;
 	
-	// 타이머 핸들
-	FTimerHandle ASCCheckTimerHandle;
 	
-	// ASC 준비되면 이벤트 리스너 등록
-	void TryRegisterEventListeners();
+#pragma endregion
+//======================================================================================================================	
+	
+	
+	
+	
+	
+
 };

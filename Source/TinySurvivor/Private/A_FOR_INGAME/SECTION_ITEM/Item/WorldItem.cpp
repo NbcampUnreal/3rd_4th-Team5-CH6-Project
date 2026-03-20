@@ -102,7 +102,7 @@ void AWorldItem::OnAcquire_Implementation(const int32& IntParam, const FString& 
 		
 		if (!DecayManager)
 		{
-			DecayManager = GetWorld()->GetSubsystem<UDecayManager>();
+			DecayManager = GetWorld()->GetSubsystem<UItemDecaySubSystem>();
 		}
 		
 		if (DecayManager)
@@ -133,7 +133,7 @@ void AWorldItem::OnRelease_Implementation()
 	}
 	else
 	{
-		if (UDecayManager* Sys = GetWorld()->GetSubsystem<UDecayManager>())
+		if (UItemDecaySubSystem* Sys = GetWorld()->GetSubsystem<UItemDecaySubSystem>())
 		{
 			Sys->OnDecayTick.RemoveDynamic(this, &AWorldItem::OnDecayTick);
 		}
@@ -304,7 +304,7 @@ void AWorldItem::BeginPlay()
 	// 서버에서만 DecayManager 구독
 	if (HasAuthority())
 	{
-		DecayManager = GetWorld()->GetSubsystem<UDecayManager>();
+		DecayManager = GetWorld()->GetSubsystem<UItemDecaySubSystem>();
 		if (DecayManager)
 		{
 			DecayManager->OnDecayTick.AddDynamic(this, &AWorldItem::OnDecayTick);

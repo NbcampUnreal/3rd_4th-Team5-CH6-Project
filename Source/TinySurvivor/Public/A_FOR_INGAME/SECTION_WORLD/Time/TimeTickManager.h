@@ -29,10 +29,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSecondTick);
 	
 	사용 예시:
 		// DecayManager.cpp
-		void UDecayManager::Initialize(FSubsystemCollectionBase& Collection)
+		void UItemDecaySubSystem::Initialize(FSubsystemCollectionBase& Collection)
 		{
 			UTimeTickManager* TimeTick = GetWorld()->GetSubsystem<UTimeTickManager>();
-			TimeTick->OnSecondTick.AddDynamic(this, &UDecayManager::OnSecondTick);
+			TimeTick->OnSecondTick.AddDynamic(this, &UItemDecaySubSystem::OnSecondTick);
 		}
 */
 UCLASS()
