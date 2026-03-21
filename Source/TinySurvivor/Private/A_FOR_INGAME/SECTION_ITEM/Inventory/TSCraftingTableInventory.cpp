@@ -3,6 +3,7 @@
 
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/TSCraftingTableInventory.h"
 
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_COMMON/Library/Item/TSItemHelperLibrary.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemInstance.h"
 
@@ -62,7 +63,7 @@ int32 UTSCraftingTableInventory::PlaceCraftResult(APlayerController* PC, int32 R
 	int32 SlotIndex = GetorAssignSlotForPlayer(PC);
 	if (SlotIndex == -1) return -1;
 
-	if (!IsValidSlotIndex_internal(EInventoryType::BackPack, SlotIndex)) return -1;
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this,EInventoryType::BackPack, SlotIndex)) return -1;
 
 	FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[SlotIndex];
 
@@ -73,7 +74,7 @@ int32 UTSCraftingTableInventory::PlaceCraftResult(APlayerController* PC, int32 R
 	}
 
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, ResultItemID, ItemInfo)) return -1;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, ResultItemID, ItemInfo)) return -1;
 	
 	FItemInstance Result = FItemInstance(ResultItemID, GetWorld()->GetTimeSeconds(), ItemInfo.GetMaxDurability());
 	
@@ -111,7 +112,7 @@ void UTSCraftingTableInventory::ReleasePlayerSlot(APlayerController* PC)
 	if (!SlotIndex) return;
 	
 	// 슬롯에 아이템이 남아있으면 월드에 드랍
-	if (!IsSlotEmpty_internal(EInventoryType::BackPack, *SlotIndex))
+	if (!UTSInventoryHelperLibrary::IsSlotEmpty_Lib(this,EInventoryType::BackPack, *SlotIndex))
 	{
 		const FSlotStructMaster& Slot = BagInventory.InventorySlotContainer[*SlotIndex];
 		ServerDropItemToWorld(EInventoryType::BackPack, *SlotIndex, Slot.CurrentStackSize);

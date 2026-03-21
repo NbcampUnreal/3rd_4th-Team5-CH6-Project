@@ -4,6 +4,7 @@
 #include "A_FOR_INGAME/SECTION_ITEM/Building/TSBuildingComponent.h"
 #include "Engine/World.h"
 #include "CollisionQueryParams.h"
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Building/System/BuildingRecipeDataSubsystem.h"
 #include "GameFramework/Pawn.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/TSInventoryMasterComponent.h"
@@ -358,7 +359,7 @@ bool UTSBuildingComponent::CanBuild(int32 RecipeID, int32& OutResultID)
 	for (const FBuildingIngredientData& Ingredient : RecipeData.Ingredients)
 	{
 		// 아이템 개수 확인
-		int32 ItemCount = PlayerInventoryComp->GetItemCount(Ingredient.MaterialID);
+		int32 ItemCount = UTSInventoryHelperLibrary::GetItemCount_Lib(PlayerInventoryComp, Ingredient.MaterialID);
 		if (ItemCount < Ingredient.Count)
 		{
 			PC->ClientShowNotificationOnHUD(

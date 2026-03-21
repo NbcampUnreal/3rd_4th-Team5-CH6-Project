@@ -7,9 +7,7 @@
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemInstance.h"
 #include "TSInventorySlot.generated.h"
 
-/**
- * 인벤토리 타입 열거형 데이터
- */
+// 인벤토리 타입 열거형 데이터
 UENUM(Blueprintable, BlueprintType)
 enum class EInventoryType : uint8
 {
@@ -19,9 +17,7 @@ enum class EInventoryType : uint8
 	Equipment UMETA(DisplayName = "Equipment"),
 };
 
-/**
- * 슬롯 타입 열거형 데이터
- */
+// 슬롯 타입 열거형 데이터
 UENUM(Blueprintable, BlueprintType)
 enum class ESlotType : uint8
 {
@@ -34,9 +30,7 @@ enum class ESlotType : uint8
 	Leg UMETA(DisplayName = "Leg")
 };
 
-/**
- * 슬롯 접근 타입 열거형 데이터
- */
+// 슬롯 접근 타입 열거형 데이터
 UENUM(Blueprintable, BlueprintType)
 enum class ESlotAccessType : uint8
 {
@@ -45,9 +39,7 @@ enum class ESlotAccessType : uint8
 	WriteOnly UMETA(DisplayName = "WriteOnly"),
 };
 
-/**
- * 슬롯 정보 데이터
- */
+// 슬롯 정보 데이터
 USTRUCT(Blueprintable, BlueprintType)
 struct TINYSURVIVOR_API FSlotStructMaster
 {
@@ -85,13 +77,17 @@ struct TINYSURVIVOR_API FSlotStructMaster
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "ItemData")
 	FItemInstance ItemData;
 	
+	
+	//========================================================	
+	// 헬퍼 함수들
 	bool IsSlotEmpty();
+	
+	//========================================================	
+	
 	
 };
 
-/**
- * 인벤토리 정보 데이터
- */
+// 인벤토리 정보 데이터
 USTRUCT(Blueprintable, BlueprintType)
 struct TINYSURVIVOR_API FInventoryStructMaster
 {
@@ -104,12 +100,12 @@ struct TINYSURVIVOR_API FInventoryStructMaster
 	// 슬롯 컨테이너
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "InventorySlotContainer")
 	TArray<FSlotStructMaster> InventorySlotContainer = {};
+
+	//========================================================	
+	// 헬퍼 함수들	
+	bool IsValidSlotIndex(int32 InSlotIndex);
+	bool IsSlotEmpty(int32 InSlotIndex);
+	FSlotStructMaster& GetSlot(int32 InSlotIndex);
+	//========================================================	
 	
-	
-	
-	
-	
-	
-	bool IsValidSlotIndex(int32 SlotIndex);
-	FSlotStructMaster& GetSlot(int32 SlotIndex);
 };

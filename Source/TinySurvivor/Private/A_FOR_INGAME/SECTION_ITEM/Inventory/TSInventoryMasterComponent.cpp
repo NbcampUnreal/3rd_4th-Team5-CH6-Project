@@ -5,27 +5,23 @@
 
 #include "Net/UnrealNetwork.h"
 
-#include "A_FOR_INGAME/SECTION_GAS//AttributeSet/TSAttributeSet.h"
-
-#include "A_FOR_INGAME/SECTION_PLAYER/Character/TSCharacter.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/Controller/TSPlayerController.h"
 
-#include "A_FOR_COMMON/Library/GAS/TSASCLibrary.h"
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_COMMON/Library/Item/TSItemHelperLibrary.h"
+#include "A_FOR_COMMON/Library/Item/TSItemUseHelperLibrary.h"
+#include "A_FOR_COMMON/Library/System/TSDecayLibrary.h"
 #include "A_FOR_COMMON/Library/System/TSSystemGetterLibrary.h"
 
 #include "A_FOR_INGAME/SECTION_ITEM/Item/TSEquippedItem.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/ItemData.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemInstance.h"
-#include "A_FOR_INGAME/SECTION_ITEM/Inventory/RefactoringFloder/RFEquipArmor.h"
 
 #include "A_FOR_COMMON/Tag/HelpHeader/MasterTagHelpHeader.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/RefactoringFloder/TSRFEquipArmor.h"
 
 
-
-
-	
-	//```````````````````````
+//```````````````````````
 	// 게터, 델리게이트, Rep 섹션
 	//.......................
 
@@ -59,7 +55,7 @@ void UTSInventoryMasterComponent::OnRep_BagInventory()
 
 void UTSInventoryMasterComponent::OnRep_CurrentEquippedItem()
 {
-	HandleCurrentEquippedItemChanged_internal();
+	UTSItemUseHelperLibrary::HandleCurrentEquippedItemChanged_Lib(this);
 }
 
 
@@ -110,7 +106,7 @@ void UTSInventoryMasterComponent::BeginPlay()
 
 void UTSInventoryMasterComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	ClearConsumableAbilityResources_internal();
+	UTSItemUseHelperLibrary::ClearConsumableAbilityResources_Lib(this);
 	
 	Super::EndPlay(EndPlayReason);
 }
@@ -155,155 +151,7 @@ void UTSInventoryMasterComponent::ClientRPC_NotifyItemAdded_internal_Implementat
 
 void UTSInventoryMasterComponent::ServerUseItem_Implementation(int32 SlotIndex)
 {
-	UseItem_internal(SlotIndex);
-}
-
-void UTSInventoryMasterComponent::UseItem_internal(int32 SlotIndex)
-{
-	// 서버 권한 체크: 서버에서만 실행
-	if (!GetOwner()->HasAuthority()) return;
-
-	// 유효한 핫 키인지 체크
-	if (!IsValidSlotIndex_internal(EInventoryType::HotKey, SlotIndex)) return;
-
-	// 핫키 슬롯 가져오기
-	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
-
-	// 핫키 슬롯 검증
-	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0) return;
-
-	// 아이템 정보 가져오기
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
-	
-	//------------------
-	// 가방 아이템인 경우
-	//------------------
-	if (Slot.ItemData.StaticDataID == BagItemID)
-	{
-		ActionWithBagItem_internal(Slot);
-		HandleInventoryChanged_internal();
-		return;
-	}
-	
-	//------------------
-	// 소모품 아이템인 경우
-	//------------------
-	if (ItemInfo.Category == EItemCategory::CONSUMABLE)
-	{
-		ActionWithConsumableItem_internal(Slot, SlotIndex);
-		HandleInventoryChanged_internal();
-		return;
-	}
-
-	//------------------
-	// 방어구인 경우 ( Ability를 사용 안함. )
-	//------------------
-	if (ItemInfo.Category == EItemCategory::ARMOR)
-	{
-		ActionWithArmorItem_internal(Slot, SlotIndex);
-		HandleInventoryChanged_internal();
-		return;
-		
-	}
-}
-
-void UTSInventoryMasterComponent::ActionWithBagItem_internal(FSlotStructMaster& InTargetSlot)
-{
-	// 가방 확장
-	bool bExpanded = ExpandBagInventory_internal(BagSlotIncrement);
-	if (!bExpanded) return;
-	
-	// 아이템 소비
-	InTargetSlot.CurrentStackSize -= 1;
-
-	// 아이템이 0개 남은 경우 슬롯 초기화
-	if (InTargetSlot.CurrentStackSize <= 0) ClearSlot_internal(InTargetSlot);
-}
-
-void UTSInventoryMasterComponent::ActionWithConsumableItem_internal(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex)
-{
-	UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-	if (!IsValid(ASC)) return;
-	
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, InTargetSlot.ItemData.StaticDataID, ItemInfo)) return;
-	
-	//=======================================================================
-	// 1. Cancel 태그 체크 (몽타주 재생 전)
-	//=======================================================================
-	FGameplayTagContainer CancelTags;
-	CancelTags.AddTag(AbilityTags::TAG_State_Move_WASD);
-	CancelTags.AddTag(AbilityTags::TAG_State_Move_Sprint);
-	CancelTags.AddTag(AbilityTags::TAG_State_Move_Roll);
-	CancelTags.AddTag(AbilityTags::TAG_State_Move_Jump);
-	CancelTags.AddTag(AbilityTags::TAG_State_Move_Climb);
-	CancelTags.AddTag(AbilityTags::TAG_State_Status_Attack);
-	CancelTags.AddTag(AbilityTags::TAG_State_Status_Downed);
-	CancelTags.AddTag(AbilityTags::TAG_State_Status_Dead);
-	CancelTags.AddTag(AbilityTags::TAG_State_Status_Rescuing);
-	CancelTags.AddTag(AbilityTags::TAG_State_Status_PickUpItem);
-	
-	// Cancel 태그 중 하나라도 있으면 소비 불가
-	if (ASC->HasAnyMatchingGameplayTags(CancelTags)) return; 
-	
-	
-	//=======================================================================
-	// 2. 기존 리소스 정리
-	//=======================================================================
-	ClearConsumableAbilityResources_internal();
-	
-	
-	//=======================================================================
-	// 3. 몽타주 재생 (Multicast)
-	//=======================================================================
-	bool bMontageStarted = false;
-	if (!ItemInfo.ConsumableData.ConsumptionMontage.IsValid()) return;
-	
-	UAnimMontage* Montage = ItemInfo.ConsumableData.ConsumptionMontage.LoadSynchronous();
-	if (!IsValid(Montage)) return;
-	
-	ATSCharacter* Character = Cast<ATSCharacter>(GetOwner());
-	if (!IsValid(Character)) return;
-	
-	// 서버 시작 시간 기록
-	float ServerStartTime = GetWorld()->GetTimeSeconds();
-
-	// 서버 시간을 함께 전달
-	Character->Multicast_PlayConsumeMontage(Montage, 1.0f, ServerStartTime);
-	bMontageStarted = true;
-
-	// 몽타주 재생 실패 시 중단
-	if (ItemInfo.ConsumableData.ConsumptionMontage.IsValid() && !bMontageStarted) return;
-	
-	
-	//=======================================================================
-	// 4. 어빌리티 발동
-	//=======================================================================
-	GrantAndScheduleConsumableAbility_internal(ItemInfo, InTargetSlotIndex, ASC);
-}
-
-void UTSInventoryMasterComponent::ActionWithArmorItem_internal(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex)
-{
-	// 아이템 사용 어빌리티 활성화
-	UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-	if (!IsValid(ASC)) return;
-	
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, InTargetSlot.ItemData.StaticDataID, ItemInfo)) return;
-	
-	// 방어구 장착 로직 (기존 방식 유지)
-	UnequipCurrentItem_internal();
-		
-	int32 TargetSlotIndex = FindEquipmentSlot_internal(ItemInfo.ArmorData.EquipSlot);
-	if (TargetSlotIndex == -1) return;
-
-	// PlayerController 가져오기
-	ATSPlayerController* PC = Cast<ATSPlayerController>(Cast<APawn>(GetOwner())->GetController());
-	if (!IsValid(PC)) return;
-
-	// Internal_TransferItem()에서 자동으로 EquipArmor() 호출됨
-	TransferItem(this, this, EInventoryType::HotKey, InTargetSlotIndex,EInventoryType::Equipment, TargetSlotIndex, true, PC);
+	UTSItemUseHelperLibrary::UseItem_Lib(this, SlotIndex);
 }
 
 	//--------------------
@@ -331,7 +179,7 @@ void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity
 	}
 	
 	// 가방 인벤토리 탐색
-	if (GetCurrentBagSlotCount() > 0)
+	if (BagInventory.InventorySlotContainer.Num() > 0)
 	{
 		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
 		{
@@ -352,580 +200,6 @@ void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity
 	HandleInventoryChanged_internal();
 }
 
-	//--------------------
-	// 아이템 장착
-	//--------------------
-
-bool UTSInventoryMasterComponent::HasItemEquipped_internal() const
-{
-	FSlotStructMaster ActiveSlot = GetActiveHotkeySlot_internal();
-	return ActiveSlot.ItemData.StaticDataID != 0 && ActiveSlot.CurrentStackSize > 0;
-}
-
-void UTSInventoryMasterComponent::EquipActiveHotkeyItem_internal()
-{
-	if (ActiveHotkeyIndex < 0 || ActiveHotkeyIndex >= HotkeyInventory.InventorySlotContainer.Num())
-	{
-		UnequipCurrentItem_internal();
-		return;
-	}
-
-	const FSlotStructMaster& ActiveSlot = HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex];
-
-	if (ActiveSlot.ItemData.StaticDataID == 0 || ActiveSlot.CurrentStackSize <= 0)
-	{
-		UnequipCurrentItem_internal();
-		return;
-	}
-
-	// 서버에서만 실행
-	if (!GetOwner()->HasAuthority())
-	{
-		return;
-	}
-
-	UnequipCurrentItem_internal();
-
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, ActiveSlot.ItemData.StaticDataID, ItemInfo)) return;
-
-	// 아이템 ID 캐싱 (UnequipCurrentItem에서 사용)
-	CachedEquippedItemID = ActiveSlot.ItemData.StaticDataID;
-
-	// 무기와 도구 모두 동일 GE 사용
-	if (ItemInfo.Category == EItemCategory::WEAPON || ItemInfo.Category == EItemCategory::TOOL)
-	{
-		ApplyWeaponStats_internal(ItemInfo);
-	}
-	if (ItemInfo.Category == EItemCategory::TOOL)
-	{
-		ApplyToolTags_internal(ItemInfo); // 채취 태그
-	}
-
-	// 아이템 액터 생성
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = GetOwner();
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	CurrentEquippedItem = GetWorld()->SpawnActor<ATSEquippedItem>(ATSEquippedItem::StaticClass(),FVector::ZeroVector,FRotator::ZeroRotator,SpawnParams);
-
-	if (!CurrentEquippedItem)
-	{
-		RemoveWeaponStats_internal(); // 스탯도 다시 제거
-		CachedEquippedItemID = 0;
-		return;
-	}
-
-	// 메시 설정
-	if (UStaticMesh* LoadedMesh = ItemInfo.WorldMesh.LoadSynchronous())
-	{
-		CurrentEquippedItem->SetMesh(LoadedMesh);
-	}
-
-	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
-	if (!IsValid(TSCharacter)) return;
-	
-	if (ItemInfo.Category == EItemCategory::TOOL)
-	{
-		/*
-				도구 전용 처리:
-				- 캐릭터 파트 요청에 따라 도구만 왼손(Ws_l) 소켓에 장착.
-			*/
-		CurrentEquippedItem->AttachToComponent(TSCharacter->GetMesh(),FAttachmentTransformRules::SnapToTargetIncludingScale,TEXT("Ws_l"));
-
-		// 도구는 기본 스케일
-		EquippedItemScale = FVector(1.0f);
-	}
-	else
-	{
-		CurrentEquippedItem->AttachToComponent(TSCharacter->GetMesh(),FAttachmentTransformRules::SnapToTargetIncludingScale,TEXT("Ws_r"));
-
-		/*
-				회복약 전용 처리:
-				- 소모품 회복약만 스케일을 0.3 축소. (회복약 에셋이 큰 문제로)
-			*/
-	
-		// 스케일 조정 대상
-		const int32 HealPotionID = 304;
-
-		// 회복약만 스케일 축소
-		if (ItemInfo.ItemID == HealPotionID)
-		{
-			// 스케일 값 저장 (리플리케이션됨)
-			EquippedItemScale = FVector(0.5f);
-
-			// 메시 컴포넌트에 직접 적용
-			if (CurrentEquippedItem->MeshComp)
-			{
-				CurrentEquippedItem->MeshComp->SetRelativeScale3D(EquippedItemScale);
-			}
-		}
-		else
-		{
-			EquippedItemScale = FVector(1.0f);}
-		}
-
-	TSCharacter->SetAnimType(ItemInfo.AnimType);
-	
-}
-
-void UTSInventoryMasterComponent::UnequipCurrentItem_internal()
-{
-	/*
-		슬롯 변경 시 (예: 3번 → 1번) ActiveHotkeyIndex가 먼저 갱신되므로
-		GetActiveHotkeySlot()으로 조회하면 이미 새 슬롯(1번)의 정보가 반환됨.
-		따라서 해제되는 아이템(3번)의 ID를 올바르게 로그에 남기기 위해
-		EquipActiveHotkeyItem()에서 장착 시점에 CachedEquippedItemID에 ID를 저장하고,
-		UnequipCurrentItem()에서 캐싱된 값을 사용.
-	*/
-
-	// 서버에서 아이템 장착 해제
-	if (!GetOwner()->HasAuthority()) return;
-
-	// 1. 무기 스탯 제거 (CurrentEquippedItem이 nullptr이 되기 전에)
-	RemoveWeaponStats_internal();
-
-	// 2. 도구 태그 제거
-	RemoveToolTags_internal();
-
-	// 3. 아이템 제거
-	if (CurrentEquippedItem)
-	{
-		CurrentEquippedItem->Destroy();
-		CurrentEquippedItem = nullptr;
-	}
-
-	// 4. 스케일 초기화
-	EquippedItemScale = FVector(1.0f);
-
-	// 5. 캐싱 초기화
-	CachedEquippedItemID = 0;
-
-	// 6. 애니메이션 타입 초기화
-	ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
-	if (!IsValid(TSCharacter)) return;
-	TSCharacter->SetAnimType(EItemAnimType::NONE);
-}
-
-void UTSInventoryMasterComponent::HandleCurrentEquippedItemChanged_internal()
-{
-	// 클라이언트에서 CurrentEquippedItem이 리플리케이션되면 호출됨
-	if (CurrentEquippedItem && CurrentEquippedItem->MeshComp && EquippedItemScale != FVector(1.0f))
-	{
-		CurrentEquippedItem->MeshComp->SetRelativeScale3D(EquippedItemScale);
-	}
-}
-
-	//--------------------
-	// 방어구
-	//--------------------
-
-void UTSInventoryMasterComponent::EquipArmor_internal(const FItemData& ItemInfo, int32 ArmorSlotIndex)
-{
-    if (!GetOwner()->HasAuthority()) return;
-    
-	EEquipSlot ArmorSlot = ItemInfo.ArmorData.EquipSlot;
-   
-    // 기존 방어구 해제
-    UnequipArmor_internal(ArmorSlotIndex);
-   
-    // 메시 생성 및 장착
-    FActorSpawnParameters SpawnParams;
-    SpawnParams.Owner = GetOwner();
-    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-   
-    ATSEquippedItem* EquippedArmor = GetWorld()->SpawnActor<ATSEquippedItem>(ATSEquippedItem::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-   
-    ATSCharacter* TSCharacter = Cast<ATSCharacter>(GetOwner());
-    if (!TSCharacter) return;
-   
-    if (UStaticMesh* LoadedMesh = ItemInfo.WorldMesh.LoadSynchronous())
-    {
-    	if (ArmorSlot == EEquipSlot::LEG)
-    	{
-    		EquippedArmor->SetLegMesh(LoadedMesh);
-    		
-    		if (EquippedArmor->LeftLegMeshComp) EquippedArmor->LeftLegMeshComp->AttachToComponent(TSCharacter->GetMesh(),FAttachmentTransformRules::SnapToTargetIncludingScale,TEXT("LeftLegSocket"));
-    		if (EquippedArmor->RightLegMeshComp) EquippedArmor->RightLegMeshComp->AttachToComponent(TSCharacter->GetMesh(),FAttachmentTransformRules::SnapToTargetIncludingScale,TEXT("RightLegSocket"));
-    	}
-    	else
-    	{
-    		FName SocketName;
-    		if (ArmorSlot == EEquipSlot::HEAD) SocketName = TEXT("HeadSocket");
-    		else SocketName = TEXT("TorsoSocket");
-   
-    		EquippedArmor->SetMesh(LoadedMesh);
-    		EquippedArmor->AttachToComponent(TSCharacter->GetMesh(),FAttachmentTransformRules::SnapToTargetIncludingScale,SocketName);
-    	}
-    }
-   
-    // 액터 저장
-    EquippedArmors[ArmorSlotIndex].EquippedArmor = EquippedArmor;
-   
-    //=======================================================================
-    // GE 적용
-    //=======================================================================
-
-    UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-    if (!IsValid(ASC)) return;
-   
-    FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-    ContextHandle.AddSourceObject(this);
-   
-    //=======================================================================
-    // 적용 전 스탯 로그
-    //=======================================================================
-   
-    // 1. 공통 스탯 (HealthBonus)
-    if (ArmorCommonStatEffectClass)
-    {
-    	FGameplayEffectSpecHandle CommonSpec = ASC->MakeOutgoingSpec(ArmorCommonStatEffectClass, 1, ContextHandle);
-   
-    	CommonSpec.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag("Data.HealthBonus"),ItemInfo.ArmorData.HealthBonus);
-   
-    	FActiveGameplayEffectHandle CommonHandle =ASC->ApplyGameplayEffectSpecToSelf(*CommonSpec.Data);
-   
-    	// 핸들 저장
-    	EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle = CommonHandle;
-    }
-   
-    // 2. 이펙트 스탯 (EffectTag별)
-    if (ArmorEffectStatEffectClass && ItemInfo.EffectTag_Armor.IsValid())
-    {
-    	FGameplayEffectSpecHandle EffectSpec = ASC->MakeOutgoingSpec(ArmorEffectStatEffectClass, 1, ContextHandle);
-   
-    	// =======================================
-    	// 모든 Modifier 값 초기화 (0으로)
-    	// =======================================
-    	EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_DamageReflection, 0.0f);
-    	EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_DamageReduction, 0.0f);
-    	EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_MoveSpeed, 0.0f);
-   
-    	// =======================================
-    	// EffectTag에 따라 실제 값 설정
-    	// =======================================
-    	if (ItemInfo.EffectTag_Armor.MatchesTag(AbilityTags::TAG_State_Modifier_DAMAGE_REFLECT))
-    	{
-    		EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_DamageReflection, ItemInfo.EffectValue);
-    	}
-    	else if (ItemInfo.EffectTag_Armor.MatchesTag(AbilityTags::TAG_State_Modifier_DAMAGE_REDUCTION))
-    	{
-    		EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_DamageReduction, ItemInfo.EffectValue);
-    	}
-    	else if (ItemInfo.EffectTag_Armor.MatchesTag(AbilityTags::TAG_State_Modifier_MOVE_SPEED))
-    	{
-    		EffectSpec.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_Armor_MoveSpeed, ItemInfo.EffectValue);
-    	}
-   
-    	FActiveGameplayEffectHandle EffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*EffectSpec.Data);
-   
-    	// 핸들 저장
-    	EquippedArmors[ArmorSlotIndex].ArmorEffectHandle = EffectHandle;
-    }
-}
-
-void UTSInventoryMasterComponent::UnequipArmor_internal(int32 ArmorSlotIndex)
-    {
-    	if (!GetOwner()->HasAuthority()) return;
-    
-		UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-		if (!IsValid(ASC)) return;
-    
-    	//=======================================================================
-    	// 1. EffectStats GE 제거
-    	//=======================================================================
-    	if (EquippedArmors[ArmorSlotIndex].ArmorEffectHandle.IsValid())
-    	{
-    		ASC->RemoveActiveGameplayEffect(EquippedArmors[ArmorSlotIndex].ArmorEffectHandle);
-    		EquippedArmors[ArmorSlotIndex].ArmorEffectHandle.Invalidate();
-    	}
-    
-    	//=======================================================================
-    	// 2. CommonStats GE 제거
-    	//=======================================================================
-    	if (EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle.IsValid())
-    	{
-    		ASC->RemoveActiveGameplayEffect(EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle);
-    		EquippedArmors[ArmorSlotIndex].ArmorCommonEffectHandle.Invalidate();
-    	}
-    
-    	//=======================================================================
-    	// 3. 메시 제거
-    	//=======================================================================
-    
-    	AActor* ArmorMeshActor = EquippedArmors[ArmorSlotIndex].EquippedArmor;
-    
-    	if (IsValid(ArmorMeshActor))
-    	{
-    		// nullptr + Pending Kill 체크 포함
-    		if (ArmorMeshActor->IsActorBeingDestroyed())
-    		{
-    			EquippedArmors[ArmorSlotIndex].EquippedArmor = nullptr;
-    			return;
-    		}
-    
-    		// Destroy 시도
-    		ArmorMeshActor->Destroy();
-    		EquippedArmors[ArmorSlotIndex].EquippedArmor = nullptr;
-    	}
-    
-    	// Health 클램핑
-    	UTSAttributeSet* AttrSet = const_cast<UTSAttributeSet*>(ASC->GetSet<UTSAttributeSet>());
-    	if (AttrSet && AttrSet->GetHealth() > AttrSet->GetMaxHealth())
-    	{
-    		AttrSet->SetHealth(AttrSet->GetMaxHealth());
-    	}
-    }
-	
-void UTSInventoryMasterComponent::OnArmorHitEvent_internal(const FGameplayEventData* Payload)
-{
-	// Payload가 유효하지 않거나 서버 권한이 없는 경우 처리하지 않고 반환
-	if (!Payload || !GetOwner()->HasAuthority()) return;
-
-	// 현재 장착된 모든 방어구의 내구도 감소
-
-	for (int32 i = 0; i < EquippedArmors.Num(); ++i)
-	{
-		// 장착된 방어구가 없으면 스킵
-		if (!EquippedArmors[i].EquippedArmor) continue;
-
-		// 해당 슬롯의 장비 인벤토리 확인
-		if (!IsValidSlotIndex_internal(EInventoryType::Equipment, i)) continue;
-
-		FSlotStructMaster& Slot = EquipmentInventory.InventorySlotContainer[i];
-
-		// 슬롯이 비어있으면 스킵
-		if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0) continue;
-
-		// 아이템 정보 조회
-		FItemData ItemInfo;
-		if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) continue;
-
-		// 방어구가 아니면 스킵 (안전 체크)
-		if (ItemInfo.Category != EItemCategory::ARMOR) continue;
-
-		// 방어구 피격으로 인한 내구도 감소
-		int32 DurabilityLoss = ItemInfo.ArmorData.DurabilityLossAmount;
-		Slot.ItemData.CurrentDurability -= DurabilityLoss;
-		Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
-
-		// 내구도가 0 이하가 되면 방어구 파괴
-		if (Slot.ItemData.CurrentDurability <= 0)
-		{
-			// 방어구 탈착 (스탯 제거, 메시 제거)
-			UnequipArmor_internal(i);
-
-			// 슬롯 초기화
-			ClearSlot_internal(Slot);
-		}
-	}
-
-	// UI 업데이트
-	HandleInventoryChanged_internal();
-}
-
-	//--------------------
-	// 무기 
-	//--------------------
-
-void UTSInventoryMasterComponent::ApplyWeaponStats_internal(const FItemData& ItemInfo)
-{
-	UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-	if (!IsValid(ASC)) return;
-
-	if (!WeaponStatEffectClass) return;
-
-	//=======================================================================
-	// 적용 전 캐릭터 기본 스탯 조회
-	//=======================================================================
-	const UTSAttributeSet* AttrSet = ASC->GetSet<UTSAttributeSet>();
-	if (!IsValid(AttrSet)) return;
-
-	//=======================================================================
-	// GameplayEffect 적용
-	//=======================================================================
-
-	// GameplayEffect Context 생성
-	FGameplayEffectContextHandle EffectContext = ASC->MakeEffectContext();
-	EffectContext.AddSourceObject(this);
-
-	// GameplayEffect Spec 생성
-	FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(WeaponStatEffectClass, 1, EffectContext);
-
-	if (!SpecHandle.IsValid()) return;
-	
-	// 무기/도구 스탯 추출
-	float DamageValue = 0.0f;
-	float AttackSpeed = 1.0f;
-	float AttackRange = 100.0f;
-
-	if (ItemInfo.Category == EItemCategory::WEAPON)
-	{
-		DamageValue = ItemInfo.WeaponData.DamageValue;
-		AttackSpeed = ItemInfo.WeaponData.AttackSpeed;
-		AttackRange = ItemInfo.WeaponData.AttackRange;
-	}
-	else if (ItemInfo.Category == EItemCategory::TOOL)
-	{
-		DamageValue = ItemInfo.ToolData.DamageValue;
-		AttackSpeed = ItemInfo.ToolData.AttackSpeed;
-		AttackRange = ItemInfo.ToolData.AttackRange;
-	}
-
-	// SetByCaller로 스탯 전달
-	SpecHandle.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_AttackDamage, DamageValue);
-	SpecHandle.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_AttackSpeed, AttackSpeed);
-	SpecHandle.Data->SetSetByCallerMagnitude(ItemTags::TAG_Data_AttackRange, AttackRange);
-
-	// Effect 적용 및 핸들 저장
-	CurrentWeaponEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-}
-
-void UTSInventoryMasterComponent::RemoveWeaponStats_internal()
-{
-	// Authority 체크
-	if (!GetOwner()->HasAuthority()) return;
-
-	// 핸들이 유효하지 않으면 조기 종료
-	if (!CurrentWeaponEffectHandle.IsValid()) return;
-
-	UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-	if (!IsValid(ASC))
-	{
-		CurrentWeaponEffectHandle.Invalidate();
-		return;
-	}
-
-	const UTSAttributeSet* AttrSet = ASC->GetSet<UTSAttributeSet>();
-	if (!IsValid(AttrSet))
-	{
-		CurrentWeaponEffectHandle.Invalidate();
-		return;
-	}
-
-	//=======================================================================
-	// GameplayEffect 제거
-	//=======================================================================
-	ASC->RemoveActiveGameplayEffect(CurrentWeaponEffectHandle);
-	CurrentWeaponEffectHandle.Invalidate();
-
-}
-
-void UTSInventoryMasterComponent::OnWeaponAttackEvent_internal(const FGameplayEventData* Payload)
-{
-	// Payload가 유효하지 않거나 서버 권한이 없는 경우 처리하지 않고 반환
-	if (!Payload || !GetOwner()->HasAuthority()) return;
-
-	// 현재 활성화된 핫키 슬롯 확인
-	if (ActiveHotkeyIndex < 0 || ActiveHotkeyIndex >= HotkeyInventory.InventorySlotContainer.Num()) return;
-
-	// 현재 활성화된 슬롯 가져오기
-	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex];
-
-	// 슬롯에 아이템이 없거나 스택이 0이면 처리하지 않음
-	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0) return;
-
-	// 아이템 정보 조회
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
-
-	// 무기가 아닌 경우 처리하지 않음
-	if (ItemInfo.Category != EItemCategory::WEAPON) return;
-
-	// 무기 사용으로 인한 내구도 감소
-	int32 DurabilityLoss = ItemInfo.WeaponData.DurabilityLossAmount;
-	Slot.ItemData.CurrentDurability -= DurabilityLoss;
-	Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
-
-	// 내구도가 0 이하가 되면 아이템 파괴
-	if (Slot.ItemData.CurrentDurability <= 0)
-	{
-		ClearSlot_internal(Slot); // 슬롯 초기화
-		HandleActiveHotkeyIndexChanged_internal(); // 장착 해제
-	}
-
-	// UI 업데이트
-	HandleInventoryChanged_internal();
-}
-
-	//--------------------
-	// 도구 관련
-	//--------------------
-	
-void UTSInventoryMasterComponent::ApplyToolTags_internal(const FItemData& ItemInfo)
-{
-	UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-	if (!IsValid(ASC)) return;
-
-	// 도구의 HarvestTargetTags를 캐릭터 ASC에 추가
-	for (const FGameplayTag& Tag : ItemInfo.ToolData.HarvestTargetTag)
-	{
-		ASC->AddLooseGameplayTag(Tag);
-	}
-}
-
-void UTSInventoryMasterComponent::RemoveToolTags_internal()
-{
-	// Authority 체크
-	if (!GetOwner()->HasAuthority()) return;
-
-	UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-	if (!IsValid(ASC)) return;
-
-	// 현재 장착된 아이템이 유효한 ID를 갖고 있는지 확인
-	if (CachedEquippedItemID == 0) return;
-
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, CachedEquippedItemID, ItemInfo)) return;
-
-	// 도구가 아니면 제거할 태그가 없음
-	if (ItemInfo.Category != EItemCategory::TOOL) return;
-
-	// 도구의 HarvestTargetTags를 ASC에서 제거
-	for (const FGameplayTag& Tag : ItemInfo.ToolData.HarvestTargetTag)
-	{
-		ASC->RemoveLooseGameplayTag(Tag);
-	}
-}
-
-void UTSInventoryMasterComponent::OnToolHarvestEvent_internal(const FGameplayEventData* Payload)
-{
-	// Payload가 유효하지 않거나 서버 권한이 없는 경우 처리하지 않고 반환
-	if (!Payload || !GetOwner()->HasAuthority()) return;
-
-	// 현재 활성화된 핫키 슬롯 확인 : 유효하지 않은 인덱스이면 처리하지 않음
-	if (ActiveHotkeyIndex < 0 || ActiveHotkeyIndex >= HotkeyInventory.InventorySlotContainer.Num()) return;
-
-	// 현재 활성화된 슬롯 가져오기
-	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex];
-
-	// 슬롯에 아이템이 없거나 스택이 0이면 처리하지 않음
-	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0) return;
-
-	// 아이템 정보 조회
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
-
-	// 도구가 아닌 경우 처리하지 않음
-	if (ItemInfo.Category != EItemCategory::TOOL) return;
-
-	// 도구 사용으로 인한 내구도 감소
-	int32 DurabilityLoss = ItemInfo.ToolData.DurabilityLossAmount;
-	Slot.ItemData.CurrentDurability -= DurabilityLoss;
-	Slot.ItemData.CurrentDurability = FMath::Max(0, Slot.ItemData.CurrentDurability); // 음수 방지
-
-	// 내구도가 0 이하가 되면 아이템 파괴
-	if (Slot.ItemData.CurrentDurability <= 0)
-	{
-		ClearSlot_internal(Slot); // 슬롯 초기화
-		HandleActiveHotkeyIndexChanged_internal(); // 장착 해제
-	}
-
-	// UI 업데이트
-	HandleInventoryChanged_internal();
-}
-
-
 #pragma endregion
 //======================================================================================================================	
 #pragma region 인벤토리_관련_API
@@ -942,12 +216,6 @@ void UTSInventoryMasterComponent::OnToolHarvestEvent_internal(const FGameplayEve
 void UTSInventoryMasterComponent::InitializeInventory_internal()
 {
 	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority()) return;
-	
-	// 이벤트 리스너 등록 시도 (ASC가 준비될 때까지 재시도)
-	TryRegisterEventListeners_internal();
-
-	// 부패도 매니저 OnDecayTick 바인딩
-	BindDecayManagerDelegate_internal();
 	
 	// 핫키 인벤토리 초기화
 	{
@@ -1002,7 +270,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	if (!GetOwner()->HasAuthority() || ItemData.StaticDataID == 0 || Quantity <= 0) return false;
 
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, ItemData.StaticDataID, ItemInfo)) return false;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, ItemData.StaticDataID, ItemInfo)) return false;
 
 	OutRemainingQuantity = Quantity;
 
@@ -1043,8 +311,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 				int32 CanAdd = FMath::Min(OutRemainingQuantity, Slot.MaxStackSize - Slot.CurrentStackSize);
 				
 				// 부패 만료 시각 업데이트
-				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
-				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime,ItemInfo.ConsumableData.DecayRate) : 0.f;
+				Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
+				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, Slot.ExpirationTime,ItemInfo.ConsumableData.DecayRate) : 0.f;
 				
 				Slot.CurrentStackSize += CanAdd;
 				OutRemainingQuantity -= CanAdd;
@@ -1053,7 +321,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 				if (i == ActiveHotkeyIndex) bAddedToActiveSlot = true;
 				if (OutRemainingQuantity <= 0) break;
 			}
-			else if (Slot.ItemData.StaticDataID == 0 /*|| Slot.CurrentStackSize <= 0*/)
+			else if (Slot.ItemData.StaticDataID == 0)
 			{
 				EmptyHotkeySlots.Add(i);
 			}
@@ -1086,8 +354,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 				int32 CanAdd = FMath::Min(OutRemainingQuantity, Slot.MaxStackSize - Slot.CurrentStackSize);
 				
 				// 부패 만료 시각 업데이트
-				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
-				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
+				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this,Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 				
 				Slot.CurrentStackSize += CanAdd;
 				OutRemainingQuantity -= CanAdd;
@@ -1133,8 +401,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack) : 1;
 
 		// 부패 만료 시각 업데이트
-		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
-		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
+		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 		
 		Slot.CurrentStackSize = AddAmount;
 		OutRemainingQuantity -= AddAmount;
@@ -1157,8 +425,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack) : 1;
 		
 		// 부패 만료 시각 업데이트
-		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
-		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
+		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 		
 		Slot.CurrentStackSize = AddAmount;
 		OutRemainingQuantity -= AddAmount;
@@ -1188,7 +456,7 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 	}
 
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, FromSlot.ItemData.StaticDataID, ItemInfo)) return false;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, FromSlot.ItemData.StaticDataID, ItemInfo)) return false;
 
 	if (!ItemInfo.IsStackable()) return false;
 
@@ -1201,8 +469,8 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 		if (CanAdd > 0)
 		{
 			// 부패 만료 시각 업데이트
-			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, CanAdd,ItemInfo.ConsumableData.DecayRate) : 0;
-			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(ToSlot.ExpirationTime,ItemInfo.ConsumableData.DecayRate): 0.f;
+			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, ToSlot.ExpirationTime, ToSlot.CurrentStackSize, CanAdd,ItemInfo.ConsumableData.DecayRate) : 0;
+			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, ToSlot.ExpirationTime,ItemInfo.ConsumableData.DecayRate): 0.f;
 			ToSlot.CurrentStackSize += CanAdd;
 			FromSlot.CurrentStackSize -= CanAdd;
 
@@ -1215,8 +483,8 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 		if (ToSlot.CurrentStackSize < MaxStack)
 		{
 			// 부패 만료 시각 업데이트
-			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, 1, ItemInfo.ConsumableData.DecayRate) : 0;
-			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(ToSlot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, ToSlot.ExpirationTime, ToSlot.CurrentStackSize, 1, ItemInfo.ConsumableData.DecayRate) : 0;
+			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, ToSlot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 			ToSlot.CurrentStackSize += 1;
 			FromSlot.CurrentStackSize -= 1;
 
@@ -1230,7 +498,7 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 
 int32 UTSInventoryMasterComponent::FindEmptySlot_internal(EInventoryType InventoryType)
 {
-	const FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
+	const FInventoryStructMaster* Inventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(this,InventoryType);
 	if (!Inventory) return -1;
 
 	for (int32 i = 0; i < Inventory->InventorySlotContainer.Num(); ++i)
@@ -1263,9 +531,9 @@ int32 UTSInventoryMasterComponent::FindEquipmentSlot_internal(EEquipSlot ArmorSl
 
 void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
-	if (!IsValidSlotIndex_internal(InventoryType, SlotIndex)) return;
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this,InventoryType, SlotIndex)) return;
 
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
+	FInventoryStructMaster* Inventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(this, InventoryType);
 	if (!Inventory) return;
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
@@ -1318,9 +586,9 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(EInventor
 
 bool UTSInventoryMasterComponent::RemoveItem_internal(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
-	if (!GetOwner()->HasAuthority() || !IsValidSlotIndex_internal(InventoryType, SlotIndex)) return false;
+	if (!GetOwner()->HasAuthority() || !UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this,InventoryType, SlotIndex)) return false;
 
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
+	FInventoryStructMaster* Inventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(this,InventoryType);
 	if (!Inventory) return false;
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
@@ -1357,128 +625,15 @@ void UTSInventoryMasterComponent::ClearSlot_internal(FSlotStructMaster& Slot)
 	// 사용
 	//--------------------
 
-void UTSInventoryMasterComponent::ServerActivateHotkeySlot_internal_Implementation(int32 SlotIndex)
+void UTSInventoryMasterComponent::ServerActivateHotkeySlot_Implementation(int32 SlotIndex)
 {
 	if (SlotIndex < -1 || SlotIndex >= HotkeyInventory.InventorySlotContainer.Num()) return;
 
 	// 슬롯 변경 시 예약된 소모품 Ability Trigger 취소
-	ClearConsumableAbilityResources_internal();
-
+	UTSItemUseHelperLibrary::ClearConsumableAbilityResources_Lib(this);
+	
 	ActiveHotkeyIndex = SlotIndex;
 	HandleActiveHotkeyIndexChanged_internal();
-}
-
-	//--------------------
-	// 게터
-	//--------------------
-
-FSlotStructMaster UTSInventoryMasterComponent::GetSlot(EInventoryType InventoryType, int32 SlotIndex)
-{
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-	if (!Inventory || !Inventory->IsValidSlotIndex(SlotIndex))
-	{
-		return FSlotStructMaster();
-	}
-	
-	return Inventory->GetSlot(SlotIndex);
-}
-
-int32 UTSInventoryMasterComponent::GetItemCount(int32 StaticDataID) const
-{
-	int32 ResultCount = 0;
-	
-	// 핫키 인벤토리 탐색
-	for (const FSlotStructMaster& Slot : HotkeyInventory.InventorySlotContainer)
-	{
-		if (Slot.ItemData.StaticDataID == StaticDataID)
-		{
-			ResultCount += Slot.CurrentStackSize;
-		}
-	}
-	
-	// 가방 인벤토리 탐색
-	if (GetCurrentBagSlotCount() == 0) return ResultCount;
-	
-	for (const FSlotStructMaster& Slot : BagInventory.InventorySlotContainer)
-	{
-		if (Slot.ItemData.StaticDataID == StaticDataID)
-		{
-			ResultCount += Slot.CurrentStackSize;
-		}
-	}
-	return ResultCount;
-}
-
-FInventoryStructMaster* UTSInventoryMasterComponent::GetInventoryByType_internal(EInventoryType InventoryType)
-{
-	switch (InventoryType)
-	{
-	case EInventoryType::HotKey:
-		return &HotkeyInventory;
-		
-	case EInventoryType::Equipment:
-		return &EquipmentInventory;
-		
-	case EInventoryType::BackPack:
-		return &BagInventory;
-		
-	default:
-		return nullptr;
-	}
-}
-
-FSlotStructMaster UTSInventoryMasterComponent::GetActiveHotkeySlot_internal() const
-{
-	if (ActiveHotkeyIndex >= 0 && ActiveHotkeyIndex < HotkeyInventory.InventorySlotContainer.Num())
-	{
-		return HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex];
-	}
-	return FSlotStructMaster();
-}
-
-
-	//--------------------
-	// 검증
-	//--------------------
-
-bool UTSInventoryMasterComponent::IsValidSlotIndex_internal(EInventoryType InventoryType, int32 SlotIndex)
-{
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-	if (!Inventory) return false;
-	
-	return Inventory->IsValidSlotIndex(SlotIndex);
-}
-
-bool UTSInventoryMasterComponent::IsSlotEmpty_internal(EInventoryType InventoryType, int32 SlotIndex)
-{
-	FSlotStructMaster Slot = GetSlot(InventoryType, SlotIndex);
-	return Slot.IsSlotEmpty();
-}
-
-bool UTSInventoryMasterComponent::CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget)
-{
-	if (StaticDataID == 0 || !IsValidSlotIndex_internal(InventoryType, SlotIndex)) return false;
-
-	// 슬롯 접근 타입 확인
-	if (IsTarget && GetSlot(InventoryType, SlotIndex).SlotAccessType == ESlotAccessType::ReadOnly) return false;
-
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this,StaticDataID, ItemInfo)) return false;
-
-	// 방어구 아이템 타입 검증
-	if (InventoryType == EInventoryType::Equipment)
-	{
-		if (ItemInfo.Category != EItemCategory::ARMOR) return false;
-		
-		const FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-		if (!Inventory) return false;
-		
-		ESlotType TargetSlotType = Inventory->InventorySlotContainer[SlotIndex].SlotType;
-
-		if (EquipmentSlotTypes[TargetSlotType] != ItemInfo.ArmorData.EquipSlot) return false;
-	}
-
-	return true;
 }
 
 	//--------------------
@@ -1510,22 +665,22 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 		return;
 	}
 
-	if (!SourceInventory->IsValidSlotIndex_internal(FromInventoryType, FromSlotIndex))
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(SourceInventory,FromInventoryType, FromSlotIndex))
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
 		RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
-	if (!TargetInventory->IsValidSlotIndex_internal(ToInventoryType, ToSlotIndex))
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(TargetInventory, ToInventoryType, ToSlotIndex))
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
 		RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
-	FInventoryStructMaster* FromInventory = SourceInventory->GetInventoryByType_internal(FromInventoryType);
-	FInventoryStructMaster* ToInventory = TargetInventory->GetInventoryByType_internal(ToInventoryType);
+	FInventoryStructMaster* FromInventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(SourceInventory, FromInventoryType);
+	FInventoryStructMaster* ToInventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(TargetInventory, ToInventoryType);
 
 	if (!FromInventory || !ToInventory)
 	{
@@ -1540,7 +695,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 	// 타입 검증
 	if (FromSlot.ItemData.StaticDataID != 0)
 	{
-		if (!TargetInventory->CanPlaceItemInSlot_internal(FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex, true))
+		if (!UTSInventoryHelperLibrary::CanPlaceItemInSlot_Lib(TargetInventory, FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex, true))
 		{
 			RequestingPlayer->ClientNotifyTransferResult(false);
 			RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_CannotPlace));
@@ -1550,7 +705,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 
 	if (ToSlot.ItemData.StaticDataID != 0)
 	{
-		if (!SourceInventory->CanPlaceItemInSlot_internal(ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex, false))
+		if (!UTSInventoryHelperLibrary::CanPlaceItemInSlot_Lib(SourceInventory, ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex, false))
 		{
 			RequestingPlayer->ClientNotifyTransferResult(false);
 			RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_CannotPlace));
@@ -1621,7 +776,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 			if (FromSlot.ItemData.StaticDataID != 0)
 			{
 				FItemData ItemInfo;
-				if (UTSItemHelperLibrary::GetItemData(SourceInventory, FromSlot.ItemData.StaticDataID, ItemInfo))
+				if (UTSItemHelperLibrary::GetItemData_Lib(SourceInventory, FromSlot.ItemData.StaticDataID, ItemInfo))
 				{
 					FromSlot.MaxStackSize = ItemInfo.MaxStack;
 				}
@@ -1630,7 +785,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 			if (ToSlot.ItemData.StaticDataID != 0)
 			{
 				FItemData ItemInfo;
-				if (UTSItemHelperLibrary::GetItemData(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
+				if (UTSItemHelperLibrary::GetItemData_Lib(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
 				{
 					ToSlot.MaxStackSize = ItemInfo.MaxStack;
 				}
@@ -1666,7 +821,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 	// 방어구라면 장착 해제
 	if (FromInventoryType == EInventoryType::Equipment)
 	{
-		UnequipArmor_internal(FromSlotIndex);
+		UTSItemUseHelperLibrary::UnequipArmor_Lib(this,FromSlotIndex);
 		bArmorUnequipped = true;
 	}
 
@@ -1679,12 +834,12 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 	if (ToInventoryType == EInventoryType::Equipment && ToSlot.ItemData.StaticDataID != 0)
 	{
 		FItemData ItemInfo;
-		if (UTSItemHelperLibrary::GetItemData(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
+		if (UTSItemHelperLibrary::GetItemData_Lib(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
 		{
 			// 방어구인 경우에만 장착
 			if (ItemInfo.Category == EItemCategory::ARMOR)
 			{
-				TargetInventory->EquipArmor_internal(ItemInfo, ToSlotIndex);
+				UTSItemUseHelperLibrary::EquipArmor_Lib(TargetInventory,ItemInfo, ToSlotIndex);
 				bArmorEquipped = true;
 			}
 		}
@@ -1726,377 +881,12 @@ void UTSInventoryMasterComponent::HandleActiveHotkeyIndexChanged_internal()
 	if (ActiveHotkeyIndex >= 0 && ActiveHotkeyIndex < HotkeyInventory.InventorySlotContainer.Num())
 	{
 		OnHotkeyActivated.Broadcast(ActiveHotkeyIndex, HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex]);
-		EquipActiveHotkeyItem_internal();
+		UTSItemUseHelperLibrary::EquipActiveHotkeyItem_Lib(this);
 	}
 	else
 	{
-		UnequipCurrentItem_internal();
+		UTSItemUseHelperLibrary::UnequipCurrentItem_Lib(this);
 	}
-}
-
-
-#pragma endregion
-//======================================================================================================================
-#pragma region 가방_시스템_API
-	
-
-	//━━━━━━━━━━━━━━━━━━━━
-	// 인벤토리 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-
-bool UTSInventoryMasterComponent::ExpandBagInventory_internal(int32 AdditionalSlots)
-{
-	if (!GetOwner()->HasAuthority()) return false;
-
-	int32 CurrentSlotCount = BagInventory.InventorySlotContainer.Num();
-	int32 NewSlotCount = CurrentSlotCount + AdditionalSlots;
-
-	if (NewSlotCount > MaxBagSlotCount)
-	{
-		NewSlotCount = MaxBagSlotCount;
-
-		if (CurrentSlotCount >= MaxBagSlotCount) return false;
-	}
-
-	int32 OldSize = CurrentSlotCount;
-	BagInventory.InventorySlotContainer.SetNum(NewSlotCount);
-
-	for (int32 i = OldSize; i < NewSlotCount; ++i)
-	{
-		BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
-	}
-
-	OnBagSizeChanged.Broadcast(NewSlotCount);
-
-	return true;
-}
-
-
-#pragma endregion
-//======================================================================================================================
-#pragma region GAS_관련_API
-    	
-
-	//━━━━━━━━━━━━━━━━━━━━
-	// GAS 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-
-
-void UTSInventoryMasterComponent::OnItemConsumedEvent_internal(const FGameplayEventData* Payload)
-{
-	if (!Payload) return;
-
-	// 권한 체크 강화: 서버에서만 실행
-	if (!GetOwner()->HasAuthority()) return;
-
-	// 추가 체크: 로컬 Role이 Authority인지 확인
-	if (GetOwner()->GetLocalRole() != ROLE_Authority) return;
-
-	int32 SlotIndex = static_cast<int32>(Payload->EventMagnitude);
-
-	if (!IsValidSlotIndex_internal(EInventoryType::HotKey, SlotIndex)) return;
-
-	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
-
-	if (Slot.ItemData.StaticDataID == 0 || Slot.CurrentStackSize <= 0) return;
-
-	// 아이템 소비
-	Slot.CurrentStackSize -= 1;
-	if (Slot.CurrentStackSize <= 0)
-	{
-		ClearSlot_internal(Slot);
-	}
-
-	HandleInventoryChanged_internal();
-
-	// 활성화 슬롯 상태 변경 시 브로드캐스트
-	if (Slot.CurrentStackSize == 0)
-	{
-		HandleActiveHotkeyIndexChanged_internal();
-	}
-}
-
-void UTSInventoryMasterComponent::ClearConsumableAbilityResources_internal()
-{
-	// Timer 정리
-	if (ConsumableAbilityTriggerTimer.IsValid())
-	{
-		if (UWorld* World = GetWorld())
-		{
-			World->GetTimerManager().ClearTimer(ConsumableAbilityTriggerTimer);
-		}
-		ConsumableAbilityTriggerTimer.Invalidate();
-	}
-
-	// Ability Spec 제거
-	if (ActiveConsumableAbilityHandle.IsValid())
-	{
-		UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-		if (IsValid(ASC))
-		{
-			FGameplayAbilitySpec* ExistingSpec = ASC->FindAbilitySpecFromHandle(ActiveConsumableAbilityHandle);
-
-			if (ExistingSpec)
-			{
-				if (ExistingSpec->IsActive())
-				{
-					ASC->CancelAbilityHandle(ActiveConsumableAbilityHandle);
-				}
-				
-				ASC->ClearAbility(ActiveConsumableAbilityHandle);
-			}
-		}
-		ActiveConsumableAbilityHandle = FGameplayAbilitySpecHandle();
-	}
-}
-
-bool UTSInventoryMasterComponent::GrantAndScheduleConsumableAbility_internal(const FItemData& ItemInfo, int32 SlotIndex, UAbilitySystemComponent* ASC)
-{
-	if (!ItemInfo.AbilityBP) return false;
-
-	FGameplayAbilitySpec Spec(ItemInfo.AbilityBP, 1, 0);
-	FGameplayAbilitySpecHandle SpecHandle = ASC->GiveAbility(Spec);
-
-	if (!SpecHandle.IsValid()) return false;
-
-	/*
-		여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
-		아이템 Ability를 Add한 직후 곧바로 이벤트 트리거 시도하면 실패해서, 다음 틱에서 트리거하기 위한 구조
-		
-		원래는 GiveAbility 후 즉시 TriggerAbilityFromGameplayEvent하려 했으나,
-		다음 틱(0.01초 뒤)에 TriggerAbilityFromGameplayEvent를 호출.
-		
-		GiveAbility → TriggerAbilityFromGameplayEvent를 같은 틱에서 호출하면,
-		
-		- 문제 1:
-		ASC가 Ability를 아직 InternalList에 제대로 등록하지 않아 실패할 수 있음.
-		부여 직후 즉시 Trigger하면 Activation 실패 가능
-		
-		- 문제 2:
-		AbilityActorInfo 갱신 시점 문제
-		AbilityActorInfo가 업데이트되기 전에 Trigger하면,
-		SpecHandle이 유효하지 않거나 Ability가 검색되지 않는 이슈 발생.
-		
-		따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
-	*/
-
-	// 새로운 SpecHandle 저장
-	ActiveConsumableAbilityHandle = SpecHandle;
-
-	// EventData 전달
-	FGameplayEventData EventData;
-	EventData.EventTag = ItemTags::TAG_Ability_Item_Consume;
-	EventData.EventMagnitude = static_cast<float>(SlotIndex);
-	EventData.Instigator = ASC->GetOwner();
-	EventData.Target = ASC->GetOwner();
-
-	// TWeakObjectPtr로 안전하게 캡처
-	TWeakObjectPtr<UTSInventoryMasterComponent> WeakThis(this);
-	TWeakObjectPtr<UAbilitySystemComponent> WeakASC(ASC);
-
-	// 다음 틱에서 트리거, Timer Handle을 멤버 변수로 관리
-	GetWorld()->GetTimerManager().SetTimer
-	(
-		ConsumableAbilityTriggerTimer,[WeakThis, WeakASC, SpecHandle, EventData]()
-		{
-			// 컴포넌트 유효성 체크
-			if (!WeakThis.IsValid()) return;
-
-			// ASC 유효성 체크
-			if (!WeakASC.IsValid()) return;
-
-			UTSInventoryMasterComponent* This = WeakThis.Get();
-			UAbilitySystemComponent* ASC = WeakASC.Get();
-
-			// SpecHandle 재검증
-			if (This->ActiveConsumableAbilityHandle == SpecHandle&& This->ActiveConsumableAbilityHandle.IsValid())
-			{
-				ASC->TriggerAbilityFromGameplayEvent(SpecHandle, ASC->AbilityActorInfo.Get(), ItemTags::TAG_Ability_Item_Consume, &EventData, *ASC);
-			}
-		},
-		
-		0.01f, false
-	);
-
-	return true;
-}
-
-void UTSInventoryMasterComponent::TryRegisterEventListeners_internal()
-{
-	// 이미 등록되었으면 리턴
-	if (bEventListenersRegistered) return;
-
-	UAbilitySystemComponent* ASC = UTSASCLibrary::GetASCFromComp(GetOwner());
-	if (!IsValid(ASC))
-	{
-		// 0.1초 후 재시도
-		if (GetWorld())
-		{
-			GetWorld()->GetTimerManager().SetTimer(ASCCheckTimerHandle,this,&UTSInventoryMasterComponent::TryRegisterEventListeners_internal,0.1f,false);
-		}
-		
-		return;
-	}
-
-	/*
-		리스너는 모든 머신에서 등록하지만,
-		실제 처리는 내부에서 서버 권한 체크
-	*/
-
-	// 소모품 사용 이벤트 리스닝
-	FGameplayTag ConsumedTag = ItemTags::TAG_Event_Item_Consumed;
-	ASC->GenericGameplayEventCallbacks.FindOrAdd(ConsumedTag).AddUObject(this, &UTSInventoryMasterComponent::OnItemConsumedEvent_internal);
-
-	// 도구 채취 이벤트 리스닝
-	FGameplayTag HarvestTag = ItemTags::TAG_Event_Item_Tool_Harvest;
-	ASC->GenericGameplayEventCallbacks.FindOrAdd(HarvestTag).AddUObject(this, &UTSInventoryMasterComponent::OnToolHarvestEvent_internal);
-
-	// 무기 공격 이벤트 추가
-	FGameplayTag WeaponAttackTag = ItemTags::TAG_Event_Item_Weapon_Attack;
-	ASC->GenericGameplayEventCallbacks.FindOrAdd(WeaponAttackTag).AddUObject(this, &UTSInventoryMasterComponent::OnWeaponAttackEvent_internal); 
-
-	// 방어구 피격 이벤트 리스닝
-	FGameplayTag ArmorHitTag = AbilityTags::TAG_Event_Armor_Hit;
-	ASC->GenericGameplayEventCallbacks.FindOrAdd(ArmorHitTag).AddUObject(this, &UTSInventoryMasterComponent::OnArmorHitEvent_internal);
-
-	// 등록 완료 플래그
-	bEventListenersRegistered = true;
-
-	// 타이머 정리
-	if (ASCCheckTimerHandle.IsValid())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(ASCCheckTimerHandle);
-	}
-}
-
-
-
-#pragma endregion
-//======================================================================================================================
-#pragma region 부패도_관련_API
-	
-
-	//━━━━━━━━━━━━━━━━━━━━
-	// 부패도 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-
-void UTSInventoryMasterComponent::BindDecayManagerDelegate_internal()
-{
-	if (IsValid(UTSSystemGetterLibrary::GetDecayManager(this)))
-	{
-		UTSSystemGetterLibrary::GetDecayManager(this)->OnDecayTick.AddDynamic(this, &UTSInventoryMasterComponent::OnDecayTick_internal);
-		CachedDecayedItemID = UTSSystemGetterLibrary::GetDecayManager(this)->GetDecayItemID();
-	}
-	
-}
-
-void UTSInventoryMasterComponent::OnDecayTick_internal()
-{
-	ConvertToDecayedItem_internal(EInventoryType::HotKey);
-	ConvertToDecayedItem_internal(EInventoryType::BackPack);
-	HandleInventoryChanged_internal();
-}
-
-void UTSInventoryMasterComponent::ConvertToDecayedItem_internal(EInventoryType InventoryType)
-{
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-	if (!Inventory) return;
-
-	float CurrentTime = GetWorld()->GetTimeSeconds();
-
-	// 활성화된 슬롯 변경 여부 추적
-	bool bActiveSlotChanged = false;
-
-	/*
-		현재 슬롯 인덱스 추적
-		범위 기반 for 루프는 인덱스 정보를 제공하지 않으므로,
-		ActiveHotkeyIndex와 비교하기 위해 수동으로 추적
-	*/
-	int32 SlotIndex = 0;
-
-	for (FSlotStructMaster& Slot : Inventory->InventorySlotContainer)
-	{
-		// 빈 슬롯은 건너뛰기
-		if (Slot.ItemData.StaticDataID == 0)
-		{
-			/*
-				인덱스가 엉망이 되기 때문에 빼먹으면 안 됨!
-				만약 `++SlotIndex`를 빼먹으면:
-				슬롯 0: 비어있음 → continue (SlotIndex는 여전히 0)
-				슬롯 1: 사과    → SlotIndex = 0으로 처리됨!! 문제발생!! (실제로는 1번인데!)
-			*/
-			++SlotIndex; // continue 전 인덱스 증가 필수
-			continue;
-		}
-
-		// 아이템 정보 조회 실패 시 건너뛰기
-		FItemData ItemInfo;
-		if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo))
-		{
-			++SlotIndex; // continue 전 인덱스 증가 필수
-			continue;
-		}
-
-		// 부패 가능한 아이템만 처리
-		if (ItemInfo.IsDecayEnabled() && Slot.ExpirationTime > 0)
-		{
-			// 아직 만료되지 않았으면 부패도만 업데이트
-			if (CurrentTime < Slot.ExpirationTime)
-			{
-				Slot.CurrentDecayPercent = UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate);
-				++SlotIndex; // continue 전 인덱스 증가 필수
-				continue;
-			}
-
-			//=======================================================================
-			// 부패 시간 만료: 부패물로 전환
-			//=======================================================================
-
-			// 부패물 정보 캐싱
-			if (CachedDecayedItemInfo.ItemID != CachedDecayedItemID)
-			{
-				if (!UTSItemHelperLibrary::GetItemData(this, CachedDecayedItemID, CachedDecayedItemInfo))
-				{
-					++SlotIndex; // continue 전 인덱스 증가 필수
-					continue;
-				}
-			}
-
-			// 슬롯 데이터를 부패물로 변경
-			Slot.ItemData.StaticDataID = CachedDecayedItemID;
-			Slot.ExpirationTime = 0;
-			Slot.bCanStack = CachedDecayedItemInfo.IsStackable();
-			Slot.MaxStackSize = CachedDecayedItemInfo.MaxStack;
-
-			// 현재 손에 들고 있는 슬롯이 부패물로 전환된 경우 플래그 설정
-			if (InventoryType == EInventoryType::HotKey && SlotIndex == ActiveHotkeyIndex)
-			{
-				bActiveSlotChanged = true;
-			}
-		}
-
-		++SlotIndex; // 다음 슬롯으로
-	}
-
-	//=======================================================================
-	// 활성화된 슬롯이 부패물로 전환된 경우 메시 재장착
-	//=======================================================================
-	if (bActiveSlotChanged)
-	{
-		HandleActiveHotkeyIndexChanged_internal(); // 기존 메시 제거 -> 새 메시 장착
-	}
-}
-
-double UTSInventoryMasterComponent::UpdateExpirationTime_internal(double CurrentExpirationTime, int CurrentStack,int NewItemStack, float DecayRate) const
-{
-	double NewItemExpirationTime = GetWorld()->GetTimeSeconds() + DecayRate;
-	return (CurrentExpirationTime * CurrentStack + NewItemExpirationTime * NewItemStack) / (CurrentStack + NewItemStack);
-}
-
-float UTSInventoryMasterComponent::UpdateDecayPercent_internal(double CurrentExpirationTime, float DecayRate) const
-{
-	double CurrentTime = GetWorld()->GetTimeSeconds();
-	return DecayRate > 0 ? (float)((CurrentExpirationTime - CurrentTime) / DecayRate) : 0.f;
 }
 
 

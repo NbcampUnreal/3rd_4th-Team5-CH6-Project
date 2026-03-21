@@ -8,12 +8,20 @@ bool FSlotStructMaster::IsSlotEmpty()
 	return ItemData.StaticDataID == 0 || CurrentStackSize <= 0;
 }
 
-bool FInventoryStructMaster::IsValidSlotIndex(int32 SlotIndex)
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool FInventoryStructMaster::IsValidSlotIndex(int32 InSlotIndex)
 {
-	return SlotIndex >= 0 && SlotIndex < InventorySlotContainer.Num();
+	return InventorySlotContainer.IsValidIndex(InSlotIndex);
 }
 
-FSlotStructMaster& FInventoryStructMaster::GetSlot(int32 SlotIndex)
+bool FInventoryStructMaster::IsSlotEmpty(int32 InSlotIndex)
 {
-	return InventorySlotContainer[SlotIndex];
+	if (!InventorySlotContainer.IsValidIndex(InSlotIndex)) return false;
+	return InventorySlotContainer[InSlotIndex].IsSlotEmpty();
+}
+
+FSlotStructMaster& FInventoryStructMaster::GetSlot(int32 InSlotIndex)
+{
+	return InventorySlotContainer[InSlotIndex];
 }

@@ -2,6 +2,8 @@
 
 
 #include "A_FOR_INGAME/SECTION_ITEM/Crafting/TSCraftingTable.h"
+
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/Controller/TSPlayerController.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/Character/TSCharacter.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Crafting/System/CraftingDataSubsystem.h"
@@ -109,7 +111,7 @@ bool ATSCraftingTable::CanCraft(int32 RecipeID, ATSCharacter* InstigatorCharacte
 	for (const FIngredientData& Ingredient : RecipeData.Ingredients)
 	{
 		// 아이템 개수 확인
-		int32 ItemCount = PlayerInventoryComp->GetItemCount(Ingredient.MaterialID);
+		int32 ItemCount = UTSInventoryHelperLibrary::GetItemCount_Lib(PlayerInventoryComp, Ingredient.MaterialID);
 		if (ItemCount < Ingredient.Count)
 		{
 			return false;

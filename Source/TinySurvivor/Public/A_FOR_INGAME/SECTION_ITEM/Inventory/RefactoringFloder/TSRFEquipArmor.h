@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/ItemData.h"
-#include "RFEquipArmor.generated.h"
+#include "TSRFEquipArmor.generated.h"
 
 class ATSEquippedItem;
 

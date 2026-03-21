@@ -29,7 +29,7 @@ public:
 	// ????
 protected:
 	virtual void TransferItem(UTSInventoryMasterComponent* SourceInventory, UTSInventoryMasterComponent* TargetInventory, EInventoryType FromInventoryType, int32 FromSlotIndex, EInventoryType ToInventoryType, int32 ToSlotIndex, bool bIsFullStack = true, ATSPlayerController* RequestingPlayer = nullptr) override;
-	virtual bool CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget) override;
+	bool CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget);
 	virtual void ClearSlot_internal(FSlotStructMaster& Slot) override;
 	void SetFuelSlot();
 	

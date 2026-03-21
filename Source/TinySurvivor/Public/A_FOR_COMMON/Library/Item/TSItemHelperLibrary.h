@@ -17,13 +17,13 @@ class TINYSURVIVOR_API UTSItemHelperLibrary : public UBlueprintFunctionLibrary
 	
 public:
 	// 아이템 데이터 게터 (레퍼런스로 주고 받음)
-	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ItemHelperLibrary")
-	static bool GetItemData(const UObject* InWorldContextObject, int32 InStaticDataID, FItemData& OutData);
+	static bool GetItemData_Lib(const UObject* InWorldContextObject, int32 InStaticDataID, FItemData& OutData);
 
+	// 부패도 아이디값 게터 
+	static int32 GetDecayedItemID_Lib(const UObject* InWorldContextObject);
 
-
-
-
+	// 부패물 아이템 데이터 게터
+	static bool GetDecayedItemData_Lib(const UObject* InWorldContextObject, FItemData& OutData);
 
 
 
