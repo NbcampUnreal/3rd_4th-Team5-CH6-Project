@@ -103,8 +103,9 @@ struct TINYSURVIVOR_API FInventoryStructMaster
 
 	//========================================================	
 	// 헬퍼 함수들	
-	bool IsValidSlotIndex(int32 SlotIndex);
-	FSlotStructMaster& GetSlot(int32 SlotIndex);
+	bool IsValidSlotIndex(int32 InSlotIndex);
+	bool IsSlotEmpty(int32 InSlotIndex);
+	FSlotStructMaster& GetSlot(int32 InSlotIndex);
 	//========================================================	
 	
 };

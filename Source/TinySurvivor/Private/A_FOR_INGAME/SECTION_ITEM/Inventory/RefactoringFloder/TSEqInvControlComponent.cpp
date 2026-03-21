@@ -2,6 +2,8 @@
 
 
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/RefactoringFloder/TSEqInvControlComponent.h"
+
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_COMMON/Library/Item/TSItemHelperLibrary.h"
 #include "A_FOR_COMMON/Library/System/TSDecayLibrary.h"
 #include "A_FOR_COMMON/Library/System/TSSystemGetterLibrary.h"
@@ -59,7 +61,7 @@ void UTSEqInvControlComponent::ConvertToDecayedItem_internal(EInventoryType Inve
 	if (!IsValid(InventoryMasterComp)) return;
 	
 	// 타입에 맞는 인벤토리 가져오기
-	FInventoryStructMaster* Inventory = InventoryMasterComp->GetInventoryByType_internal(InventoryType);
+	FInventoryStructMaster* Inventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(InventoryMasterComp, InventoryType);
 	if (!Inventory) return;
 	
 	for (int32 SlotIndex = 0; SlotIndex < Inventory->InventorySlotContainer.Num(); ++SlotIndex)
@@ -72,7 +74,7 @@ void UTSEqInvControlComponent::ConvertToDecayedItem_internal(EInventoryType Inve
 		if (Slot.ItemData.StaticDataID == 0) continue;
 
 		// 아이템 정보 조회 실패 시 건너뛰기
-		if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) continue;
+		if (!UTSItemHelperLibrary::GetItemData_Lib(this, Slot.ItemData.StaticDataID, ItemInfo)) continue;
 
 		// 부패 가능한 아이템만 건너뛰기
 		if (!ItemInfo.IsDecayEnabled()) continue;
@@ -90,10 +92,10 @@ void UTSEqInvControlComponent::ConvertToDecayedItem_internal(EInventoryType Inve
 		
 		// 부패물 정보 캐싱
 		FItemData DecayedItemInfo;
-		UTSItemHelperLibrary::GetDecayedItemData(this, DecayedItemInfo);
+		UTSItemHelperLibrary::GetDecayedItemData_Lib(this, DecayedItemInfo);
 			
 		// 슬롯 데이터를 부패물로 변경
-		Slot.ItemData.StaticDataID = UTSItemHelperLibrary::GetDecayedItemID(this);
+		Slot.ItemData.StaticDataID = UTSItemHelperLibrary::GetDecayedItemID_Lib(this);
 		Slot.ExpirationTime = 0;
 		Slot.bCanStack = DecayedItemInfo.IsStackable();
 		Slot.MaxStackSize = DecayedItemInfo.MaxStack;

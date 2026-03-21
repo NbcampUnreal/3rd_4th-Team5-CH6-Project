@@ -11,10 +11,10 @@
 #include "A_FOR_INGAME/SECTION_PLAYER/Controller/TSPlayerController.h"
 
 #include "A_FOR_COMMON/Library/GAS/TSASCLibrary.h"
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_COMMON/Library/Item/TSItemHelperLibrary.h"
 #include "A_FOR_COMMON/Library/System/TSDecayLibrary.h"
 #include "A_FOR_COMMON/Library/System/TSSystemGetterLibrary.h"
-#include "A_FOR_COMMON/Library/System/TSTimeLibrary.h"
 
 #include "A_FOR_INGAME/SECTION_ITEM/Item/TSEquippedItem.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/ItemData.h"
@@ -166,7 +166,7 @@ void UTSInventoryMasterComponent::UseItem_internal(int32 SlotIndex)
 	if (!GetOwner()->HasAuthority()) return;
 
 	// 유효한 핫 키인지 체크
-	if (!IsValidSlotIndex_internal(EInventoryType::HotKey, SlotIndex)) return;
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this, EInventoryType::HotKey, SlotIndex)) return;
 
 	// 핫키 슬롯 가져오기
 	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
@@ -176,14 +176,15 @@ void UTSInventoryMasterComponent::UseItem_internal(int32 SlotIndex)
 
 	// 아이템 정보 가져오기
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
 	
 	//------------------
 	// 가방 아이템인 경우
 	//------------------
 	if (Slot.ItemData.StaticDataID == BagItemID)
 	{
-		ActionWithBagItem_internal(Slot);
+		int32 AddSize = 4;
+		ActionWithBagItem_internal(Slot, AddSize);
 		HandleInventoryChanged_internal();
 		return;
 	}
@@ -210,10 +211,10 @@ void UTSInventoryMasterComponent::UseItem_internal(int32 SlotIndex)
 	}
 }
 
-void UTSInventoryMasterComponent::ActionWithBagItem_internal(FSlotStructMaster& InTargetSlot)
+void UTSInventoryMasterComponent::ActionWithBagItem_internal(FSlotStructMaster& InTargetSlot, int32& InAdditionalSlots)
 {
 	// 가방 확장
-	bool bExpanded = ExpandBagInventory_internal(BagSlotIncrement);
+	bool bExpanded = UTSInventoryHelperLibrary::ExpandBagInventory_Lib(this, InAdditionalSlots);
 	if (!bExpanded) return;
 	
 	// 아이템 소비
@@ -229,7 +230,7 @@ void UTSInventoryMasterComponent::ActionWithConsumableItem_internal(FSlotStructM
 	if (!IsValid(ASC)) return;
 	
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, InTargetSlot.ItemData.StaticDataID, ItemInfo)) return;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, InTargetSlot.ItemData.StaticDataID, ItemInfo)) return;
 	
 	//=======================================================================
 	// 1. Cancel 태그 체크 (몽타주 재생 전)
@@ -292,7 +293,7 @@ void UTSInventoryMasterComponent::ActionWithArmorItem_internal(FSlotStructMaster
 	if (!IsValid(ASC)) return;
 	
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, InTargetSlot.ItemData.StaticDataID, ItemInfo)) return;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, InTargetSlot.ItemData.StaticDataID, ItemInfo)) return;
 	
 	// 방어구 장착 로직 (기존 방식 유지)
 	UnequipCurrentItem_internal();
@@ -333,7 +334,7 @@ void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity
 	}
 	
 	// 가방 인벤토리 탐색
-	if (GetCurrentBagSlotCount() > 0)
+	if (BagInventory.InventorySlotContainer.Num() > 0)
 	{
 		for (int32 i = 0; i < BagInventory.InventorySlotContainer.Num(); ++i)
 		{
@@ -357,12 +358,6 @@ void UTSInventoryMasterComponent::ConsumeItem(int32 StaticDataID, int32 Quantity
 	//--------------------
 	// 아이템 장착
 	//--------------------
-
-bool UTSInventoryMasterComponent::HasItemEquipped_internal() const
-{
-	FSlotStructMaster ActiveSlot = GetActiveHotkeySlot_internal();
-	return ActiveSlot.ItemData.StaticDataID != 0 && ActiveSlot.CurrentStackSize > 0;
-}
 
 void UTSInventoryMasterComponent::EquipActiveHotkeyItem_internal()
 {
@@ -389,7 +384,7 @@ void UTSInventoryMasterComponent::EquipActiveHotkeyItem_internal()
 	UnequipCurrentItem_internal();
 
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, ActiveSlot.ItemData.StaticDataID, ItemInfo)) return;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, ActiveSlot.ItemData.StaticDataID, ItemInfo)) return;
 
 	// 아이템 ID 캐싱 (UnequipCurrentItem에서 사용)
 	CachedEquippedItemID = ActiveSlot.ItemData.StaticDataID;
@@ -692,7 +687,7 @@ void UTSInventoryMasterComponent::OnArmorHitEvent_internal(const FGameplayEventD
 		if (!EquippedArmors[i].EquippedArmor) continue;
 
 		// 해당 슬롯의 장비 인벤토리 확인
-		if (!IsValidSlotIndex_internal(EInventoryType::Equipment, i)) continue;
+		if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this, EInventoryType::Equipment, i)) continue;
 
 		FSlotStructMaster& Slot = EquipmentInventory.InventorySlotContainer[i];
 
@@ -701,7 +696,7 @@ void UTSInventoryMasterComponent::OnArmorHitEvent_internal(const FGameplayEventD
 
 		// 아이템 정보 조회
 		FItemData ItemInfo;
-		if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) continue;
+		if (!UTSItemHelperLibrary::GetItemData_Lib(this, Slot.ItemData.StaticDataID, ItemInfo)) continue;
 
 		// 방어구가 아니면 스킵 (안전 체크)
 		if (ItemInfo.Category != EItemCategory::ARMOR) continue;
@@ -829,7 +824,7 @@ void UTSInventoryMasterComponent::OnWeaponAttackEvent_internal(const FGameplayEv
 
 	// 아이템 정보 조회
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
 
 	// 무기가 아닌 경우 처리하지 않음
 	if (ItemInfo.Category != EItemCategory::WEAPON) return;
@@ -878,7 +873,7 @@ void UTSInventoryMasterComponent::RemoveToolTags_internal()
 	if (CachedEquippedItemID == 0) return;
 
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, CachedEquippedItemID, ItemInfo)) return;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, CachedEquippedItemID, ItemInfo)) return;
 
 	// 도구가 아니면 제거할 태그가 없음
 	if (ItemInfo.Category != EItemCategory::TOOL) return;
@@ -906,7 +901,7 @@ void UTSInventoryMasterComponent::OnToolHarvestEvent_internal(const FGameplayEve
 
 	// 아이템 정보 조회
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, Slot.ItemData.StaticDataID, ItemInfo)) return;
 
 	// 도구가 아닌 경우 처리하지 않음
 	if (ItemInfo.Category != EItemCategory::TOOL) return;
@@ -1001,7 +996,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 	if (!GetOwner()->HasAuthority() || ItemData.StaticDataID == 0 || Quantity <= 0) return false;
 
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, ItemData.StaticDataID, ItemInfo)) return false;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, ItemData.StaticDataID, ItemInfo)) return false;
 
 	OutRemainingQuantity = Quantity;
 
@@ -1187,7 +1182,7 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 	}
 
 	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this, FromSlot.ItemData.StaticDataID, ItemInfo)) return false;
+	if (!UTSItemHelperLibrary::GetItemData_Lib(this, FromSlot.ItemData.StaticDataID, ItemInfo)) return false;
 
 	if (!ItemInfo.IsStackable()) return false;
 
@@ -1229,7 +1224,7 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 
 int32 UTSInventoryMasterComponent::FindEmptySlot_internal(EInventoryType InventoryType)
 {
-	const FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
+	const FInventoryStructMaster* Inventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(this,InventoryType);
 	if (!Inventory) return -1;
 
 	for (int32 i = 0; i < Inventory->InventorySlotContainer.Num(); ++i)
@@ -1262,9 +1257,9 @@ int32 UTSInventoryMasterComponent::FindEquipmentSlot_internal(EEquipSlot ArmorSl
 
 void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
-	if (!IsValidSlotIndex_internal(InventoryType, SlotIndex)) return;
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this,InventoryType, SlotIndex)) return;
 
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
+	FInventoryStructMaster* Inventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(this, InventoryType);
 	if (!Inventory) return;
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
@@ -1317,9 +1312,9 @@ void UTSInventoryMasterComponent::ServerDropItemToWorld_Implementation(EInventor
 
 bool UTSInventoryMasterComponent::RemoveItem_internal(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity)
 {
-	if (!GetOwner()->HasAuthority() || !IsValidSlotIndex_internal(InventoryType, SlotIndex)) return false;
+	if (!GetOwner()->HasAuthority() || !UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this,InventoryType, SlotIndex)) return false;
 
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
+	FInventoryStructMaster* Inventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(this,InventoryType);
 	if (!Inventory) return false;
 
 	FSlotStructMaster& Slot = Inventory->InventorySlotContainer[SlotIndex];
@@ -1356,7 +1351,7 @@ void UTSInventoryMasterComponent::ClearSlot_internal(FSlotStructMaster& Slot)
 	// 사용
 	//--------------------
 
-void UTSInventoryMasterComponent::ServerActivateHotkeySlot_internal_Implementation(int32 SlotIndex)
+void UTSInventoryMasterComponent::ServerActivateHotkeySlot_Implementation(int32 SlotIndex)
 {
 	if (SlotIndex < -1 || SlotIndex >= HotkeyInventory.InventorySlotContainer.Num()) return;
 
@@ -1371,114 +1366,9 @@ void UTSInventoryMasterComponent::ServerActivateHotkeySlot_internal_Implementati
 	// 게터
 	//--------------------
 
-FSlotStructMaster UTSInventoryMasterComponent::GetSlot(EInventoryType InventoryType, int32 SlotIndex)
-{
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-	if (!Inventory || !Inventory->IsValidSlotIndex(SlotIndex))
-	{
-		return FSlotStructMaster();
-	}
-	
-	return Inventory->GetSlot(SlotIndex);
-}
-
-int32 UTSInventoryMasterComponent::GetItemCount(int32 StaticDataID) const
-{
-	int32 ResultCount = 0;
-	
-	// 핫키 인벤토리 탐색
-	for (const FSlotStructMaster& Slot : HotkeyInventory.InventorySlotContainer)
-	{
-		if (Slot.ItemData.StaticDataID == StaticDataID)
-		{
-			ResultCount += Slot.CurrentStackSize;
-		}
-	}
-	
-	// 가방 인벤토리 탐색
-	if (GetCurrentBagSlotCount() == 0) return ResultCount;
-	
-	for (const FSlotStructMaster& Slot : BagInventory.InventorySlotContainer)
-	{
-		if (Slot.ItemData.StaticDataID == StaticDataID)
-		{
-			ResultCount += Slot.CurrentStackSize;
-		}
-	}
-	return ResultCount;
-}
-
-FInventoryStructMaster* UTSInventoryMasterComponent::GetInventoryByType_internal(EInventoryType InventoryType)
-{
-	switch (InventoryType)
-	{
-	case EInventoryType::HotKey:
-		return &HotkeyInventory;
-		
-	case EInventoryType::Equipment:
-		return &EquipmentInventory;
-		
-	case EInventoryType::BackPack:
-		return &BagInventory;
-		
-	default:
-		return nullptr;
-	}
-}
-
-FSlotStructMaster UTSInventoryMasterComponent::GetActiveHotkeySlot_internal() const
-{
-	if (ActiveHotkeyIndex >= 0 && ActiveHotkeyIndex < HotkeyInventory.InventorySlotContainer.Num())
-	{
-		return HotkeyInventory.InventorySlotContainer[ActiveHotkeyIndex];
-	}
-	return FSlotStructMaster();
-}
-
-
 	//--------------------
 	// 검증
 	//--------------------
-
-bool UTSInventoryMasterComponent::IsValidSlotIndex_internal(EInventoryType InventoryType, int32 SlotIndex)
-{
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-	if (!Inventory) return false;
-	
-	return Inventory->IsValidSlotIndex(SlotIndex);
-}
-
-bool UTSInventoryMasterComponent::IsSlotEmpty_internal(EInventoryType InventoryType, int32 SlotIndex)
-{
-	FSlotStructMaster Slot = GetSlot(InventoryType, SlotIndex);
-	return Slot.IsSlotEmpty();
-}
-
-bool UTSInventoryMasterComponent::CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget)
-{
-	if (StaticDataID == 0 || !IsValidSlotIndex_internal(InventoryType, SlotIndex)) return false;
-
-	// 슬롯 접근 타입 확인
-	if (IsTarget && GetSlot(InventoryType, SlotIndex).SlotAccessType == ESlotAccessType::ReadOnly) return false;
-
-	FItemData ItemInfo;
-	if (!UTSItemHelperLibrary::GetItemData(this,StaticDataID, ItemInfo)) return false;
-
-	// 방어구 아이템 타입 검증
-	if (InventoryType == EInventoryType::Equipment)
-	{
-		if (ItemInfo.Category != EItemCategory::ARMOR) return false;
-		
-		const FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-		if (!Inventory) return false;
-		
-		ESlotType TargetSlotType = Inventory->InventorySlotContainer[SlotIndex].SlotType;
-
-		if (EquipmentSlotTypes[TargetSlotType] != ItemInfo.ArmorData.EquipSlot) return false;
-	}
-
-	return true;
-}
 
 	//--------------------
 	// 유틸
@@ -1509,22 +1399,22 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 		return;
 	}
 
-	if (!SourceInventory->IsValidSlotIndex_internal(FromInventoryType, FromSlotIndex))
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(SourceInventory,FromInventoryType, FromSlotIndex))
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
 		RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
-	if (!TargetInventory->IsValidSlotIndex_internal(ToInventoryType, ToSlotIndex))
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(TargetInventory, ToInventoryType, ToSlotIndex))
 	{
 		RequestingPlayer->ClientNotifyTransferResult(false);
 		RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_Failed));
 		return;
 	}
 
-	FInventoryStructMaster* FromInventory = SourceInventory->GetInventoryByType_internal(FromInventoryType);
-	FInventoryStructMaster* ToInventory = TargetInventory->GetInventoryByType_internal(ToInventoryType);
+	FInventoryStructMaster* FromInventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(SourceInventory, FromInventoryType);
+	FInventoryStructMaster* ToInventory = UTSInventoryHelperLibrary::GetInventoryByType_Lib(TargetInventory, ToInventoryType);
 
 	if (!FromInventory || !ToInventory)
 	{
@@ -1539,7 +1429,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 	// 타입 검증
 	if (FromSlot.ItemData.StaticDataID != 0)
 	{
-		if (!TargetInventory->CanPlaceItemInSlot_internal(FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex, true))
+		if (!UTSInventoryHelperLibrary::CanPlaceItemInSlot_Lib(TargetInventory, FromSlot.ItemData.StaticDataID, ToInventoryType, ToSlotIndex, true))
 		{
 			RequestingPlayer->ClientNotifyTransferResult(false);
 			RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_CannotPlace));
@@ -1549,7 +1439,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 
 	if (ToSlot.ItemData.StaticDataID != 0)
 	{
-		if (!SourceInventory->CanPlaceItemInSlot_internal(ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex, false))
+		if (!UTSInventoryHelperLibrary::CanPlaceItemInSlot_Lib(SourceInventory, ToSlot.ItemData.StaticDataID, FromInventoryType, FromSlotIndex, false))
 		{
 			RequestingPlayer->ClientNotifyTransferResult(false);
 			RequestingPlayer->ClientShowNotificationOnHUD(UTSSystemGetterLibrary::GetGameplayTagDisplaySubsystem(this)->GetDisplayName_KR(NotificationTags::TAG_Notification_Inventory_CannotPlace));
@@ -1620,7 +1510,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 			if (FromSlot.ItemData.StaticDataID != 0)
 			{
 				FItemData ItemInfo;
-				if (UTSItemHelperLibrary::GetItemData(SourceInventory, FromSlot.ItemData.StaticDataID, ItemInfo))
+				if (UTSItemHelperLibrary::GetItemData_Lib(SourceInventory, FromSlot.ItemData.StaticDataID, ItemInfo))
 				{
 					FromSlot.MaxStackSize = ItemInfo.MaxStack;
 				}
@@ -1629,7 +1519,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 			if (ToSlot.ItemData.StaticDataID != 0)
 			{
 				FItemData ItemInfo;
-				if (UTSItemHelperLibrary::GetItemData(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
+				if (UTSItemHelperLibrary::GetItemData_Lib(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
 				{
 					ToSlot.MaxStackSize = ItemInfo.MaxStack;
 				}
@@ -1678,7 +1568,7 @@ void UTSInventoryMasterComponent::TransferItem(UTSInventoryMasterComponent* Sour
 	if (ToInventoryType == EInventoryType::Equipment && ToSlot.ItemData.StaticDataID != 0)
 	{
 		FItemData ItemInfo;
-		if (UTSItemHelperLibrary::GetItemData(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
+		if (UTSItemHelperLibrary::GetItemData_Lib(TargetInventory, ToSlot.ItemData.StaticDataID, ItemInfo))
 		{
 			// 방어구인 경우에만 장착
 			if (ItemInfo.Category == EItemCategory::ARMOR)
@@ -1736,43 +1626,6 @@ void UTSInventoryMasterComponent::HandleActiveHotkeyIndexChanged_internal()
 
 #pragma endregion
 //======================================================================================================================
-#pragma region 가방_시스템_API
-	
-
-	//━━━━━━━━━━━━━━━━━━━━
-	// 인벤토리 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-
-bool UTSInventoryMasterComponent::ExpandBagInventory_internal(int32 AdditionalSlots)
-{
-	if (!GetOwner()->HasAuthority()) return false;
-
-	int32 CurrentSlotCount = BagInventory.InventorySlotContainer.Num();
-	int32 NewSlotCount = CurrentSlotCount + AdditionalSlots;
-
-	if (NewSlotCount > MaxBagSlotCount)
-	{
-		NewSlotCount = MaxBagSlotCount;
-
-		if (CurrentSlotCount >= MaxBagSlotCount) return false;
-	}
-
-	int32 OldSize = CurrentSlotCount;
-	BagInventory.InventorySlotContainer.SetNum(NewSlotCount);
-
-	for (int32 i = OldSize; i < NewSlotCount; ++i)
-	{
-		BagInventory.InventorySlotContainer[i].SlotType = ESlotType::Any;
-	}
-
-	OnBagSizeChanged.Broadcast(NewSlotCount);
-
-	return true;
-}
-
-
-#pragma endregion
-//======================================================================================================================
 #pragma region GAS_관련_API
     	
 
@@ -1793,7 +1646,7 @@ void UTSInventoryMasterComponent::OnItemConsumedEvent_internal(const FGameplayEv
 
 	int32 SlotIndex = static_cast<int32>(Payload->EventMagnitude);
 
-	if (!IsValidSlotIndex_internal(EInventoryType::HotKey, SlotIndex)) return;
+	if (!UTSInventoryHelperLibrary::IsValidSlotIndex_Lib(this, EInventoryType::HotKey, SlotIndex)) return;
 
 	FSlotStructMaster& Slot = HotkeyInventory.InventorySlotContainer[SlotIndex];
 

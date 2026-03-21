@@ -34,7 +34,8 @@ class TINYSURVIVOR_API UTSInventoryMasterComponent : public UActorComponent
 	GENERATED_BODY()
 
 	friend class UTSEqInvControlComponent;
-	
+	friend class UTSInventoryHelperLibrary;
+	friend class UTSItemUseHelperLibrary;
 	
 	//```````````````````````
 	// 게터, 델리게이트, Rep 섹션
@@ -145,7 +146,7 @@ protected:
 	void UseItem_internal(int32 SlotIndex);
 	
 	// 가방 아이템 사용 시 액션 함수 
-	void ActionWithBagItem_internal(FSlotStructMaster& InTargetSlot);
+	void ActionWithBagItem_internal(FSlotStructMaster& InTargetSlot,int32& InAdditionalSlots);
 	
 	// 소모품 사용 시 액션 함수
 	void ActionWithConsumableItem_internal(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
@@ -166,9 +167,6 @@ public:
 	//--------------------
 
 protected:
-	
-	// 아이템을 장착하고 있는지 체크
-	bool HasItemEquipped_internal() const;
 	
 	// 핫키 버튼에 따른 아이템 창작
 	void EquipActiveHotkeyItem_internal();
@@ -266,6 +264,7 @@ public:
 	//--------------------
 	// 아이템 제거
 	//--------------------
+	
 protected:
 	
 	bool RemoveItem_internal(EInventoryType InventoryType, int32 SlotIndex, int32 Quantity = 0);
@@ -275,40 +274,19 @@ protected:
 	//--------------------
 	// 사용
 	//--------------------
-protected:
+
+public:
 	
-	UFUNCTION(Server, Reliable)
-	void ServerActivateHotkeySlot_internal(int32 SlotIndex);
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void ServerActivateHotkeySlot(int32 SlotIndex);
 	
 	//--------------------
 	// 게터
 	//--------------------
-public:
 
-	UFUNCTION(BlueprintPure, BlueprintCallable)
-	FSlotStructMaster GetSlot(EInventoryType InventoryType, int32 SlotIndex);
-	
-	UFUNCTION(BlueprintCallable)
-	int32 GetItemCount(int32 StaticDataID) const;
-
-protected:
-	
-	FORCEINLINE int32 GetActiveHotkeyIndex_internal() const { return ActiveHotkeyIndex; }
-	
-	FInventoryStructMaster* GetInventoryByType_internal(EInventoryType InventoryType);
-	
-	FSlotStructMaster GetActiveHotkeySlot_internal() const;
-	
 	//--------------------
 	// 검증
 	//--------------------
-protected:
-	
-	bool IsSlotEmpty_internal(EInventoryType InventoryType, int32 SlotIndex);
-	
-	bool IsValidSlotIndex_internal(EInventoryType InventoryType, int32 SlotIndex);
-	
-	virtual bool CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex, bool IsTarget);
 	
 	//--------------------
 	// 유틸
@@ -332,24 +310,6 @@ protected:
 	// 핫 키 변환 발생 시   
 	void HandleActiveHotkeyIndexChanged_internal();
 	
-	
-#pragma endregion
-//======================================================================================================================
-#pragma region 가방_시스템_API
-	
-	
-	//━━━━━━━━━━━━━━━━━━━━
-	// 인벤토리 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-public:
-	
-	UFUNCTION(BlueprintPure, BlueprintCallable)
-	int32 GetCurrentBagSlotCount() const { return BagInventory.InventorySlotContainer.Num(); }
-
-protected:
-	
-	bool ExpandBagInventory_internal(int32 AdditionalSlots);
-
 	
 #pragma endregion
 //======================================================================================================================
@@ -414,18 +374,12 @@ public:
 	/** 가방 초기 슬롯 개수 (0이면 가방 아이템 사용 전까지 사용 불가) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
 	int32 InitialBagSlotCount = 0;
-
 	
 	/** 가방 최대 슬롯 개수 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
 	int32 MaxBagSlotCount = 16;
 	
 protected:
-
-	
-	/** 가방 아이템 사용 시 증가하는 슬롯 개수 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
-	int32 BagSlotIncrement = 4;
 
 	/** 가방 아이템의 StaticDataID */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
@@ -447,6 +401,13 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_BagInventory, BlueprintReadOnly, Category = "Inventory")
 	FInventoryStructMaster BagInventory;
 
+	
+	
+	// ========================================
+	// 핫 키
+	// ========================================
+
+	
 	UPROPERTY(ReplicatedUsing = OnRep_ActiveHotkeyIndex, BlueprintReadOnly, Category = "Inventory")
 	int32 ActiveHotkeyIndex = 0;
 

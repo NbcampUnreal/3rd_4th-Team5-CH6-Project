@@ -2,6 +2,8 @@
 
 
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/TSLampInventory.h"
+
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemInstance.h"
 
 
@@ -18,7 +20,7 @@ UTSLampInventory::UTSLampInventory()
 void UTSLampInventory::TransferItem(UTSInventoryMasterComponent* SourceInventory,UTSInventoryMasterComponent* TargetInventory,EInventoryType FromInventoryType, int32 FromSlotIndex,EInventoryType ToInventoryType, int32 ToSlotIndex,bool bIsFullStack, ATSPlayerController* RequestingPlayer)
 {
 	if (!GetOwner()->HasAuthority()) return;
-	if (SourceInventory->GetSlot(FromInventoryType, FromSlotIndex).ItemData.StaticDataID != MaintenanceCostID) return;
+	if (UTSInventoryHelperLibrary::GetSlot_Lib(SourceInventory, FromInventoryType, FromSlotIndex).ItemData.StaticDataID != MaintenanceCostID) return;
 
 	Super::TransferItem(SourceInventory, TargetInventory, FromInventoryType, FromSlotIndex, ToInventoryType, ToSlotIndex, bIsFullStack, RequestingPlayer);
 	
@@ -27,10 +29,10 @@ void UTSLampInventory::TransferItem(UTSInventoryMasterComponent* SourceInventory
 
 bool UTSLampInventory::CanPlaceItemInSlot_internal(int32 StaticDataID, EInventoryType InventoryType, int32 SlotIndex,bool IsTarget)
 {
-	if (Super::CanPlaceItemInSlot_internal(StaticDataID, InventoryType, SlotIndex, IsTarget))
+	if (!UTSInventoryHelperLibrary::CanPlaceItemInSlot_Lib(this,StaticDataID, InventoryType, SlotIndex, IsTarget))
 	{
 		if (StaticDataID != MaintenanceCostID) return false;
-		if (IsTarget && GetSlot(InventoryType, SlotIndex).CurrentStackSize >= MaintenanceCostQty) return false;
+		if (IsTarget && UTSInventoryHelperLibrary::GetSlot_Lib(this, InventoryType, SlotIndex).CurrentStackSize >= MaintenanceCostQty) return false;
 	}
 	
 	OnFuelTransferred.Broadcast();

@@ -2,6 +2,8 @@
 
 
 #include "A_FOR_INGAME/SECTION_ITEM/Building/Actor/TSStreetLamp.h"
+
+#include "A_FOR_COMMON/Library/Item/TSInventoryHelperLibrary.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/Character/TSCharacter.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/Controller/TSPlayerController.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/TSLampInventory.h"
@@ -125,7 +127,7 @@ void ATSStreetLamp::SetFuelTimer()
 
 void ATSStreetLamp::UseFuel()
 {
-	if (LampInventory->GetItemCount(MaintenanceCostID) > 0)
+	if (UTSInventoryHelperLibrary::GetItemCount_Lib(LampInventory, MaintenanceCostID) > 0)
 	{
 		// 연료 사용
 		UTSErosionSubSystem* ErosionSubSystem = UTSErosionSubSystem::GetErosionSubSystem(this);

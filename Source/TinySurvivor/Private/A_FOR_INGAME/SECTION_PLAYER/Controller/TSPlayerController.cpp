@@ -266,7 +266,7 @@ void ATSPlayerController::ToggleInventory()
 	UTSInventoryMasterComponent* ContainerInventory = Cast<UTSInventoryMasterComponent>(
 		GetPawn()->GetComponentByClass(UTSInventoryMasterComponent::StaticClass()));
 
-	if (!ContainerInventory || ContainerInventory->GetCurrentBagSlotCount() <= 0)
+	if (!ContainerInventory || ContainerInventory->BagInventory.InventorySlotContainer.Num() <= 0)
 	{
 		return;
 	}
