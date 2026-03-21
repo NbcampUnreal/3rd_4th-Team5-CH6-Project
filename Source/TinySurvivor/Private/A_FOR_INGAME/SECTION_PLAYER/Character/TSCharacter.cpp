@@ -28,6 +28,7 @@
 #include "A_FOR_INGAME/Framework/GameState/TSGameState.h"
 #include "A_FOR_INGAME/Input/TSPlayerInputDataAsset.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/RefactoringFloder/TSEqInvControlComponent.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/RefactoringFloder/TSInventoryGASControlComponent.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/PingSystem/TSPingActor.h"
 #include "A_FOR_INGAME/SECTION_UI/TSPlayerUIDataControllerSystem.h"
 #include "A_FOR_INGAME/SECTION_WORLD/Erosion/ErosionLightSourceSubActor.h"
@@ -78,16 +79,17 @@ ATSCharacter::ATSCharacter()
 	
 	// 인벤토리 섹션
 	EqInvControlComponent = CreateDefaultSubobject<UTSEqInvControlComponent>(TEXT("EqInvControlComponent"));
-	
+	InventoryGasControlComponent = CreateDefaultSubobject<UTSInventoryGASControlComponent>(TEXT("InventoryGasControlComponent"));
 }
 
 void ATSCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	
-	if (IsValid(EqInvControlComponent) && IsValid(InventoryMasterComponent))
+	if (IsValid(InventoryMasterComponent))
 	{
-		EqInvControlComponent->InventoryMasterComp = InventoryMasterComponent;
+		if (IsValid(EqInvControlComponent)) EqInvControlComponent->InventoryMasterComp = InventoryMasterComponent;
+		if (IsValid(InventoryGasControlComponent)) InventoryGasControlComponent->InventoryMasterComp = InventoryMasterComponent;
 	}
 	
 }

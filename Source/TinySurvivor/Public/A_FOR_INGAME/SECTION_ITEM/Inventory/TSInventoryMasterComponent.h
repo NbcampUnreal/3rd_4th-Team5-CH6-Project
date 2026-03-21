@@ -142,18 +142,7 @@ public:
 	void ServerUseItem(int32 SlotIndex);
 	
 protected:
-	// 아이템 사용 처리 내부 API
-	void UseItem_internal(int32 SlotIndex);
 	
-	// 가방 아이템 사용 시 액션 함수 
-	void ActionWithBagItem_internal(FSlotStructMaster& InTargetSlot,int32& InAdditionalSlots);
-	
-	// 소모품 사용 시 액션 함수
-	void ActionWithConsumableItem_internal(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
-
-	// 방어구 사용 시 액션 함수
-	void ActionWithArmorItem_internal(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
-
 	//--------------------
 	// 아이템 소비
 	//--------------------
@@ -161,66 +150,6 @@ protected:
 public:
 	// 아이템 소비 API 
 	void ConsumeItem(int32 StaticDataID, int32 Quantity);
-	
-	//--------------------
-	// 아이템 장착
-	//--------------------
-
-protected:
-	
-	// 핫키 버튼에 따른 아이템 창작
-	void EquipActiveHotkeyItem_internal();
-
-	// 핫키 버튼에 따른 아이템 장착 해제
-	void UnequipCurrentItem_internal();
-
-	// 장착 아이템 변환 발생 시 호출
-	void HandleCurrentEquippedItemChanged_internal();
-
-	//--------------------
-	// 방어구
-	//--------------------
-
-protected:
-		
-	// 방어구 장착
-	void EquipArmor_internal(const FItemData& ItemInfo, int32 ArmorSlotIndex);
-	
-	// 방어구 해제
-	void UnequipArmor_internal(int32 ArmorSlotIndex);
-	
-	// 방어구 피격 이벤트 수신 함수
-	void OnArmorHitEvent_internal(const FGameplayEventData* Payload);
-	
-	//--------------------
-	// 무기 
-	//--------------------
-	
-protected:
-	
-	// 무기 장착
-	void ApplyWeaponStats_internal(const FItemData& ItemInfo);
-	
-	// 무기 해제
-	void RemoveWeaponStats_internal();
-	
-	// 무기 사용 이벤트 수신 함수
-	void OnWeaponAttackEvent_internal(const FGameplayEventData* Payload);
-	
-	//--------------------
-	// 도구 관련
-	//--------------------
-	
-protected:
-	
-	// 도구 장착
-	void ApplyToolTags_internal(const FItemData& ItemInfo);
-
-	// 도구 해제
-	void RemoveToolTags_internal();
-	
-	// 도구 사용 이벤트 수신 함수
-	void OnToolHarvestEvent_internal(const FGameplayEventData* Payload);
 	
 #pragma endregion
 //======================================================================================================================	
@@ -280,13 +209,6 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable)
 	void ServerActivateHotkeySlot(int32 SlotIndex);
 	
-	//--------------------
-	// 게터
-	//--------------------
-
-	//--------------------
-	// 검증
-	//--------------------
 	
 	//--------------------
 	// 유틸
@@ -313,35 +235,7 @@ protected:
 	
 #pragma endregion
 //======================================================================================================================
-#pragma region GAS_관련_API
-    	
-	
-	//━━━━━━━━━━━━━━━━━━━━
-	// GAS 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-protected:
-    	// GameplayEvent 수신 함수
-    	void OnItemConsumedEvent_internal(const FGameplayEventData* Payload);
-    
-    	// 소모품 Ability 관련 리소스 정리
-    	void ClearConsumableAbilityResources_internal();
-    	
-    	/*
-    		소모품 Ability를 부여하고 Trigger 예약
-    		@param ItemInfo 아이템 정보
-    		@param SlotIndex 슬롯 인덱스
-    		@param ASC AbilitySystemComponent
-    		@return 성공 여부
-    	*/
-    	bool GrantAndScheduleConsumableAbility_internal(const FItemData& ItemInfo, int32 SlotIndex, UAbilitySystemComponent* ASC);
-    	
-    	// ASC 준비되면 이벤트 리스너 등록
-    	void TryRegisterEventListeners_internal();
-    	
-	
-#pragma endregion	
-//======================================================================================================================
-	
+
 	
 	
 	
@@ -415,6 +309,8 @@ public:
 //======================================================================================================================
 #pragma region 장착_아이템_데이터
 	
+public:
+
 	// 현재 장착된 아이템 ID
 	int32 CachedEquippedItemID = 0;
 	
@@ -446,27 +342,7 @@ public:
 	
 #pragma endregion	
 //======================================================================================================================
-#pragma region GAS_관련_데이터
-	
-private:
-	// 현재 활성화된 소모품 Ability의 SpecHandle
-	FGameplayAbilitySpecHandle ActiveConsumableAbilityHandle;
-	
-	// Timer 취소용 핸들
-	FTimerHandle ConsumableAbilityTriggerTimer;
-	
-	// 타이머 핸들
-	FTimerHandle ASCCheckTimerHandle;
-	
-	// ASC 초기화 대기 중 플래그
-	bool bEventListenersRegistered = false;
-	
-	
-#pragma endregion
-//======================================================================================================================	
-	
-	
-	
+
 	
 	
 

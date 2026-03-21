@@ -141,3 +141,15 @@ TODO : Z_NoUse 아키텍처 룰에 맞게 수정
 		-- SpawnerSystemSettings.h : 
 		
 */
+
+
+
+// 드래그 앤 드랍 
+// BP_DraDropPeration
+// WBP_Slot
+// WBP_Armor_Slot
+
+
+
+
+

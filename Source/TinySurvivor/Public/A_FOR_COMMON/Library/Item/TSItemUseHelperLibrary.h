@@ -8,6 +8,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "TSItemUseHelperLibrary.generated.h"
 
+class UTSInventoryMasterComponent;
 /**
  * 
  */
@@ -29,20 +30,33 @@ public:
 	
 	
 	// 아이템 사용 처리 내부 API
-	void UseItem_Lib(int32 SlotIndex);
+	static void UseItem_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, int32 InSlotIndex);
 	
 	// 가방 아이템 사용 시 액션 함수 
-	void ActionWithBagItem_Lib(FSlotStructMaster& InTargetSlot,int32& InAdditionalSlots);
+	static void ActionWithBagItem_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, FSlotStructMaster& InTargetSlot,int32& InAdditionalSlots);
 	
 	// 소모품 사용 시 액션 함수
-	void ActionWithConsumableItem_Lib(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
+	static void ActionWithConsumableItem_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
 
 	// 방어구 사용 시 액션 함수
-	void ActionWithArmorItem_Lib(FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
+	static void ActionWithArmorItem_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, FSlotStructMaster& InTargetSlot, int32& InTargetSlotIndex);
 
 	//--------------------
 	// 아이템 소비
 	//--------------------
+	
+	static void OnItemConsumedEvent_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FGameplayEventData* Payload);
+	
+	static void ClearConsumableAbilityResources_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent);
+	
+	/*
+			소모품 Ability를 부여하고 Trigger 예약
+			@param ItemInfo 아이템 정보
+			@param SlotIndex 슬롯 인덱스
+			@param ASC AbilitySystemComponent
+			@return 성공 여부
+	*/
+	static bool GrantAndScheduleConsumableAbility_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FItemData& InItemInfo, int32 InSlotIndex, UAbilitySystemComponent* InASC);
 	
 	//--------------------
 	// 아이템 장착
@@ -50,13 +64,13 @@ public:
 
 	
 	// 핫키 버튼에 따른 아이템 창작
-	void EquipActiveHotkeyItem_Lib();
+	static void EquipActiveHotkeyItem_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent);
 
 	// 핫키 버튼에 따른 아이템 장착 해제
-	void UnequipCurrentItem_Lib();
+	static void UnequipCurrentItem_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent);
 
 	// 장착 아이템 변환 발생 시 호출
-	void HandleCurrentEquippedItemChanged_Lib();
+	static void HandleCurrentEquippedItemChanged_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent);
 
 	//--------------------
 	// 방어구
@@ -64,41 +78,38 @@ public:
 
 		
 	// 방어구 장착
-	void EquipArmor_Lib(const FItemData& ItemInfo, int32 ArmorSlotIndex);
+	static void EquipArmor_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FItemData& InItemInfo, int32 InArmorSlotIndex);
 	
 	// 방어구 해제
-	void UnequipArmor_Lib(int32 ArmorSlotIndex);
+	static void UnequipArmor_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, int32 InArmorSlotIndex);
 	
 	// 방어구 피격 이벤트 수신 함수
-	void OnArmorHitEvent_Lib(const FGameplayEventData* Payload);
+	static void OnArmorHitEvent_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FGameplayEventData* InPayload);
 	
 	//--------------------
 	// 무기 
 	//--------------------
 	
-	
 	// 무기 장착
-	void ApplyWeaponStats_Lib(const FItemData& ItemInfo);
+	static void ApplyWeaponStats_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FItemData& InItemInfo);
 	
 	// 무기 해제
-	void RemoveWeaponStats_Lib();
+	static void RemoveWeaponStats_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent);
 	
 	// 무기 사용 이벤트 수신 함수
-	void OnWeaponAttackEvent_Lib(const FGameplayEventData* Payload);
+	static void OnWeaponAttackEvent_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FGameplayEventData* InPayload);
 	
 	//--------------------
 	// 도구 관련
 	//--------------------
 	
-protected:
-	
 	// 도구 장착
-	void ApplyToolTags_Lib(const FItemData& ItemInfo);
+	static void ApplyToolTags_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FItemData& InItemInfo);
 
 	// 도구 해제
-	void RemoveToolTags_Lib();
+	static void RemoveToolTags_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent);
 	
 	// 도구 사용 이벤트 수신 함수
-	void OnToolHarvestEvent_Lib(const FGameplayEventData* Payload);
+	static void OnToolHarvestEvent_Lib(UTSInventoryMasterComponent* InInventoryMasterComponent, const FGameplayEventData* InPayload);
 	
 };

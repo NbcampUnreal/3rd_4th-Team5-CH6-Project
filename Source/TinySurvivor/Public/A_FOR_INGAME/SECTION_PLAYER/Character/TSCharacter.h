@@ -13,6 +13,7 @@
 #include "TSCharacter.generated.h"
 
 #pragma region 전방선언
+class UTSInventoryGASControlComponent;
 class UTSEqInvControlComponent;
 class UHitComponent;
 class UFootstepComponent;
@@ -432,4 +433,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UTSEqInvControlComponent> EqInvControlComponent = nullptr;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UTSInventoryGASControlComponent> InventoryGasControlComponent = nullptr;
 };
