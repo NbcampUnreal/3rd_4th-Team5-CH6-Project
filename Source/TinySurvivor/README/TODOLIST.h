@@ -93,6 +93,7 @@ TODO : A_FOR_INGAME 아키텍처 룰에 맞게 수정
 		-- Building 파일 진행 상황 : 
 		-- Crafting 파일 진행 상황 : 
 		-- Inventory 파일 진행 상황 : 
+				TSInventoryMasterComponent.h : 
 		-- Item 파일 진행 상황 : 
 
 - SECTION_PLAYER 파일 진행 현황 :

@@ -27,6 +27,7 @@
 #include "Components/WidgetComponent.h"
 #include "A_FOR_INGAME/Framework/GameState/TSGameState.h"
 #include "A_FOR_INGAME/Input/TSPlayerInputDataAsset.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/RefactoringFloder/TSEqInvControlComponent.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/PingSystem/TSPingActor.h"
 #include "A_FOR_INGAME/SECTION_UI/TSPlayerUIDataControllerSystem.h"
 #include "A_FOR_INGAME/SECTION_WORLD/Erosion/ErosionLightSourceSubActor.h"
@@ -73,6 +74,22 @@ ATSCharacter::ATSCharacter()
 	InteractionWidget->SetDrawSize(FVector2D(300.f, 60.f));
 	InteractionWidget->SetVisibility(false);
 	InteractionWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
+	
+	// 인벤토리 섹션
+	EqInvControlComponent = CreateDefaultSubobject<UTSEqInvControlComponent>(TEXT("EqInvControlComponent"));
+	
+}
+
+void ATSCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	if (IsValid(EqInvControlComponent) && IsValid(InventoryMasterComponent))
+	{
+		EqInvControlComponent->InventoryMasterComp = InventoryMasterComponent;
+	}
+	
 }
 
 UAbilitySystemComponent* ATSCharacter::GetAbilitySystemComponent() const

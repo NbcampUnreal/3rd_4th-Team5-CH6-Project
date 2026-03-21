@@ -20,10 +20,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ItemHelperLibrary")
 	static bool GetItemData(const UObject* InWorldContextObject, int32 InStaticDataID, FItemData& OutData);
 
+	// 부패도 아이디값 게터 
+	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ItemHelperLibrary")
+	static int32 GetDecayedItemID(const UObject* InWorldContextObject);
 
-
-
-
+	// 부패물 아이템 데이터 게터
+	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ItemHelperLibrary")
+	static bool GetDecayedItemData(const UObject* InWorldContextObject, FItemData& OutData);
 
 
 

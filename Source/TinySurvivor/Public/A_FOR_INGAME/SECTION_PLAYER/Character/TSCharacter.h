@@ -12,6 +12,8 @@
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/Common/ItemCommonEnums.h"
 #include "TSCharacter.generated.h"
 
+#pragma region 전방선언
+class UTSEqInvControlComponent;
 class UHitComponent;
 class UFootstepComponent;
 class UTSBuildingComponent;
@@ -26,30 +28,57 @@ class UWidgetComponent;
 class UTSPlayerInputDataAsset;
 class UInputAction;
 class AErosionLightSourceSubActor;
+#pragma endregion
 
+#pragma region 델리게이트선언
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionBegin);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReticleInteractionEnd);
+#pragma endregion
 
 UCLASS()
 class TINYSURVIVOR_API ATSCharacter : public ACharacter , public IAbilitySystemInterface, public IIInteraction
 {
 	GENERATED_BODY()
+
+//----------------------------------------------------------------------------------------------------------------------
 	
 public:
-	ATSCharacter();
 	
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	UTSAttributeSet* GetAttributeSet() const;
+	UPROPERTY(BlueprintAssignable, Category = "Delegate")
+	FOnReticleInteractionBegin OnReticleInteractionBegin;
+	UPROPERTY(BlueprintAssignable, Category = "Delegate")
+	FOnReticleInteractionEnd OnReticleInteractionEnd;
 	
-	virtual void PossessedBy(AController* NewController) override; 
+//----------------------------------------------------------------------------------------------------------------------
+	
+public:
+	
 	virtual void OnRep_PlayerState() override; 
+	UFUNCTION() void OnRep_IsDownedState();
+	UFUNCTION() void OnRep_IsDeadState();
 
-#pragma region Camera
+//----------------------------------------------------------------------------------------------------------------------
+
+
+public:
+	ATSCharacter();
+	virtual void PostInitializeComponents() override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override; 
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void Tick(float DeltaTime) override;
+	
+//----------------------------------------------------------------------------------------------------------------------
+
+	
 	FORCEINLINE USpringArmComponent* GetSpringArmComponent() const { return SpringArmComponent; }
 	FORCEINLINE UCameraComponent* GetCameraComponent() const { return CameraComponent; }
+	
 	// 카메라 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Camera" , meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class USpringArmComponent> SpringArmComponent;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly,Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UCameraComponent> CameraComponent;
 	
@@ -61,63 +90,63 @@ public:
 	float LeftShoulderOffset = -80.0f;
 	
 	bool bIsRightShoulder = true; 
-#pragma endregion
+//----------------------------------------------------------------------------------------------------------------------
 
-#pragma region Input
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "Input", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTSPlayerInputDataAsset> InputDataAsset;
-#pragma endregion
+
 	
-#pragma region GAS
+
+//----------------------------------------------------------------------------------------------------------------------
+	
+	
+private:
+
+	void InitAbilitySystem();
+	void InitializeAbilities();
+
+public:
+
+		
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	UTSAttributeSet* GetAttributeSet() const;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAbilitySystemComponent> ASC;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UTSAttributeSet> Attributes;
 
-private:
-	void InitAbilitySystem();
-	void InitializeAbilities();
-#pragma endregion
+	
 
-#pragma region Animation
-public:
+//----------------------------------------------------------------------------------------------------------------------
+	
+	UFUNCTION(BlueprintPure, BlueprintCallable, Category = "Animation")
+	EItemAnimType GetAnimType() const	{return AnimType;}
+	
+	void SetAnimType(EItemAnimType ItemAnimType) { this->AnimType = ItemAnimType;}
+
 	UPROPERTY(Replicated, EditAnywhere, Category = "Animation")
 	EItemAnimType AnimType = EItemAnimType::AXE;
+
 	
-	UFUNCTION(BlueprintPure, Category = "Animation")
-	EItemAnimType GetAnimType() const	{
-		return AnimType;
-	}
-	
-	void SetAnimType(EItemAnimType ItemAnimType)
-	{
-		this->AnimType = ItemAnimType;
-	}
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
-#pragma endregion
-	
-#pragma region Downed & Dead & Revive
-	// Downed 
 	virtual void BecomeDowned();
+	
 	UFUNCTION(BlueprintCallable, Category = "State")
 	bool IsDowned() const;
-	UPROPERTY(ReplicatedUsing = OnRep_IsDownedState, BlueprintReadOnly, Category = "State")
-	bool bIsDownedState = false; 
-	UFUNCTION()
-	void OnRep_IsDownedState();
-	// Dead 
+	
 	virtual void Die();
 	
 	UFUNCTION(BlueprintCallable, Category = "State")
 	bool IsDead() const; 
 	
+	UPROPERTY(ReplicatedUsing = OnRep_IsDownedState, BlueprintReadOnly, Category = "State")
+	bool bIsDownedState = false; 
+	
 	UPROPERTY(ReplicatedUsing = OnRep_IsDeadState, BlueprintReadOnly, Category = "State")
 	bool bIsDeadState ;
 	
-	UFUNCTION()
-	void OnRep_IsDeadState();
+	
 	// Revive
 	ATSCharacter* DetectReviveTarget();
 	
@@ -159,28 +188,21 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Revive")
 	float MaxReviveDistance = 250.0f;
 	
-	// ------------------ GE ------------------
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Downed")
 	TSubclassOf<UGameplayEffect> ProneMoveSpeedEffectClass; // 기절 시 MoveSpeed 200 설정
-#pragma endregion
-#pragma region Sanity
 	
 	FTimerHandle LightCheckTimerHandle;
+
 	UFUNCTION()
 	void CheckInLightSource();
 	
-#pragma endregion
 
 protected:
-	virtual void BeginPlay() override;
 
-#pragma region Crouch
 public:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Crouch")
 	bool bIsCrouching = false;
-#pragma endregion
 	
-#pragma region SurvivalAttribute
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> StaminaIncreaseEffectClass; // 스태미나 자연 회복용 GE
 	
@@ -241,12 +263,14 @@ public:
 	TSubclassOf<UGameplayEffect> PanicTagEffectClass;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GETag")
 	TSubclassOf<UGameplayEffect> SanityBlockTagEffectClass;
+
 public:
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Survival")
 	TSubclassOf<UGameplayEffect> FullRecoverHealthEffectClass; // Full 시 health recover 하는 GE
+
 protected:
-#pragma endregion
-#pragma region Function
+	
 	// Move
 	void Move(const struct FInputActionValue& Value);
 	void Look(const struct FInputActionValue& Value);
@@ -286,24 +310,25 @@ protected:
 	
 	virtual void OnMoveSpeedChanged(const FOnAttributeChangeData& Data);
 	virtual void Landed(const FHitResult& Hit) override; //낙하 감지 함수
-#pragma endregion
 		
-#pragma region LineTrace
 private:
+	
 	void LineTrace();
 	
 	UPROPERTY(EditAnywhere,Category = "LineTrace")
 	float TraceLength = 500.f;
+	
 	UPROPERTY(EditAnywhere,Category = "LineTrace")
 	TEnumAsByte<ECollisionChannel> TraceChannel = ECC_Visibility;
+	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> CurrentHitActor;
+	
 	UPROPERTY()
 	TWeakObjectPtr<AActor> LastHitActor;
-#pragma endregion
 
-#pragma region Climb
 public:
+	
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Climb")
 	FVector CurrentWallNormal = FVector::ZeroVector;
 	
@@ -312,49 +337,36 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Climb")
 	bool IsClimbing();
-#pragma endregion
 	
-#pragma region Ping
 	UPROPERTY(EditAnywhere, BlueprintReadOnly ,Category = "Ping")
 	TSubclassOf<AActor> PingActorClass;
 	
 	UFUNCTION(Server, Reliable) 
 	void ServerSpawnPing(ETSPingType PingType, FVector Location);
 	
-	
-#pragma endregion
-	
-#pragma region Emote
 	UFUNCTION(Server, Reliable) 
 	void ServerPlayEmote(ETSEmoteType EmoteType);
-#pragma endregion
 	
-#pragma region Component
 	// 인벤토리 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UTSInventoryMasterComponent> InventoryMasterComponent;
+	
 	// 빌딩 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UTSBuildingComponent> BuildingComponent;
+	
 	// Footstep 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UFootstepComponent> FootstepComponent;
+	
 	// Hit 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UHitComponent> HitComponent;
+	
 	// 닉네임을 위한 위젯 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UWidgetComponent> PlayerNameComponent;
-#pragma endregion
 	
-#pragma region Delegate
-	UPROPERTY(BlueprintAssignable, Category = "Delegate")
-	FOnReticleInteractionBegin OnReticleInteractionBegin;
-	UPROPERTY(BlueprintAssignable, Category = "Delegate")
-	FOnReticleInteractionEnd OnReticleInteractionEnd;
-#pragma endregion
-	
-#pragma region Interaction
 	virtual void ShowInteractionWidget(ATSCharacter* InstigatorCharacter) override;
 	virtual void HideInteractionWidget() override;
 	virtual void SetInteractionText(FText WidgetText) override;
@@ -363,36 +375,31 @@ public:
 	virtual bool RunOnServer() override;
 	
 protected:
+	
 	// 상호작용 위젯
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
 	TObjectPtr<UWidgetComponent> InteractionWidget;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
 	TSubclassOf<UUserWidget> InteractionWidgetClass;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Widget")
 	FText InteractionText = FText::FromString(TEXT("살리기"));
 
 private:
+	
+	
 	// 현재 상호작용 중인지
-	UPROPERTY()
 	bool bIsInteracting = false;
-#pragma endregion
 	
 private:
-	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerSendHotKeyEvent(int HotKeyIndex);
-	UFUNCTION(Server, Reliable,WithValidation)
-	void ServerSendUseItemEvent();
-	UFUNCTION(Server, Reliable,WithValidation)
-	void ServerInteract(AActor* TargetActor);
-	UFUNCTION(Server, Reliable)
-	void ServerSendStopInteractEvent();
+	UFUNCTION(Server, Reliable, WithValidation) void ServerSendHotKeyEvent(int HotKeyIndex);
+	UFUNCTION(Server, Reliable,WithValidation)  void ServerSendUseItemEvent();
+	UFUNCTION(Server, Reliable,WithValidation)  void ServerInteract(AActor* TargetActor);
+	UFUNCTION(Server, Reliable) void ServerSendStopInteractEvent();
 	
 public:	
-	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
-#pragma region Multicast_ConsumeMontage
-public:
 	// 소모품 사용 몽타주 재생 (Multicast)
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayConsumeMontage(UAnimMontage* Montage, float PlayRate, float ServerStartTime);
@@ -400,7 +407,6 @@ public:
 	// 소모품 사용 몽타주 정지 (Multicast)
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_StopConsumeMontage(UAnimMontage* Montage);
-#pragma endregion
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montage")
 	TObjectPtr<UAnimMontage> PickUpMontage;
@@ -408,8 +414,22 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayPickUpMontage();
 	
-#pragma region PlayerName
-	UFUNCTION(BlueprintImplementableEvent)
-	void ShowPlayerName(const FString& Name);
-#pragma endregion
+	UFUNCTION(BlueprintImplementableEvent) void ShowPlayerName(const FString& Name);
+	
+	
+	
+	
+	
+	
+	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+	
+	
+	
+	// 관리용 컴포넌트 (_리팩토링 용_)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UTSEqInvControlComponent> EqInvControlComponent = nullptr;
+	
 };

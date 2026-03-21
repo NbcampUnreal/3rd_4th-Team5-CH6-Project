@@ -12,7 +12,9 @@
 
 #include "A_FOR_COMMON/Library/GAS/TSASCLibrary.h"
 #include "A_FOR_COMMON/Library/Item/TSItemHelperLibrary.h"
+#include "A_FOR_COMMON/Library/System/TSDecayLibrary.h"
 #include "A_FOR_COMMON/Library/System/TSSystemGetterLibrary.h"
+#include "A_FOR_COMMON/Library/System/TSTimeLibrary.h"
 
 #include "A_FOR_INGAME/SECTION_ITEM/Item/TSEquippedItem.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/ItemData.h"
@@ -946,9 +948,6 @@ void UTSInventoryMasterComponent::InitializeInventory_internal()
 	// 이벤트 리스너 등록 시도 (ASC가 준비될 때까지 재시도)
 	TryRegisterEventListeners_internal();
 
-	// 부패도 매니저 OnDecayTick 바인딩
-	BindDecayManagerDelegate_internal();
-	
 	// 핫키 인벤토리 초기화
 	{
 		HotkeyInventory.InventoryType = EInventoryType::HotKey;
@@ -1043,8 +1042,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 				int32 CanAdd = FMath::Min(OutRemainingQuantity, Slot.MaxStackSize - Slot.CurrentStackSize);
 				
 				// 부패 만료 시각 업데이트
-				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
-				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime,ItemInfo.ConsumableData.DecayRate) : 0.f;
+				Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
+				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, Slot.ExpirationTime,ItemInfo.ConsumableData.DecayRate) : 0.f;
 				
 				Slot.CurrentStackSize += CanAdd;
 				OutRemainingQuantity -= CanAdd;
@@ -1053,7 +1052,7 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 				if (i == ActiveHotkeyIndex) bAddedToActiveSlot = true;
 				if (OutRemainingQuantity <= 0) break;
 			}
-			else if (Slot.ItemData.StaticDataID == 0 /*|| Slot.CurrentStackSize <= 0*/)
+			else if (Slot.ItemData.StaticDataID == 0)
 			{
 				EmptyHotkeySlots.Add(i);
 			}
@@ -1086,8 +1085,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 				int32 CanAdd = FMath::Min(OutRemainingQuantity, Slot.MaxStackSize - Slot.CurrentStackSize);
 				
 				// 부패 만료 시각 업데이트
-				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
-				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+				Slot.ExpirationTime = ItemInfo.IsDecayEnabled()? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, CanAdd, ItemInfo.ConsumableData.DecayRate) : 0;
+				Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this,Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 				
 				Slot.CurrentStackSize += CanAdd;
 				OutRemainingQuantity -= CanAdd;
@@ -1133,8 +1132,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack) : 1;
 
 		// 부패 만료 시각 업데이트
-		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
-		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
+		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 		
 		Slot.CurrentStackSize = AddAmount;
 		OutRemainingQuantity -= AddAmount;
@@ -1157,8 +1156,8 @@ bool UTSInventoryMasterComponent::AddItem(const FItemInstance& ItemData, int32 Q
 		int32 AddAmount = ItemInfo.IsStackable() ? FMath::Min(OutRemainingQuantity, ItemInfo.MaxStack) : 1;
 		
 		// 부패 만료 시각 업데이트
-		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
-		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+		Slot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, Slot.ExpirationTime, Slot.CurrentStackSize, AddAmount, ItemInfo.ConsumableData.DecayRate) : 0;
+		Slot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 		
 		Slot.CurrentStackSize = AddAmount;
 		OutRemainingQuantity -= AddAmount;
@@ -1201,8 +1200,8 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 		if (CanAdd > 0)
 		{
 			// 부패 만료 시각 업데이트
-			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, CanAdd,ItemInfo.ConsumableData.DecayRate) : 0;
-			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(ToSlot.ExpirationTime,ItemInfo.ConsumableData.DecayRate): 0.f;
+			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, ToSlot.ExpirationTime, ToSlot.CurrentStackSize, CanAdd,ItemInfo.ConsumableData.DecayRate) : 0;
+			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, ToSlot.ExpirationTime,ItemInfo.ConsumableData.DecayRate): 0.f;
 			ToSlot.CurrentStackSize += CanAdd;
 			FromSlot.CurrentStackSize -= CanAdd;
 
@@ -1215,8 +1214,8 @@ bool UTSInventoryMasterComponent::TryStackSlots_internal(FSlotStructMaster& From
 		if (ToSlot.CurrentStackSize < MaxStack)
 		{
 			// 부패 만료 시각 업데이트
-			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UpdateExpirationTime_internal(ToSlot.ExpirationTime, ToSlot.CurrentStackSize, 1, ItemInfo.ConsumableData.DecayRate) : 0;
-			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UpdateDecayPercent_internal(ToSlot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
+			ToSlot.ExpirationTime = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateExpirationTime(this, ToSlot.ExpirationTime, ToSlot.CurrentStackSize, 1, ItemInfo.ConsumableData.DecayRate) : 0;
+			ToSlot.CurrentDecayPercent = ItemInfo.IsDecayEnabled() ? UTSDecayLibrary::CalculateDecayPercent(this, ToSlot.ExpirationTime, ItemInfo.ConsumableData.DecayRate) : 0.f;
 			ToSlot.CurrentStackSize += 1;
 			FromSlot.CurrentStackSize -= 1;
 
@@ -1859,27 +1858,6 @@ bool UTSInventoryMasterComponent::GrantAndScheduleConsumableAbility_internal(con
 
 	if (!SpecHandle.IsValid()) return false;
 
-	/*
-		여기서 아이템 소비하지 않음 (GameplayEvent 수신 후 처리)
-		아이템 Ability를 Add한 직후 곧바로 이벤트 트리거 시도하면 실패해서, 다음 틱에서 트리거하기 위한 구조
-		
-		원래는 GiveAbility 후 즉시 TriggerAbilityFromGameplayEvent하려 했으나,
-		다음 틱(0.01초 뒤)에 TriggerAbilityFromGameplayEvent를 호출.
-		
-		GiveAbility → TriggerAbilityFromGameplayEvent를 같은 틱에서 호출하면,
-		
-		- 문제 1:
-		ASC가 Ability를 아직 InternalList에 제대로 등록하지 않아 실패할 수 있음.
-		부여 직후 즉시 Trigger하면 Activation 실패 가능
-		
-		- 문제 2:
-		AbilityActorInfo 갱신 시점 문제
-		AbilityActorInfo가 업데이트되기 전에 Trigger하면,
-		SpecHandle이 유효하지 않거나 Ability가 검색되지 않는 이슈 발생.
-		
-		따라서, 0.01초 지연 = 한 frame 이후 처리로 이 문제를 회피하려는 의도.
-	*/
-
 	// 새로운 SpecHandle 저장
 	ActiveConsumableAbilityHandle = SpecHandle;
 
@@ -1969,135 +1947,6 @@ void UTSInventoryMasterComponent::TryRegisterEventListeners_internal()
 	}
 }
 
-
-
-#pragma endregion
-//======================================================================================================================
-#pragma region 부패도_관련_API
-	
-
-	//━━━━━━━━━━━━━━━━━━━━
-	// 부패도 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-
-void UTSInventoryMasterComponent::BindDecayManagerDelegate_internal()
-{
-	if (IsValid(UTSSystemGetterLibrary::GetDecayManager(this)))
-	{
-		UTSSystemGetterLibrary::GetDecayManager(this)->OnDecayTick.AddDynamic(this, &UTSInventoryMasterComponent::OnDecayTick_internal);
-		CachedDecayedItemID = UTSSystemGetterLibrary::GetDecayManager(this)->GetDecayItemID();
-	}
-	
-}
-
-void UTSInventoryMasterComponent::OnDecayTick_internal()
-{
-	ConvertToDecayedItem_internal(EInventoryType::HotKey);
-	ConvertToDecayedItem_internal(EInventoryType::BackPack);
-	HandleInventoryChanged_internal();
-}
-
-void UTSInventoryMasterComponent::ConvertToDecayedItem_internal(EInventoryType InventoryType)
-{
-	FInventoryStructMaster* Inventory = GetInventoryByType_internal(InventoryType);
-	if (!Inventory) return;
-
-	float CurrentTime = GetWorld()->GetTimeSeconds();
-
-	// 활성화된 슬롯 변경 여부 추적
-	bool bActiveSlotChanged = false;
-
-	/*
-		현재 슬롯 인덱스 추적
-		범위 기반 for 루프는 인덱스 정보를 제공하지 않으므로,
-		ActiveHotkeyIndex와 비교하기 위해 수동으로 추적
-	*/
-	int32 SlotIndex = 0;
-
-	for (FSlotStructMaster& Slot : Inventory->InventorySlotContainer)
-	{
-		// 빈 슬롯은 건너뛰기
-		if (Slot.ItemData.StaticDataID == 0)
-		{
-			/*
-				인덱스가 엉망이 되기 때문에 빼먹으면 안 됨!
-				만약 `++SlotIndex`를 빼먹으면:
-				슬롯 0: 비어있음 → continue (SlotIndex는 여전히 0)
-				슬롯 1: 사과    → SlotIndex = 0으로 처리됨!! 문제발생!! (실제로는 1번인데!)
-			*/
-			++SlotIndex; // continue 전 인덱스 증가 필수
-			continue;
-		}
-
-		// 아이템 정보 조회 실패 시 건너뛰기
-		FItemData ItemInfo;
-		if (!UTSItemHelperLibrary::GetItemData(this, Slot.ItemData.StaticDataID, ItemInfo))
-		{
-			++SlotIndex; // continue 전 인덱스 증가 필수
-			continue;
-		}
-
-		// 부패 가능한 아이템만 처리
-		if (ItemInfo.IsDecayEnabled() && Slot.ExpirationTime > 0)
-		{
-			// 아직 만료되지 않았으면 부패도만 업데이트
-			if (CurrentTime < Slot.ExpirationTime)
-			{
-				Slot.CurrentDecayPercent = UpdateDecayPercent_internal(Slot.ExpirationTime, ItemInfo.ConsumableData.DecayRate);
-				++SlotIndex; // continue 전 인덱스 증가 필수
-				continue;
-			}
-
-			//=======================================================================
-			// 부패 시간 만료: 부패물로 전환
-			//=======================================================================
-
-			// 부패물 정보 캐싱
-			if (CachedDecayedItemInfo.ItemID != CachedDecayedItemID)
-			{
-				if (!UTSItemHelperLibrary::GetItemData(this, CachedDecayedItemID, CachedDecayedItemInfo))
-				{
-					++SlotIndex; // continue 전 인덱스 증가 필수
-					continue;
-				}
-			}
-
-			// 슬롯 데이터를 부패물로 변경
-			Slot.ItemData.StaticDataID = CachedDecayedItemID;
-			Slot.ExpirationTime = 0;
-			Slot.bCanStack = CachedDecayedItemInfo.IsStackable();
-			Slot.MaxStackSize = CachedDecayedItemInfo.MaxStack;
-
-			// 현재 손에 들고 있는 슬롯이 부패물로 전환된 경우 플래그 설정
-			if (InventoryType == EInventoryType::HotKey && SlotIndex == ActiveHotkeyIndex)
-			{
-				bActiveSlotChanged = true;
-			}
-		}
-
-		++SlotIndex; // 다음 슬롯으로
-	}
-
-	//=======================================================================
-	// 활성화된 슬롯이 부패물로 전환된 경우 메시 재장착
-	//=======================================================================
-	if (bActiveSlotChanged)
-	{
-		HandleActiveHotkeyIndexChanged_internal(); // 기존 메시 제거 -> 새 메시 장착
-	}
-}
-
-double UTSInventoryMasterComponent::UpdateExpirationTime_internal(double CurrentExpirationTime, int CurrentStack,int NewItemStack, float DecayRate) const
-{
-	double NewItemExpirationTime = GetWorld()->GetTimeSeconds() + DecayRate;
-	return (CurrentExpirationTime * CurrentStack + NewItemExpirationTime * NewItemStack) / (CurrentStack + NewItemStack);
-}
-
-float UTSInventoryMasterComponent::UpdateDecayPercent_internal(double CurrentExpirationTime, float DecayRate) const
-{
-	double CurrentTime = GetWorld()->GetTimeSeconds();
-	return DecayRate > 0 ? (float)((CurrentExpirationTime - CurrentTime) / DecayRate) : 0.f;
-}
 
 
 #pragma endregion

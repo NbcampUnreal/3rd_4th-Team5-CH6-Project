@@ -33,7 +33,7 @@ class TINYSURVIVOR_API UTSInventoryMasterComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-	
+	friend class UTSEqInvControlComponent;
 	
 	
 	//```````````````````````
@@ -277,7 +277,7 @@ protected:
 	//--------------------
 protected:
 	
-	UFUNCTION(Server, Reliable, BlueprintCallable)
+	UFUNCTION(Server, Reliable)
 	void ServerActivateHotkeySlot_internal(int32 SlotIndex);
 	
 	//--------------------
@@ -293,7 +293,6 @@ public:
 
 protected:
 	
-	UFUNCTION(BlueprintPure, BlueprintCallable)
 	FORCEINLINE int32 GetActiveHotkeyIndex_internal() const { return ActiveHotkeyIndex; }
 	
 	FInventoryStructMaster* GetInventoryByType_internal(EInventoryType InventoryType);
@@ -382,28 +381,6 @@ protected:
 	
 #pragma endregion	
 //======================================================================================================================
-#pragma region 부패도_관련_API
-	
-	
-	//━━━━━━━━━━━━━━━━━━━━
-	// 부패도 관련 API
-	//━━━━━━━━━━━━━━━━━━━━
-protected:
-	// 부패도 매니저 델리게이트 바인딩 함수
-	void BindDecayManagerDelegate_internal();
-	
-	UFUNCTION()
-	void OnDecayTick_internal();
-	
-	void ConvertToDecayedItem_internal(EInventoryType InventoryType);
-	
-	double UpdateExpirationTime_internal(double CurrentExpirationTime, int CurrentStack, int NewItemStack, float DecayRate) const;
-	
-	float UpdateDecayPercent_internal(double CurrentExpirationTime, float DecayRate) const;
-
-	
-#pragma endregion
-//======================================================================================================================
 	
 	
 	
@@ -442,6 +419,7 @@ public:
 	/** 가방 최대 슬롯 개수 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Settings")
 	int32 MaxBagSlotCount = 16;
+	
 protected:
 
 	
@@ -505,16 +483,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Armor Stats")
 	TSubclassOf<UGameplayEffect> ArmorEffectStatEffectClass; 
 	
-#pragma endregion	
-//======================================================================================================================
-#pragma region 부패도_관련_데이터
-
-protected:
-	
-	int32 CachedDecayedItemID;
-	
-	FItemData CachedDecayedItemInfo;
-
 #pragma endregion	
 //======================================================================================================================
 #pragma region GAS_관련_데이터
