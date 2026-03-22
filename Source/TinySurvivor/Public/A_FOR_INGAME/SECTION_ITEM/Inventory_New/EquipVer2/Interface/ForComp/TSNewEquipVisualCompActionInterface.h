@@ -20,5 +20,4 @@ class TINYSURVIVOR_API ITSNewEquipVisualCompActionInterface
 {
 	GENERATED_BODY()
 
-public:
 };

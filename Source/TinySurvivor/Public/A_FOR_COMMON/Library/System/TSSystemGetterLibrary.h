@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
-#include "A_FOR_INGAME/SECTION_UI/TagDisplay/System/GameplayDisplaySubSystem.h"
-#include "A_FOR_INGAME/SECTION_ITEM/Item/System/ItemDataSubsystem.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Runtime/ItemDecaySubSystem.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Item/System/ItemDataSubsystem.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/System/WorldItemPoolSubsystem.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Item_New/System/TSNewItemDataSubSystem.h"
+#include "A_FOR_INGAME/SECTION_UI/TagDisplay/System/GameplayDisplaySubSystem.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "TSSystemGetterLibrary.generated.h"
 
 /**
@@ -21,10 +22,15 @@ class TINYSURVIVOR_API UTSSystemGetterLibrary : public UBlueprintFunctionLibrary
 	
 public:
 	
-	// 아이템 데이터 서브 시스템 게터
+	// 아이템 데이터 서브 시스템 게터 (OLD)
 	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ASCLibrary")
 	static UItemDataSubsystem* GetItemDataSubsystem(const UObject* InWorldContextObject);
 
+	// 아이템 데이터 서브 시스템 게터 (New)
+	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ASCLibrary")
+	static UTSNewItemDataSubSystem* GetNewItemDataSubsystem(const UObject* InWorldContextObject); 
+	
+	
 	// 풀링 시스템 게터
 	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ASCLibrary")
 	static UWorldItemPoolSubsystem* GetWorldItemPoolSubsystem(const UObject* InWorldContextObject);
@@ -36,10 +42,6 @@ public:
 	// 태그 디스플레이 서브 시스템 게터
 	UFUNCTION(BlueprintCallable, Category = "TSLibrary | ASCLibrary")
 	static UGameplayTagDisplaySubsystem* GetGameplayTagDisplaySubsystem(const UObject* InWorldContextObject);
-	
-	
-	
-	
 	
 	
 };
