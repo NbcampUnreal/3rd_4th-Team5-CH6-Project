@@ -1,8 +1,0 @@
-// rdMeshlets.ush - Copyright (c) 2022 Recourse Design ltd.
-//
-// See rdInstBPLibrary.cpp for main Documentation
-//
-#pragma once
-
-#include "/Engine/Public/Platform.ush"
-

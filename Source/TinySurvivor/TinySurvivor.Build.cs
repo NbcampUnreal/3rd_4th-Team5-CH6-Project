@@ -18,7 +18,7 @@ public class TinySurvivor : ModuleRules
 			"InputCore", "EnhancedInput",
 			
 			// UI 모듈
-			"UMG", "Slate", "SlateCore",
+			"UMG", 
 			
 			// VFX 모듈
 			"Niagara",
@@ -27,19 +27,16 @@ public class TinySurvivor : ModuleRules
 			"PhysicsCore",
 
 			// AI 모듈
-			"AIModule", "NavigationSystem", "StateTreeModule", "GameplayStateTreeModule",
+			"AIModule", "NavigationSystem", 
 			
-			// 구조체 유틸 모듈
-			"StructUtils",
+			// 스테이트 트리 모듈 
+			"StateTreeModule", "GameplayStateTreeModule",
 			
 			// GAS 모듈
 			"GameplayAbilities", "GameplayTags", "GameplayTasks", 
 			
 			// 스팀 + 보이스 모듈
 			"OnlineSubsystem", "OnlineSubsystemSteam", "AdvancedSessions",
-			
-			// Object Pooling 모듈
-			"rdInst", "ActorPoolManager",
 			
 			// DeveloperSettings 모듈 (UDeveloperSettings 관련) 
 			"DeveloperSettings",
@@ -48,9 +45,5 @@ public class TinySurvivor : ModuleRules
 			"GameplayMessageRuntime",
 			
 		});
-
-#if WITH_EDITOR
-		PrivateDependencyModuleNames.AddRange(new string[] { "SequencerCore", "AITestSuite" });
-#endif
 	}
 }

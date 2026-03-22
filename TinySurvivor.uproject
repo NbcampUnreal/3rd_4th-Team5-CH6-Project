@@ -3,26 +3,29 @@
 	"EngineAssociation": "5.7",
 	"Category": "",
 	"Description": "",
-	"Modules": [
+	"Modules":
+	[
 		{
 			"Name": "TinySurvivor",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
+			"AdditionalDependencies": 
+			[
 				"GameplayAbilities",
 				"GameplayTags",
 				"GameplayTasks",
-				"ActorPoolManager",
 				"Engine",
 				"AIModule"
 			]
 		}
 	],
-	"Plugins": [
+	"Plugins":
+	[
 		{
 			"Name": "ModelingToolsEditorMode",
 			"Enabled": true,
-			"TargetAllowList": [
+			"TargetAllowList": 
+			[
 				"Editor"
 			]
 		},
@@ -32,27 +35,6 @@
 		},
 		{
 			"Name": "AnimationWarping",
-			"Enabled": true
-		},
-		{
-			"Name": "PCG",
-			"Enabled": true
-		},
-		{
-			"Name": "PCGExternalDataInterop",
-			"Enabled": true
-		},
-		{
-			"Name": "PCGGeometryScriptInterop",
-			"Enabled": true
-		},
-		{
-			"Name": "ActorPoolManager",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/bd95c379ae0d440eb04bd64028d80ac6"
-		},
-		{
-			"Name": "rdInst",
 			"Enabled": true
 		},
 		{
@@ -70,17 +52,10 @@
 		{
 			"Name": "SoundUtilities",
 			"Enabled": true
-		},
-		{
-			"Name": "MovieRenderPipeline",
-			"Enabled": true
-		},
-		{
-			"Name": "OpenColorIO",
-			"Enabled": true
 		}
 	],
-	"TargetPlatforms": [
+	"TargetPlatforms":
+	[
 		"Windows"
 	]
 }

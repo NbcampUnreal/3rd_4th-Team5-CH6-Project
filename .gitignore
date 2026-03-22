@@ -27,6 +27,7 @@ Saved/
 
 # Content 내 모든 하위 경로를 포함해, 지정된 이름의 폴더 무시
 Content/ThirdParty/
+Content/Asset/
 
 # 모든 위치의 .zip 파일 무시
 *.zip
