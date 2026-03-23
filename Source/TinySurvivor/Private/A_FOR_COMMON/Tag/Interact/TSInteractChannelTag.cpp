@@ -6,7 +6,7 @@
 namespace InteractChannelTag
 {
 	
-	UE_DEFINE_GAMEPLAY_TAG(NewTS_Channel_Interact_RequestCurrentActor, "NewTS.Channel.Interact.RequestCurrentActor");
-	UE_DEFINE_GAMEPLAY_TAG(NewTS_Channel_Interact_SendCurrentActor, "NewTS.Channel.Interact.SendCurrentActor");
+	UE_DEFINE_GAMEPLAY_TAG(TS_Channel_Interact_RequestCurrentActor, "TS.Channel.Interact.RequestCurrentActor");
+	UE_DEFINE_GAMEPLAY_TAG(TS_Channel_Interact_SendCurrentActor, "TS.Channel.Interact.SendCurrentActor");
 	
 }

@@ -12,7 +12,7 @@ class UTSItemInfoDataAsset;
  * 
  */
 USTRUCT(BlueprintType)
-struct FTSItemBaseInfoTable : public FTableRowBase
+struct TINYSURVIVOR_API FTSItemBaseInfoTable : public FTableRowBase
 {
 	GENERATED_BODY()
 	
@@ -22,9 +22,9 @@ struct FTSItemBaseInfoTable : public FTableRowBase
 	
 	// 아이템 클래스 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = " TS | Item")
-	TSoftObjectPtr<ATSItemActorBase> ItemClass = nullptr;
+	TSubclassOf<ATSItemActorBase> ItemClass = nullptr;
 	
 	// 아이템 데이터 에셋 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = " TS | Item")
-	TSoftObjectPtr<UTSItemInfoDataAsset> ItemDataAsset = nullptr;
+	TSubclassOf<UTSItemInfoDataAsset> ItemDataAsset = nullptr;
 };

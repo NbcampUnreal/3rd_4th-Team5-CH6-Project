@@ -12,7 +12,7 @@
  * 
  */
 USTRUCT(BlueprintType)
-struct FTSItemInventoryInfoTable : public FTableRowBase
+struct TINYSURVIVOR_API FTSItemInventoryInfoTable : public FTableRowBase
 {
 	GENERATED_BODY()
 

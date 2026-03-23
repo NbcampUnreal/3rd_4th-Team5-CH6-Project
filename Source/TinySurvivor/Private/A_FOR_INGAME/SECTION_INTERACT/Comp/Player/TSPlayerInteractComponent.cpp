@@ -4,6 +4,7 @@
 #include "A_FOR_INGAME/SECTION_INTERACT/Comp/Player/TSPlayerInteractComponent.h"
 #include "A_FOR_COMMON/GameplayMessage/Data/Struct/Interact/FTSInteractMessageData.h"
 #include "A_FOR_COMMON/Library/Getter/Controller/TSGetControllerLibrary.h"
+#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 
 
@@ -107,7 +108,10 @@ AActor* UTSPlayerInteractComponent::LineTrace_internal()
 	QueryParams.AddIgnoredActor(GetOwner());
 
 	// 4. 라인 트레이스 실행 (ECC_Visibility 채널 사용)
-	GetWorld()->LineTraceSingleByChannel(HitResult,TraceStart,TraceEnd,ECC_Visibility,QueryParams);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult,TraceStart,TraceEnd,ECC_Visibility,QueryParams);
+	
+	// [추가] 디버그 함수 호출 (결과값과 HitResult를 같이 전달)
+	DrawInteractionDebugLine_internal(TraceStart, TraceEnd, HitResult, bHit);
 	
 	// 맞은 게 있으면 반환 
 	if (HitResult.bBlockingHit) return HitResult.GetActor();
@@ -116,12 +120,36 @@ AActor* UTSPlayerInteractComponent::LineTrace_internal()
 	return nullptr;
 }
 
+void UTSPlayerInteractComponent::DrawInteractionDebugLine_internal(const FVector& Start, const FVector& End, const FHitResult& HitResult, bool bHit)
+{
+	if (!IsValid(GetWorld())) return;
+	
+	// 1. 색상 결정 (맞으면 녹색, 아니면 적색)
+	FColor DebugColor = bHit ? FColor::Green : FColor::Red;
+
+	// 2. 라인 그리기 (무조건 실행)
+	DrawDebugLine(GetWorld(),Start,End,DebugColor,false, 0.1f, 0, 1.0f);
+
+	// 3. 충돌 시에만 해당 위치에 스피어 그리기
+	if (bHit) DrawDebugSphere(GetWorld(),HitResult.ImpactPoint, 10.0f,12, DebugColor,false, 0.1f);
+}
+
 void UTSPlayerInteractComponent::DoInteractUILogicAfterLineTrace()
 {
+	// 1. 상태 변화 체크: 현재 액터와 마지막 액터가 같다면 로직 수행 불필요
+	if (CurrentInteractActor == LastInteractActor) return;
 	
+	// 2. [지난 액터 처리] 마지막 액터가 유효했다면 위젯 끄기
+	if (LastInteractActor.IsValid() && IsValid(LastInteractActor.Get()) && LastInteractActor->GetClass()->ImplementsInterface(UTSInteractInterface::StaticClass()))
+	{
+		ITSInteractInterface::Execute_ToggleInteractWidget(LastInteractActor.Get(), false);
+	}
 	
-	
-	
+	// 3. [현재 액터 처리] 현재 액터가 유효하다면 위젯 켜기
+	if (CurrentInteractActor.IsValid() && IsValid(CurrentInteractActor.Get()) && CurrentInteractActor->GetClass()->ImplementsInterface(UTSInteractInterface::StaticClass()))
+	{
+		ITSInteractInterface::Execute_ToggleInteractWidget(CurrentInteractActor.Get(), true);
+	}
 }
 
 	//--------------------
@@ -148,7 +176,7 @@ void UTSPlayerInteractComponent::OnRequestCurrentActorChannelGameplayMessageRece
 	FTSInteractMessageData MSG;
 	MSG.CurrentInteractTarget = CurrentInteractActor;
 	
-	UGameplayMessageSubsystem::Get(GetWorld()).BroadcastMessage(SendCurrentActorChannelTag, MSG);
+	MessageSubsystem.BroadcastMessage(SendCurrentActorChannelTag, MSG);
 }
 
 void UTSPlayerInteractComponent::UnsubscribeInteract_Internal()

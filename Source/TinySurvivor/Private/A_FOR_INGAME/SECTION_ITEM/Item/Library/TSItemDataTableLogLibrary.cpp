@@ -2,7 +2,9 @@
 
 
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Library/TSItemDataTableLogLibrary.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Item/Data/DataAsset/TSItemInfoDataAsset.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/Struct/TSITemStaticData.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Item/Actor/Base/TSItemActorBase.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Data/Enum/InventoryType/TSInventoryCompType.h"
 
 void UTSItemDataTableLogLibrary::LogStaticItemData_Lib(FTSITemStaticData* InITemStaticData)
@@ -21,8 +23,12 @@ void UTSItemDataTableLogLibrary::LogBaseInfoData_Lib(FTSItemBaseInfoTable* InIte
 	if (!InItemBaseInfoTable) return;
 	
 	UE_LOG(LogTemp, Log, TEXT("[Base Info] ItemID: %d"), InItemBaseInfoTable->ItemID);
-	UE_LOG(LogTemp, Log, TEXT("[Base Info] ItemClass: %s"), *InItemBaseInfoTable->ItemClass.ToString());
-	UE_LOG(LogTemp, Log, TEXT("[Base Info] ItemDataAsset: %s"), *InItemBaseInfoTable->ItemDataAsset.ToString());
+	
+	FString ItemClassName = InItemBaseInfoTable->ItemClass ? InItemBaseInfoTable->ItemClass->GetName() : TEXT("NULL");
+	UE_LOG(LogTemp, Log, TEXT("[Base Info] ItemClass: %s"), *ItemClassName);
+	
+	FString DataAssetName = InItemBaseInfoTable->ItemDataAsset ? InItemBaseInfoTable->ItemDataAsset->GetName() : TEXT("NULL");
+	UE_LOG(LogTemp, Log, TEXT("[Base Info] ItemDataAsset: %s"), *DataAssetName);
 }
 
 void UTSItemDataTableLogLibrary::LogInventoryInfoData_Lib(FTSItemInventoryInfoTable* InItemInventoryInfoTable)
@@ -56,6 +62,8 @@ void UTSItemDataTableLogLibrary::LogUIInfoData_Lib(FTSItemUIInfoTable* InItemUII
 	UE_LOG(LogTemp, Log, TEXT("[UI Info] ItemID: %d"), InItemUIInfoTable->ItemID);
 	UE_LOG(LogTemp, Log, TEXT("[UI Info] ItemName: %s"), *InItemUIInfoTable->ItemName.ToString());
 	UE_LOG(LogTemp, Log, TEXT("[UI Info] ItemDescription: %s"), *InItemUIInfoTable->ItemDescription.ToString());
-	UE_LOG(LogTemp, Log, TEXT("[UI Info] ItemIcon Path: %s"), *InItemUIInfoTable->ItemIcon.ToString());
+	
+	FString IconPath = InItemUIInfoTable->ItemIcon.IsNull() ? TEXT("Empty") : InItemUIInfoTable->ItemIcon.ToString();
+	UE_LOG(LogTemp, Log, TEXT("[UI Info] ItemIcon Path: %s"), *IconPath);
 }
 

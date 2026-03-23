@@ -53,6 +53,9 @@ protected:
 	// 라인 트레이스 실시 함수 
 	AActor* LineTrace_internal();
 	
+	// 라인 트레이스 디버깅 함수 
+	void DrawInteractionDebugLine_internal(const FVector& Start, const FVector& End, const FHitResult& HitResult, bool bHit);
+	
 	// 후 처리 함수
 	void DoInteractUILogicAfterLineTrace();
 
@@ -107,11 +110,11 @@ protected:
 	
 	// 게임 플레이 메시지 받는 채널 (current actor 발신 요청 채널) 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameplayMessage")
-	FGameplayTag RequestCurrentActorChannelTag = InteractChannelTag::NewTS_Channel_Interact_RequestCurrentActor;
+	FGameplayTag RequestCurrentActorChannelTag = InteractChannelTag::TS_Channel_Interact_RequestCurrentActor;
 	
 	// 게임 플레이 보내는 채널 (current actor 발신 채널)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameplayMessage")
-	FGameplayTag SendCurrentActorChannelTag = InteractChannelTag::NewTS_Channel_Interact_SendCurrentActor;
+	FGameplayTag SendCurrentActorChannelTag = InteractChannelTag::TS_Channel_Interact_SendCurrentActor;
 	
 	// 게임 플레이 메시지 구독 핸들 
 	FGameplayMessageListenerHandle ListenerHandle;

@@ -16,11 +16,11 @@
 	// 게터
 	//━━━━━━━━━━━━━━━━━━━━	
 
-UTSItemDataSubSystem* UTSItemDataSubSystem::Get(const UObject* WorldContextObject)
+UTSItemDataSubSystem* UTSItemDataSubSystem::Get(const UObject* InWorldContextObject)
 {
-	if (!IsValid(WorldContextObject)) return nullptr;
+	if (!IsValid(InWorldContextObject)) return nullptr;
 	
-	UWorld* World = WorldContextObject->GetWorld();
+	UWorld* World = InWorldContextObject->GetWorld();
 	if (!IsValid(World)) return nullptr;
 			
 	UGameInstance* GameInstance = World->GetGameInstance();
@@ -63,9 +63,9 @@ void UTSItemDataSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 	// 외부 API
 	//━━━━━━━━━━━━━━━━━━━━
 
-FTSITemStaticData* UTSItemDataSubSystem::GetItemStaticData(int32 ItemID)
+FTSITemStaticData* UTSItemDataSubSystem::GetItemStaticData(int32 InItemID)
 {
-	return *ItemStaticDataMap.Find(ItemID);
+	return *ItemStaticDataMap.Find(InItemID);
 }
 
 #pragma endregion

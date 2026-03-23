@@ -6,11 +6,11 @@
 
 namespace GAInventoryTag
 {
-	UE_DEFINE_GAMEPLAY_TAG(NewTS_GA_Inventory_TryAddITemToHotKey, "NewTS.GA.Inventory.tryAddItemToHotKey");
-	UE_DEFINE_GAMEPLAY_TAG(NewTS_GA_Inventory_TryAddITemToBackPack, "NewTS.GA.Inventory.TryAddITemToBackPack");
-	UE_DEFINE_GAMEPLAY_TAG(NewTS_GA_Inventory_TryAddITemToEquip, "NewTS.GA.Inventory.TryAddITemToEquip");
-	UE_DEFINE_GAMEPLAY_TAG(NewTS_GA_Inventory_TryAddITemToFuelProduct, "NewTS.GA.Inventory.TryAddITemToFuelProduct");
-	UE_DEFINE_GAMEPLAY_TAG(NewTS_GA_Invnetory_TryAddItemToStorage, "NewTS.GA.Inventory.TryAddItemToStorage")
+	UE_DEFINE_GAMEPLAY_TAG(TS_GA_Inventory_TryAddITemToHotKey, "TS.GA.Inventory.tryAddItemToHotKey");
+	UE_DEFINE_GAMEPLAY_TAG(TS_GA_Inventory_TryAddITemToBackPack, "TS.GA.Inventory.TryAddITemToBackPack");
+	UE_DEFINE_GAMEPLAY_TAG(TS_GA_Inventory_TryAddITemToEquip, "TS.GA.Inventory.TryAddITemToEquip");
+	UE_DEFINE_GAMEPLAY_TAG(TS_GA_Inventory_TryAddITemToFuelProduct, "TS.GA.Inventory.TryAddITemToFuelProduct");
+	UE_DEFINE_GAMEPLAY_TAG(TS_GA_Invnetory_TryAddItemToStorage, "TS.GA.Inventory.TryAddItemToStorage")
 	
 	
 }

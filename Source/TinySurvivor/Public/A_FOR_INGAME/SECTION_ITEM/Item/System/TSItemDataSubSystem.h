@@ -24,7 +24,7 @@ class TINYSURVIVOR_API UTSItemDataSubSystem : public UGameInstanceSubsystem
 	//━━━━━━━━━━━━━━━━━━━━	
 public:
 
-	static UTSItemDataSubSystem* Get(const UObject* WorldContextObject);
+	static UTSItemDataSubSystem* Get(const UObject* InWorldContextObject);
 
 #pragma endregion
 //======================================================================================================================	
@@ -38,8 +38,6 @@ public:
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	
-protected:
-	
 #pragma endregion
 //======================================================================================================================	
 #pragma region 외부_API
@@ -49,12 +47,8 @@ protected:
 	//━━━━━━━━━━━━━━━━━━━━
 	
 public:
-	
-	// 아이템 조회하기 
-	FTSITemStaticData* GetItemStaticData(int32 ItemID);
+	FTSITemStaticData* GetItemStaticData(int32 InItemID);
 
-protected:
-	
 #pragma endregion
 //======================================================================================================================	
 #pragma region 내부_API
@@ -64,7 +58,6 @@ protected:
 	//━━━━━━━━━━━━━━━━━━━━
 	
 protected:
-	
 	// 데이터 테이블 캐싱 총괄 함수 
 	void InitializeItemStaticData_internal();
 	
@@ -77,13 +70,11 @@ protected:
 	//━━━━━━━━━━━━━━━━━━━━
 	
 protected:
-
 	// 데이터 맵 (조회용 캐싱)
 	TMap<int32, FTSITemStaticData*> ItemStaticDataMap;
 	
 	// 데이터 배열 (최적화용 캐싱)
 	TArray<FTSITemStaticData> ItemStaticDataArray;
-	
 	
 #pragma endregion
 //======================================================================================================================	

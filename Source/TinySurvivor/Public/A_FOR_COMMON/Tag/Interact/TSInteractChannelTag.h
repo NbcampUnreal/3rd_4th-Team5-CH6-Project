@@ -8,7 +8,7 @@
 namespace InteractChannelTag
 {
 	// 상호작용 채널 
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NewTS_Channel_Interact_RequestCurrentActor);
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NewTS_Channel_Interact_SendCurrentActor);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Channel_Interact_RequestCurrentActor);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Channel_Interact_SendCurrentActor);
 	
 }

@@ -18,15 +18,15 @@ class TINYSURVIVOR_API UTSItemTablesDataAsset : public UDataAsset
 public:
     
 	// 아이템 기본 정보 테이블 모음 (F를 포함한 이름으로 지정)
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | Item", meta = (RequiredRowStruct = "FTSNewItemBaseInfoTable"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | Item")
 	TObjectPtr<UDataTable> ItemBaseInfoTable;
 
 	// 아이템 인벤토리 정보 테이블 모음
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | Item", meta = (RequiredRowStruct = "FTSNewItemInventoryInfoTable"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | Item")
 	TObjectPtr<UDataTable> ItemInventoryInfoTable;
 
 	// 아이템 UI 정보 테이블 모음 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | Item", meta = (RequiredRowStruct = "FTSNewItemUIInfoTable"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | Item")
 	TObjectPtr<UDataTable> ItemUIInfoTable;
 
 };
