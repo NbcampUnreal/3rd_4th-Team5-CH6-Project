@@ -14,4 +14,8 @@ struct TINYSURVIVOR_API FTSResourceDynamicData
 	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category = "TS | Resource")
 	int32 CurrentAmount = 0;
 	
+	// 자원의 체력 
+	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category = "TS | Resource")
+	int32 CurrentHealth = 0;
+	
 };

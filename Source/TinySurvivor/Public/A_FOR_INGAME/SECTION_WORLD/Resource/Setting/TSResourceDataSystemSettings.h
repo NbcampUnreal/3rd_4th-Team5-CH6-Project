@@ -10,7 +10,7 @@ class UTSResourceDataSystemDataAsset;
 /**
  * 
  */
-UCLASS(Config = Game, DefaultConfig, meta=(DisplayName="자원 데이터 섹션"))
+UCLASS(Config = Game, DefaultConfig, meta=(DisplayName="TS 자원 데이터 섹션"))
 class TINYSURVIVOR_API UTSResourceDataSystemSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()

@@ -8,6 +8,7 @@
 #include "A_FOR_INGAME/SECTION_WORLD/Resource/Interface/TSResourceInterface.h"
 #include "TSResourceActorBase.generated.h"
 
+class UTSLootHandleComponent;
 class UWidgetComponent;
 
 UCLASS()
@@ -36,7 +37,7 @@ public:
 	
 public:
 	ATSResourceActorBase();
-	virtual void PostInitializeComponents() override;
+	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 #pragma endregion
@@ -55,6 +56,8 @@ public:
 	// ~ ITSInteractInterface
 	
 protected:
+	virtual void InitInteractUI(FTSResourceRuntimeData& ItemRuntimeData);
+	
 	// 위젯 컴포넌트 선언
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TS | Item")
 	TObjectPtr<UWidgetComponent> InteractWidgetComp = nullptr;
@@ -68,7 +71,6 @@ protected:
 //======================================================================================================================
 #pragma region 자원_API_및_데이터
 	
-	
 	//━━━━━━━━━━━━━━━━━━━━
 	// 자원_API_및_데이터
 	//━━━━━━━━━━━━━━━━━━━━	
@@ -77,13 +79,19 @@ public:
 	// ITSResourceInterface ~
 	FORCEINLINE virtual FTSResourceRuntimeData& GetResourceRuntimeData() override { return ResourceData; }
 	virtual void SetResourceRuntimeData(FTSResourceRuntimeData& InResourceRuntimeData) override { ResourceData = InResourceRuntimeData; }
+	virtual bool TryInteractLogicOnResource_Implementation(float InAttackDamage, FGameplayTag InInteractType, FVector InHitImpactPoint) override;
 	// ~ ITSResourceInterface
 	
-protected:
+	// 루팅 컴포넌트 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TS | Resource")
+	TObjectPtr<UTSLootHandleComponent> LootHandleComponent = nullptr;
 	
 	UPROPERTY(ReplicatedUsing = OnRep_ResourceData, EditAnywhere, BlueprintReadWrite, Category = "TS | Resource")
 	FTSResourceRuntimeData ResourceData;	
 	
 #pragma endregion
 //======================================================================================================================	
+	
+	
+	
 };

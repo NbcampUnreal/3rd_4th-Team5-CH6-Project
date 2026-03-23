@@ -37,8 +37,8 @@ public:
 	//━━━━━━━━━━━━━━━━━━━━	
 public:
 	ATSItemActorBase();
-	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void BeginPlay() override;
 	
 #pragma endregion
 //======================================================================================================================	
@@ -56,6 +56,8 @@ public:
 	// ~ ITSInteractInterface
 	
 protected:
+	virtual void InitInteractUI(FTSItemRuntimeData& ItemRuntimeData);
+	
 	// 위젯 컴포넌트 선언
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TS | Item")
 	TObjectPtr<UWidgetComponent> InteractWidgetComp = nullptr;
@@ -77,7 +79,7 @@ public:
 	
 	// ITSItemInterface ~ 
 	FORCEINLINE virtual FTSItemRuntimeData& GetItemRuntimeDataPtr() override { return ItemData;};
-	virtual void SetItemRuntimeData(FTSItemRuntimeData& InItemRuntimeData) override { ItemData = InItemRuntimeData;};
+	FORCEINLINE virtual void SetItemRuntimeData(FTSItemRuntimeData& InItemRuntimeData) override { ItemData = InItemRuntimeData;};
 	/// ~ ITSItemInterface
 	
 protected:

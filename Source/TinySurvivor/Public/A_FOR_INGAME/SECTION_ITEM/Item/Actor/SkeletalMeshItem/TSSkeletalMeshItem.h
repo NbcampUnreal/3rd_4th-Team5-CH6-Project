@@ -6,7 +6,7 @@
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Actor/Base/TSItemActorBase.h"
 #include "TSSkeletalMeshItem.generated.h"
 
-UCLASS()
+UCLASS(Blueprintable)
 class TINYSURVIVOR_API ATSSkeletalMeshItem : public ATSItemActorBase
 {
 	GENERATED_BODY()

@@ -49,9 +49,11 @@ void UTSResourceDataTableLogLibrary::LogResourceLootInfoData_Lib(FTSResourceLoot
 	if (!InResourceLootInfoTable) return;
 	
 	UE_LOG(LogTemp, Log, TEXT("[Loot Info] ResourceID: %d"), InResourceLootInfoTable->ResourceID);
+	UE_LOG(LogTemp, Log, TEXT("[Loot Info] TotalCount: %d"), InResourceLootInfoTable->TotalCount);
+	UE_LOG(LogTemp, Log, TEXT("[Loot Info] Health: %d"), InResourceLootInfoTable->Health);
 	
-	for (const auto& [LootProbability, LootItemID] : InResourceLootInfoTable->LootInfoArray)
+	for (const auto& LootInfo : InResourceLootInfoTable->LootInfoArray)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Loot Info] Item ID: %d | Probability: %f"), LootItemID, LootProbability);
+		UE_LOG(LogTemp, Log, TEXT("[Loot Info] Item ID: %d | Probability: %f"), LootInfo.LootItemID, LootInfo.LootProbability);
 	}
 }

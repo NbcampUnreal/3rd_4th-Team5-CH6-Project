@@ -2,8 +2,12 @@
 
 
 #include "A_FOR_INGAME/SECTION_WORLD/Resource/Actor/A_Base/TSResourceActorBase.h"
+#include "A_FOR_INGAME/SECTION_UI/Interact/TSInteractUIBase.h"
+#include "A_FOR_INGAME/SECTION_UI/Interact/TSResourceInteractUI.h"
+#include "A_FOR_INGAME/SECTION_WORLD/Resource/System/TSResourceDataSystem.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "SECTION_LOOT/Comp/TSLootHandleComponent.h"
 
 
 //======================================================================================================================	
@@ -32,12 +36,6 @@ ATSResourceActorBase::ATSResourceActorBase()
 	bReplicates = true;
 }
 
-void ATSResourceActorBase::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-	
-}
-
 void ATSResourceActorBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -45,6 +43,10 @@ void ATSResourceActorBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME_CONDITION(ATSResourceActorBase, ResourceData, COND_None);
 }
 
+void ATSResourceActorBase::BeginPlay()
+{
+	Super::BeginPlay();
+}
 #pragma endregion
 //======================================================================================================================	
 #pragma region 인터렉트API_컴포넌트_데이터
@@ -54,6 +56,30 @@ void ATSResourceActorBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	// 인터렉트API_컴포넌트_데이터
 	//━━━━━━━━━━━━━━━━━━━━	
 
+void ATSResourceActorBase::InitInteractUI(FTSResourceRuntimeData& ItemRuntimeData)
+{
+	if (!IsValid(InteractWidgetComp)) return;
+	if (!IsValid(InteractWidgetComp->GetUserWidgetObject())) return;
+	
+	UTSInteractUIBase* InteractUI = CastChecked<UTSInteractUIBase>(InteractWidgetComp->GetUserWidgetObject());
+	if (!IsValid(InteractUI)) return;
+	
+	if (!IsValid(GetWorld())) return;
+	UTSResourceDataSystem* DataSubSystem = UTSResourceDataSystem::Get(GetWorld());
+	if (!IsValid(DataSubSystem)) return;
+	
+	FTSResourceStaticData* ResourceStaticData = DataSubSystem->GetResourceStaticData(ItemRuntimeData.StaticDataID);
+	if (!ResourceStaticData) return;
+
+	FString InteractKey = TEXT("Left Mouse Button");
+	FText InteractText = FText::FromString(InteractKey);
+	InteractUI->SetInteractInfo(ResourceStaticData->ResourceUIInfoTable.ResourceName, InteractText);
+	
+	UTSResourceInteractUI* ResourceInteractUI = CastChecked<UTSResourceInteractUI>(InteractUI);
+	if (!IsValid(ResourceInteractUI)) return;
+	
+	ResourceInteractUI->SetResourceRemainStackInfo(ResourceData.DynamicData.CurrentAmount, ResourceStaticData->ResourceLootInfoTable.TotalCount);
+}
 void ATSResourceActorBase::ToggleInteractWidget_Implementation(bool InWantOn)
 {
 	if (!IsValid(InteractWidgetComp)) return;
@@ -71,3 +97,17 @@ void ATSResourceActorBase::ToggleInteractWidget_Implementation(bool InWantOn)
 
 #pragma endregion
 //======================================================================================================================	
+#pragma region 자원_API_및_데이터
+
+	//━━━━━━━━━━━━━━━━━━━━
+	// 자원_API_및_데이터
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+bool ATSResourceActorBase::TryInteractLogicOnResource_Implementation(float InAttackDamage, FGameplayTag InInteractType, FVector InHitImpactPoint)
+{
+	if (!IsValid(LootHandleComponent)) return false;
+	return LootHandleComponent->RequestSpawnLootFromResource(InAttackDamage, InInteractType, ResourceData, InHitImpactPoint);
+}
+
+#pragma endregion
+//======================================================================================================================
