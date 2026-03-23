@@ -29,6 +29,9 @@ UTSLootHandleComponent::UTSLootHandleComponent()
 
 bool UTSLootHandleComponent::RequestSpawnLootFromResource(float& AttackDamage, const FGameplayTag& InteractType,FTSResourceRuntimeData& InResourceRuntimeData, FVector& InHitImpactPoint)
 {
+	// 서버에서만 실행
+	if (!IsValid(GetOwner()) || !GetOwner()->HasAuthority()) return false;
+	
 	UTSResourceDataSystem* ResourceDataSubSystem = UTSResourceDataSystem::Get(this);
 	if (!IsValid(ResourceDataSubSystem)) return false;
 	
