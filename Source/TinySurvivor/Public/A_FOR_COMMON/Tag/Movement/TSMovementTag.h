@@ -9,11 +9,17 @@
 namespace MovementTag
 {
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Looking);	// 시야 회전  
-
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving);				// 움직임
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving);		// 움직임
+	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving_Jogging);		// 기본 속도 
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving_Sprinting);	// 달리기
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving_Walking);		// 걷기
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving_Crouch);		// 앉기
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving_Prone);		// 엎드리기
 	
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Jumping);	// 점프 
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Jumping); // 점프 
+
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving_Aiming);		// 조준 중
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Movement_Moving_NotAiming);	// 비조준 중
+
 }

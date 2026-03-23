@@ -24,11 +24,21 @@ void UTSAttributeSet::OnRep_MaxHunger(const FGameplayAttributeData& OldMaxHunger
 void UTSAttributeSet::OnRep_Thirst(const FGameplayAttributeData& OldThirst) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Thirst, OldThirst); }
 void UTSAttributeSet::OnRep_MaxThirst(const FGameplayAttributeData& OldMaxThirst) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxThirst, OldMaxThirst); }
 void UTSAttributeSet::OnRep_Temperature(const FGameplayAttributeData& OldTemperature) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Temperature, OldTemperature); }
-void UTSAttributeSet::OnRep_MaxTemperature(const FGameplayAttributeData& OldMaxTemperature) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MaxTemperature, OldMaxTemperature); }
 
 void UTSAttributeSet::OnRep_Strength(const FGameplayAttributeData& OldStrength) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, Strength, OldStrength); }
 void UTSAttributeSet::OnRep_AttackPower(const FGameplayAttributeData& OldAttackPower) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, AttackPower, OldAttackPower); }
 void UTSAttributeSet::OnRep_DefensePower(const FGameplayAttributeData& OldDefensePower) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, DefensePower, OldDefensePower); }
+void UTSAttributeSet::OnRep_MovementSpeed(const FGameplayAttributeData& OldMovementSpeed) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, MovementSpeed, OldMovementSpeed); }
+void UTSAttributeSet::OnRep_TotalWeight(const FGameplayAttributeData& OldTotalWeight) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldTotalWeight); }
+
+void UTSAttributeSet::OnRep_SurvivalSkill(const FGameplayAttributeData& OldSurvivalSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldSurvivalSkill); }
+void UTSAttributeSet::OnRep_MovementSkill(const FGameplayAttributeData& OldMovementSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldMovementSkill); }
+void UTSAttributeSet::OnRep_LootingSkill(const FGameplayAttributeData& OldLootingSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldLootingSkill); }
+void UTSAttributeSet::OnRep_MakingSkill(const FGameplayAttributeData& OldMakingSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldMakingSkill); }
+void UTSAttributeSet::OnRep_FarmingSkill(const FGameplayAttributeData& OldFarmingSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldFarmingSkill); }
+void UTSAttributeSet::OnRep_BuildingSkill(const FGameplayAttributeData& OldBuidlingSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldBuidlingSkill); }
+void UTSAttributeSet::OnRep_AimingSkill(const FGameplayAttributeData& OldAimingSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldAimingSkill); }
+void UTSAttributeSet::OnRep_BattleSkill(const FGameplayAttributeData& OldBattleSkill) { GAMEPLAYATTRIBUTE_REPNOTIFY(UTSAttributeSet, TotalWeight, OldBattleSkill); }
 
 #pragma endregion
 //======================================================================================================================	
@@ -47,11 +57,13 @@ UTSAttributeSet::UTSAttributeSet()
 	InitMentality(100.f);	InitMaxMentality(100.f);
 	InitHunger(100.f);		InitMaxHunger(100.f);
 	InitThirst(100.f);		InitMaxThirst(100.f);
-	InitTemperature(36.5f);  InitMaxTemperature(42.f); 
+	InitTemperature(36.5f); 
 
 	InitStrength(10.f);
 	InitAttackPower(10.f);
 	InitDefensePower(10.f);
+	InitMovementSpeed(500.f);
+	InitTotalWeight(0.f);
 }
 
 void UTSAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -70,10 +82,22 @@ void UTSAttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, Thirst, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxThirst, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, Temperature, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MaxTemperature, COND_None, REPNOTIFY_Always);
+	
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, Strength, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AttackPower, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, DefensePower, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MovementSpeed, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, TotalWeight, COND_None, REPNOTIFY_Always);
+	
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, SurvivalSkill, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MovementSkill, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, LootingSkill, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, MakingSkill, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, FarmingSkill, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BuildingSkill, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, AimingSkill, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UTSAttributeSet, BattleSkill, COND_None, REPNOTIFY_Always);
+	
 }
 
 void UTSAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)

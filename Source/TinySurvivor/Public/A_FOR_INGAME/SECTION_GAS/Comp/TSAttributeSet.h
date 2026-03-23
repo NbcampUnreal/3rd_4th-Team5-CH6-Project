@@ -40,11 +40,22 @@ public:
 	UFUNCTION() virtual void OnRep_Thirst(const FGameplayAttributeData& OldThirst);
 	UFUNCTION() virtual void OnRep_MaxThirst(const FGameplayAttributeData& OldMaxThirst);
 	UFUNCTION() virtual void OnRep_Temperature(const FGameplayAttributeData& OldTemperature);
-	UFUNCTION() virtual void OnRep_MaxTemperature(const FGameplayAttributeData& OldMaxTemperature);
 
 	UFUNCTION() virtual void OnRep_Strength(const FGameplayAttributeData& OldStrength);
 	UFUNCTION() virtual void OnRep_AttackPower(const FGameplayAttributeData& OldAttackPower);
 	UFUNCTION() virtual void OnRep_DefensePower(const FGameplayAttributeData& OldDefensePower);
+	UFUNCTION() virtual void OnRep_MovementSpeed(const FGameplayAttributeData& OldMovementSpeed);
+	UFUNCTION() virtual void OnRep_TotalWeight(const FGameplayAttributeData& OldTotalWeight);
+	
+	UFUNCTION() virtual void OnRep_SurvivalSkill(const FGameplayAttributeData& OldSurvivalSkill);
+	UFUNCTION() virtual void OnRep_MovementSkill(const FGameplayAttributeData& OldMovementSkill);
+	UFUNCTION() virtual void OnRep_LootingSkill(const FGameplayAttributeData& OldLootingSkill);
+	UFUNCTION() virtual void OnRep_MakingSkill(const FGameplayAttributeData& OldMakingSkill);
+	UFUNCTION() virtual void OnRep_FarmingSkill(const FGameplayAttributeData& OldFarmingSkill);
+	UFUNCTION() virtual void OnRep_BuildingSkill(const FGameplayAttributeData& OldBuidlingSkill);
+	UFUNCTION() virtual void OnRep_AimingSkill(const FGameplayAttributeData& OldAimingSkill);
+	UFUNCTION() virtual void OnRep_BattleSkill(const FGameplayAttributeData& OldBattleSkill);
+	
 #pragma endregion
 //======================================================================================================================	
 #pragma region 라이프_사이클
@@ -84,21 +95,34 @@ public:
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxThirst);
 	// 체온
 	ATTRIBUTE_ACCESSORS(UTSAttributeSet, Temperature);
-	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MaxTemperature);
 
-	ATTRIBUTE_ACCESSORS(UTSAttributeSet, Strength);     // 근력
-	ATTRIBUTE_ACCESSORS(UTSAttributeSet, AttackPower);  // 공격력
-	ATTRIBUTE_ACCESSORS(UTSAttributeSet, DefensePower); // 방어력
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, Strength);			// 근력
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, AttackPower);		// 공격력
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, DefensePower);		// 방어력
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MovementSpeed);	// 이동속도
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, TotalWeight)		// 총 무게 (모든 장비 다 포함)
+	
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, SurvivalSkill)		// 생존 숙련도
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, LootingSkill)		// 루팅 숙련도
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, MakingSkill)		// 제작 숙련도
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, FarmingSkill)		// 농사 숙련도
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, BuildingSkill)		// 건축 숙련도
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, AimingSkill)		// 조준 숙련도
+	ATTRIBUTE_ACCESSORS(UTSAttributeSet, BattleSkill)		// 전투 숙련도 
+	
 	
 #pragma endregion
 //======================================================================================================================	
-#pragma region 어트리뷰트_매크로
+#pragma region 어트리뷰트
 	
 	//━━━━━━━━━━━━━━━━━━━━
 	// 어트리뷰트
 	//━━━━━━━━━━━━━━━━━━━━	
 
-protected:
+public:
+
+//----------------------------------------------------------------------------------------------------------------------	
+	
 	//-----------------------
 	// 체력 
 	//-----------------------
@@ -139,13 +163,14 @@ protected:
 	//-----------------------
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_Temperature)
 	FGameplayAttributeData Temperature;
-	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MaxTemperature)
-	FGameplayAttributeData MaxTemperature;
 	//-----------------------
 	// 근력  
 	//-----------------------
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_Strength)
 	FGameplayAttributeData Strength;
+	
+//----------------------------------------------------------------------------------------------------------------------	
+	
 	//-----------------------
 	// 공격력 
 	//-----------------------
@@ -156,14 +181,64 @@ protected:
 	//-----------------------
 	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_DefensePower)
 	FGameplayAttributeData DefensePower;
+	//-----------------------
+	// 이동 속도  
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MovementSpeed)
+	FGameplayAttributeData MovementSpeed;
+	//-----------------------
+	// 무게
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_TotalWeight)
+	FGameplayAttributeData TotalWeight;
+	
+	
+//----------------------------------------------------------------------------------------------------------------------	
+
+	//-----------------------
+	// 생존 숙련도 
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_SurvivalSkill)
+	FGameplayAttributeData SurvivalSkill;
+	//-----------------------
+	// 움직임 숙련도
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MovementSkill)
+	FGameplayAttributeData MovementSkill;
+	//-----------------------
+	// 파밍 숙련도 
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_LootingSkill)
+	FGameplayAttributeData LootingSkill;
+	//-----------------------
+	// 제작 숙련도
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_MakingSkill)
+	FGameplayAttributeData MakingSkill;
+	//-----------------------
+	// 농사 숙련도 
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_FarmingSkill)
+	FGameplayAttributeData FarmingSkill;
+	//-----------------------
+	// 건축 숙련도 
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_BuildingSkill)
+	FGameplayAttributeData BuildingSkill;
+	//-----------------------
+	// 조준 숙련도
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_AimingSkill)
+	FGameplayAttributeData AimingSkill;
+	//-----------------------
+	// 전투 숙련도 
+	//-----------------------
+	UPROPERTY(BlueprintReadOnly, Category = "Attributes", ReplicatedUsing = OnRep_BattleSkill)
+	FGameplayAttributeData BattleSkill;
+	
 	
 #pragma endregion
 //======================================================================================================================	
-	
-	
-	
-	
-	
 	
 	
 	

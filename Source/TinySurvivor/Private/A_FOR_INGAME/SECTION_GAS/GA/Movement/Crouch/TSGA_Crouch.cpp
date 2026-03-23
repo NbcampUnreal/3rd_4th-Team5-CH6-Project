@@ -1,0 +1,28 @@
+﻿// All CopyRight From YulRyongGameStudio //
+
+
+#include "A_FOR_INGAME/SECTION_GAS/GA/Movement/Crouch/TSGA_Crouch.h"
+#include "A_FOR_COMMON/Tag/Movement/TSMovementTag.h"
+
+UTSGA_Crouch::UTSGA_Crouch()
+{
+	// 에셋 태그 
+	FGameplayTagContainer AssetTags;
+	AssetTags.AddTag(MovementTag::TS_Movement_Moving_Crouch);
+	SetAssetTags(AssetTags);
+	
+	// 부여 태그
+	ActivationOwnedTags.AddTag(MovementTag::TS_Movement_Moving_Crouch);
+	
+	// 차단 가능한 태그 (걷기, 앉기, 엎드리기, 조준)
+	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Sprinting);
+	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Walking);
+	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Prone);
+	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Aiming);
+	
+	// 버그 방지 태그
+	WantChangeMoveSpeedWhenDeactivateTag.AddTag(MovementTag::TS_Movement_Moving_Sprinting);
+	WantChangeMoveSpeedWhenDeactivateTag.AddTag(MovementTag::TS_Movement_Moving_Walking);
+	WantChangeMoveSpeedWhenDeactivateTag.AddTag(MovementTag::TS_Movement_Moving_Prone);
+	WantChangeMoveSpeedWhenDeactivateTag.AddTag(MovementTag::TS_Movement_Moving_Aiming);
+}
