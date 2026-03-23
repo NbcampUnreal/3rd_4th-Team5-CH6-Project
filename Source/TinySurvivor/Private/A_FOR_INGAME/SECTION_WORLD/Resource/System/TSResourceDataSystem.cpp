@@ -64,6 +64,7 @@ void UTSResourceDataSystem::Initialize(FSubsystemCollectionBase& Collection)
 
 FTSResourceStaticData* UTSResourceDataSystem::GetResourceStaticData(int32 InResourceID)
 {
+	if (!ResourceStaticDataMap.Contains(InResourceID)) return nullptr;
 	return *ResourceStaticDataMap.Find(InResourceID);
 }
 

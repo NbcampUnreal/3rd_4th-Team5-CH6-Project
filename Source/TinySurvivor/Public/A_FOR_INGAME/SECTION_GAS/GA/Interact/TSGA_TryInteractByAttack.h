@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "A_FOR_INGAME/SECTION_GAS/A_Base/TSGA_BaseAbility.h"
-#include "TSGA_TryInteract.generated.h"
+#include "TSGA_TryInteractByAttack.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class TINYSURVIVOR_API UTSGA_TryInteract : public UTSGA_BaseAbility
+class TINYSURVIVOR_API UTSGA_TryInteractByAttack : public UTSGA_BaseAbility
 {
 	GENERATED_BODY()
 	
@@ -23,10 +23,9 @@ class TINYSURVIVOR_API UTSGA_TryInteract : public UTSGA_BaseAbility
 	//━━━━━━━━━━━━━━━━━━━━	
 	
 public:
-	UTSGA_TryInteract();
+	UTSGA_TryInteractByAttack();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 
 #pragma endregion
-//======================================================================================================================	
-
+//======================================================================================================================
 };

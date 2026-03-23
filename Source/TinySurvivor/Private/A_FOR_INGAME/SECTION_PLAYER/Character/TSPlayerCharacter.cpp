@@ -5,15 +5,25 @@
 
 #include "A_FOR_INGAME/SECTION_INTERACT/Comp/Player/TSPlayerInteractComponent.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Comp/BackPack/TSBackPackInventoryComponent.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Comp/Body/TSBodyInventoryComponent.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Comp/HotKey/TSHotKeyInventoryComponent.h"
 
 #include "A_FOR_INGAME/SECTION_PLAYER/Comp/TSPlayerInputActionComponent.h"
 #include "EnhancedInputComponent.h"
-#include "Camera/CameraComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/Equip/Comp/BackPack/TSBackPackEquipVisualComponent.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/Equip/Comp/Body/TSBodyEquipVisualComponent.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Inventory/Equip/Comp/HotKey/TSHotKeyEquipVisualComponent.h"
+
+#include "GameFramework/PlayerState.h"
+
 #include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
+
+#include "GameFramework/CharacterMovementComponent.h"
 
 //======================================================================================================================	
 #pragma region 라이프_사이클
@@ -36,6 +46,11 @@ ATSPlayerCharacter::ATSPlayerCharacter()
 	HotKeyInventoryComponent = CreateDefaultSubobject<UTSHotKeyInventoryComponent>(TEXT("HotKeyInventoryComponent"));
 	BackpackInventoryComponent = CreateDefaultSubobject<UTSBackPackInventoryComponent>(TEXT("BackpackInventoryComponent"));
 	EquipmentInventoryComponent = CreateDefaultSubobject<UTSBodyInventoryComponent>(TEXT("EquipmentInventoryComponent"));
+	
+	// 비쥬얼 컴포넌트 
+	HotKeyEquipVisualComponent = CreateDefaultSubobject<UTSHotKeyEquipVisualComponent>(TEXT("HotKeyEquipVisualComponent"));
+	BackpackEquipVisualComponent = CreateDefaultSubobject<UTSBackPackEquipVisualComponent>(TEXT("BackpackEquipVisualComponent"));
+	EquipVisualComponent = CreateDefaultSubobject<UTSBodyEquipVisualComponent>(TEXT("EquipVisualComponent"));
 	
 	// 플레이어 인터렉트 컴포넌트  
 	PlayerInteractComponent = CreateDefaultSubobject<UTSPlayerInteractComponent>(TEXT("PlayerInteractComponent"));
@@ -75,5 +90,46 @@ void ATSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	if (IsValid(PlayerInputHandleComponent)) PlayerInputHandleComponent->SetupPlayerInput(EnhancedInputComponent);
 }
 
+void ATSPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	if (!IsValid(GetPlayerState())) return;
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPlayerState());
+	if (!IsValid(ASC)) return;
+	
+	ASC->InitAbilityActorInfo(GetPlayerState(), this);
+}
+
+void ATSPlayerCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	
+	if (!IsValid(GetPlayerState())) return;
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPlayerState());
+	if (!IsValid(ASC)) return;
+	
+	ASC->InitAbilityActorInfo(GetPlayerState(), this);
+}
+
 #pragma endregion
 //======================================================================================================================
+#pragma region GAS
+	//━━━━━━━━━━━━━━━━━━━━
+	// GAS
+	//━━━━━━━━━━━━━━━━━━━━
+
+
+UAbilitySystemComponent* ATSPlayerCharacter::GetAbilitySystemComponent() const
+{
+	if (!IsValid(GetPlayerState())) return nullptr;
+
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPlayerState());
+	if (!IsValid(ASC)) return nullptr;
+	
+	return ASC;
+}
+
+
+#pragma endregion
+//======================================================================================================================	

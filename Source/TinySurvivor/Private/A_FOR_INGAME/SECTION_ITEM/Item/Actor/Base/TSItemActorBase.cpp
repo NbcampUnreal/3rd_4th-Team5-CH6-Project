@@ -85,6 +85,8 @@ void ATSItemActorBase::InitInteractUI(FTSItemRuntimeData& ItemRuntimeData)
 	if (!IsValid(ItemInteractUI)) return;
 	
 	ItemInteractUI->SetItemRemainStackInfo(ItemRuntimeData.DynamicData.CurrentStack);
+	
+	ItemInteractUI->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 void ATSItemActorBase::ToggleInteractWidget_Implementation(bool InWantOn)
@@ -98,7 +100,7 @@ void ATSItemActorBase::ToggleInteractWidget_Implementation(bool InWantOn)
 	}
 	else if (InWantOn == false)
 	{
-		InteractWidgetComp->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Hidden);
+		InteractWidgetComp->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 

@@ -13,7 +13,7 @@ namespace PossibleInteractTag
 	// F 키를 눌러서 일반 상호작용 
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Interact_Normal);
 	
-	// 공격으로 상호작용 
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Interact_Attack);
+	// 왼쪽 마우스로로 상호작용 
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TS_Interact_LeftClick);
 	
 }

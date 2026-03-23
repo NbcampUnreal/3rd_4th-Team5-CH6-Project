@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
 #include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Interface/ForOwner/TSInventoryOwnerActionInterface.h"
+#include "A_FOR_INGAME/SECTION_PLAYER/TSPlayerCompGetterInterface.h"
 #include "TSPlayerCharacter.generated.h"
 
 class UCameraComponent;
@@ -16,11 +18,32 @@ class UTSPlayerInteractComponent;
  * 
  */
 UCLASS()
-class TINYSURVIVOR_API ATSPlayerCharacter : public ACharacter, public ITSInteractInterface, public ITSInventoryOwnerActionInterface
+class TINYSURVIVOR_API ATSPlayerCharacter : public ACharacter, public ITSInteractInterface, public ITSInventoryOwnerActionInterface, public IAbilitySystemInterface, public ITSPlayerCompGetterInterface
 
 {
 	GENERATED_BODY()
 	
+//======================================================================================================================	
+#pragma region 게터
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 게터
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+public:
+	
+	// ITSPlayerCompGetterInterface ~ 
+	FORCEINLINE virtual UCameraComponent* GetCameraComponent_Implementation() const override { return CameraComponent;}
+	FORCEINLINE virtual USpringArmComponent* GetSpringArmComponent_Implementation() const override { return SpringArmComponent;}
+	FORCEINLINE virtual UTSHotKeyInventoryComponent* GetHotKeyInventoryComponent_Implementation() const override { return HotKeyInventoryComponent;}
+	FORCEINLINE virtual UTSHotKeyEquipVisualComponent* GetHotKeyEquipVisualComponent_Implementation() const override { return HotKeyEquipVisualComponent; }
+	FORCEINLINE virtual UTSBackPackInventoryComponent* GetBackPackInventoryComponent_Implementation() const override { return BackpackInventoryComponent;}
+	FORCEINLINE virtual UTSBackPackEquipVisualComponent* GetBackPackEquipVisualComponent_Implementation() const override { return BackpackEquipVisualComponent;}
+	FORCEINLINE virtual UTSBodyInventoryComponent* GetBodyInventoryComponent_Implementation() const override {return EquipmentInventoryComponent; }
+	FORCEINLINE virtual UTSBodyEquipVisualComponent* GetBodyEquipVisualComponent_Implementation() const override { return EquipVisualComponent; }
+	// ~ ITSPlayerCompGetterInterface
+	
+#pragma endregion
 //======================================================================================================================	
 #pragma region 라이프_사이클
 	
@@ -32,6 +55,20 @@ class TINYSURVIVOR_API ATSPlayerCharacter : public ACharacter, public ITSInterac
 public:
 	ATSPlayerCharacter();
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
+	
+#pragma endregion
+//======================================================================================================================	
+#pragma region GAS
+	//━━━━━━━━━━━━━━━━━━━━
+	// GAS
+	//━━━━━━━━━━━━━━━━━━━━
+
+protected:
+	// IAbilitySystemInterface ~ 
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;;
+	// ~ IAbilitySystemInterface
 	
 #pragma endregion
 //======================================================================================================================	
@@ -64,6 +101,24 @@ protected:
 	
 #pragma endregion
 //======================================================================================================================
+#pragma region 인벤토리_비쥬얼_컴포넌트	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인벤토리_비쥬얼_컴포넌트
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TS | Player")
+	TObjectPtr<UTSHotKeyEquipVisualComponent> HotKeyEquipVisualComponent = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TS | Player")
+	TObjectPtr<UTSBackPackEquipVisualComponent> BackpackEquipVisualComponent = nullptr;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TS | Player")
+	TObjectPtr<UTSBodyEquipVisualComponent> EquipVisualComponent = nullptr;
+	
+#pragma endregion
+//======================================================================================================================	
 #pragma region 인터렉트API_컴포넌트_데이터
 	
 	
@@ -117,5 +172,11 @@ protected:
 	TObjectPtr<UCameraComponent> CameraComponent = nullptr;
 	
 #pragma endregion
-//======================================================================================================================		
+//======================================================================================================================	
+	
+	
+	
+	
+	
+	
 };

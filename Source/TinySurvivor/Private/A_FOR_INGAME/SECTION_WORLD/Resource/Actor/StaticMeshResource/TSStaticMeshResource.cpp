@@ -30,6 +30,10 @@ void ATSStaticMeshResource::BeginPlay()
 
 	// 서버에서 피직스 실행
 	if (HasAuthority()) ResourceStaticMeshComp->SetSimulatePhysics(true);
+	
+	if (!IsValid(InteractWidgetComp)) return;
+	if (!IsValid(InteractWidgetComp->GetUserWidgetObject())) return;
+	InteractWidgetComp->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 #pragma endregion

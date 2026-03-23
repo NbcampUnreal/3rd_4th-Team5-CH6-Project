@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
-#include "A_FOR_COMMON/Tag/Interact/TSInteractChannelTag.h"
 #include "A_FOR_COMMON/GameplayMessage/Data/Struct/Interact/FTSInteractMessageData.h"
 #include "TSPlayerInteractComponent.generated.h"
 
@@ -107,14 +106,6 @@ protected:
 	//--------------------
 	// 게임 플레이 메시지 
 	//--------------------
-	
-	// 게임 플레이 메시지 받는 채널 (current actor 발신 요청 채널) 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameplayMessage")
-	FGameplayTag RequestCurrentActorChannelTag = InteractChannelTag::TS_Channel_Interact_RequestCurrentActor;
-	
-	// 게임 플레이 보내는 채널 (current actor 발신 채널)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GameplayMessage")
-	FGameplayTag SendCurrentActorChannelTag = InteractChannelTag::TS_Channel_Interact_SendCurrentActor;
 	
 	// 게임 플레이 메시지 구독 핸들 
 	FGameplayMessageListenerHandle ListenerHandle;

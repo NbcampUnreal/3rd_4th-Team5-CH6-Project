@@ -3,6 +3,7 @@
 
 #include "A_FOR_INGAME/SECTION_INTERACT/Comp/Player/TSPlayerInteractComponent.h"
 #include "A_FOR_COMMON/GameplayMessage/Data/Struct/Interact/FTSInteractMessageData.h"
+#include "A_FOR_COMMON/GameplayMessage/Setting/TSGameplayChannelSetting.h"
 #include "A_FOR_COMMON/Library/Getter/Controller/TSGetControllerLibrary.h"
 #include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
@@ -15,6 +16,8 @@
 	//━━━━━━━━━━━━━━━━━━━━
 	// 라이프 사이클
 	//━━━━━━━━━━━━━━━━━━━━	
+
+class UTSGameplayChannelSetting;
 
 UTSPlayerInteractComponent::UTSPlayerInteractComponent()
 {
@@ -162,8 +165,11 @@ void UTSPlayerInteractComponent::SubscribeInteract_Internal()
 	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(GetWorld());
 	if (!IsValid(&MessageSubsystem)) return;	
 	
+	const UTSGameplayChannelSetting* Settings = GetDefault<UTSGameplayChannelSetting>();
+	if (!IsValid(Settings)) return;
+	
 	// 구독 및 핸들 보관
-	ListenerHandle = MessageSubsystem.RegisterListener<FTSInteractMessageData>(RequestCurrentActorChannelTag, this, &UTSPlayerInteractComponent::OnRequestCurrentActorChannelGameplayMessageReceived);
+	ListenerHandle = MessageSubsystem.RegisterListener<FTSInteractMessageData>(Settings->RequestCurrentWatchingActorChannelTag, this, &UTSPlayerInteractComponent::OnRequestCurrentActorChannelGameplayMessageReceived);
 }
 
 void UTSPlayerInteractComponent::OnRequestCurrentActorChannelGameplayMessageReceived(FGameplayTag InChannelTag, const FTSInteractMessageData& OutPayload)
@@ -176,7 +182,10 @@ void UTSPlayerInteractComponent::OnRequestCurrentActorChannelGameplayMessageRece
 	FTSInteractMessageData MSG;
 	MSG.CurrentInteractTarget = CurrentInteractActor;
 	
-	MessageSubsystem.BroadcastMessage(SendCurrentActorChannelTag, MSG);
+	const UTSGameplayChannelSetting* Settings = GetDefault<UTSGameplayChannelSetting>();
+	if (!IsValid(Settings)) return;
+	
+	MessageSubsystem.BroadcastMessage(Settings->SendCurrentWatchingActorChannelTag, MSG);
 }
 
 void UTSPlayerInteractComponent::UnsubscribeInteract_Internal()

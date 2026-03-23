@@ -9,7 +9,7 @@ namespace PossibleInteractTag
 	// F 키를 눌러서 일반 상호작용 
 	UE_DEFINE_GAMEPLAY_TAG(TS_Interact_Normal, "TS.Interact.Normal");
 	
-	// 공격으로 상호작용 
-	UE_DEFINE_GAMEPLAY_TAG(TS_Interact_Attack, "TS.Interact.Attack");
+	// 왼쪽 마우스로로 상호작용 
+	UE_DEFINE_GAMEPLAY_TAG(TS_Interact_LeftClick, "TS.Interact.LeftClick");
 	
 }

@@ -65,6 +65,7 @@ void UTSItemDataSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 
 FTSITemStaticData* UTSItemDataSubSystem::GetItemStaticData(int32 InItemID)
 {
+	if (!ItemStaticDataMap.Contains(InItemID)) return nullptr;
 	return *ItemStaticDataMap.Find(InItemID);
 }
 

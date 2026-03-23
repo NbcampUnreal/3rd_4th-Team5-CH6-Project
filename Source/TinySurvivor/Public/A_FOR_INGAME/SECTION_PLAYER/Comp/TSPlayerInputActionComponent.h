@@ -58,8 +58,40 @@ protected:
 	
 #pragma endregion
 //======================================================================================================================	
-#pragma region 데이터
+#pragma region 핫키_관련
 	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 핫키_관련
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+protected:
+	void HotKeyOne_internal(const FInputActionValue& Value);
+	void HotKeyTwo_internal(const FInputActionValue& Value);
+	void HotKeyThree_internal(const FInputActionValue& Value);
+	void HotKeyFour_internal(const FInputActionValue& Value);
+	void HotKeyFive_internal(const FInputActionValue& Value);
+	void HotKeySix_internal(const FInputActionValue& Value);
+	void HotKeySeven_internal(const FInputActionValue& Value);
+	void HotKeyEight_internal(const FInputActionValue& Value);
+	void HotKeyNine_internal(const FInputActionValue& Value);
+	
+	void SendHotKeyMessage_internal(const int32& InActiveHotKeyIndex);
+
+#pragma endregion
+//======================================================================================================================
+#pragma region 상호작용_관련
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 상호작용_관련
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+protected:
+	void InteractByNormal_internal(const FInputActionValue& Value);
+	void InteractByLeftClick_internal(const FInputActionValue& Value);
+	
+#pragma endregion
+//======================================================================================================================	
+#pragma region 데이터
 	
 	//━━━━━━━━━━━━━━━━━━━━
 	// 데이터
@@ -73,4 +105,5 @@ protected:
 	TObjectPtr<ACharacter> OwnerCharacter = nullptr;
 	
 #pragma endregion
+//======================================================================================================================	
 };

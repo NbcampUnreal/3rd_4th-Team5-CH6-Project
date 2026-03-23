@@ -46,6 +46,8 @@ void ATSResourceActorBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 void ATSResourceActorBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	InitInteractUI(ResourceData);
 }
 #pragma endregion
 //======================================================================================================================	
@@ -79,6 +81,8 @@ void ATSResourceActorBase::InitInteractUI(FTSResourceRuntimeData& ItemRuntimeDat
 	if (!IsValid(ResourceInteractUI)) return;
 	
 	ResourceInteractUI->SetResourceRemainStackInfo(ResourceData.DynamicData.CurrentAmount, ResourceStaticData->ResourceLootInfoTable.TotalCount);
+	
+	ResourceInteractUI->SetVisibility(ESlateVisibility::Collapsed);
 }
 void ATSResourceActorBase::ToggleInteractWidget_Implementation(bool InWantOn)
 {
@@ -91,7 +95,7 @@ void ATSResourceActorBase::ToggleInteractWidget_Implementation(bool InWantOn)
 	}
 	else if (InWantOn == false)
 	{
-		InteractWidgetComp->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Hidden);
+		InteractWidgetComp->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 

@@ -6,5 +6,5 @@
 
 FTSResourceLootInfoTable::FTSResourceLootInfoTable()
 {
-	PossibleInteractTags.Add(PossibleInteractTag::TS_Interact_Attack);
+	PossibleInteractTags.Add(PossibleInteractTag::TS_Interact_LeftClick);
 }
