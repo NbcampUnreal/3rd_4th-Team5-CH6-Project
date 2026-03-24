@@ -1,7 +1,7 @@
 ﻿// All CopyRight From YulRyongGameStudio //
 
 
-#include "SECTION_LOOT/Comp/TSLootHandleComponent.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Loot/Comp/TSLootHandleComponent.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Actor/Base/TSItemActorBase.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/System/TSITemSpawnSubSystem.h"
 #include "A_FOR_INGAME/SECTION_WORLD/Resource/System/TSResourceDataSystem.h"

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DataTable.h"
-#include "SECTION_LOOT/TSLootInfo.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Loot/Data/Struct/TSLootInfo.h"
 #include "TSResourceLootInfoTable.generated.h"
 
 /**

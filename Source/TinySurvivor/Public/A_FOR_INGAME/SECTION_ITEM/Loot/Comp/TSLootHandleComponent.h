@@ -6,7 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "Components/ActorComponent.h"
 #include "A_FOR_INGAME/SECTION_WORLD/Resource/Data/Struct/TSResourceRuntimeData.h"
-#include "SECTION_LOOT/TSLootInfo.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Loot/Data/Struct/TSLootInfo.h"
 #include "TSLootHandleComponent.generated.h"
 
 

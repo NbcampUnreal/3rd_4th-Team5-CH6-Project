@@ -7,7 +7,7 @@
 #include "A_FOR_INGAME/SECTION_WORLD/Resource/System/TSResourceDataSystem.h"
 #include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "SECTION_LOOT/Comp/TSLootHandleComponent.h"
+#include "A_FOR_INGAME/SECTION_ITEM/Loot/Comp/TSLootHandleComponent.h"
 
 
 //======================================================================================================================	
