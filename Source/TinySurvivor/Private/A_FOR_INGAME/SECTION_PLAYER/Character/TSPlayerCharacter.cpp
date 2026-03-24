@@ -14,6 +14,8 @@
 
 #include "A_FOR_INGAME/SECTION_PLAYER/Comp/TSPlayerInputActionComponent.h"
 #include "EnhancedInputComponent.h"
+#include "A_FOR_INGAME/SECTION_GAS/Data/DataAsset/TSGiveGAGEDataAsset.h"
+#include "A_FOR_INGAME/SECTION_INGAMECYCLE/System/TSInGameCycleControlSystem.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Equip/Comp/BackPack/TSBackPackEquipVisualComponent.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Equip/Comp/Body/TSBodyEquipVisualComponent.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Equip/Comp/HotKey/TSHotKeyEquipVisualComponent.h"
@@ -73,7 +75,7 @@ ATSPlayerCharacter::ATSPlayerCharacter()
 
 		// 2. 캐릭터 무브먼트 컴포넌트 설정 변경
 		GetCharacterMovement()->bOrientRotationToMovement = false;		// 이동 방향으로 몸 돌리기 끄기
-		GetCharacterMovement()->bUseControllerDesiredRotation = false;	// 부드러운 회전 보간 사용 안 함 (즉각 반응 위해)
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;	// 부드러운 회전 보간 사용 안 함 (즉각 반응 위해) (bUseControllerRotationYaw 켜져 있으면 효과 없음)
 
 		// 3. 스프링 암 설정 (카메라 회전 관련)
 		SpringArmComponent->bUsePawnControlRotation = true; // 카메라가 컨트롤러 회전을 따르게 함
@@ -84,21 +86,35 @@ void ATSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	
+	// IMC 등록, IA 바인딩
 	UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent);
 	if (!IsValid(EnhancedInputComponent)) return;
-	
 	if (IsValid(PlayerInputHandleComponent)) PlayerInputHandleComponent->SetupPlayerInput(EnhancedInputComponent);
 }
 
 void ATSPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+
+	// 컨트롤러 검사 
+	if (!IsValid(NewController)) return;
+	APlayerController* PC = Cast<APlayerController>(NewController);
+	if (!IsValid(PC)) return;
+
+	// 초기화 준비 등록 
+	if (!HasAuthority()) return;
+	UTSInGameCycleControlSystem* GameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);
+	if (!IsValid(GameCycleControlSystem)) return;
+	GameCycleControlSystem->InitInGamePlayerRegister(PC);
 	
+	// GA 초기화 
 	if (!IsValid(GetPlayerState())) return;
 	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPlayerState());
 	if (!IsValid(ASC)) return;
-	
 	ASC->InitAbilityActorInfo(GetPlayerState(), this);
+	
+	// 초기화 실시 및 완료 알림 
+	InitGAAndSendInitComplete_internal(ASC, PC);
 }
 
 void ATSPlayerCharacter::OnRep_PlayerState()
@@ -128,6 +144,26 @@ UAbilitySystemComponent* ATSPlayerCharacter::GetAbilitySystemComponent() const
 	if (!IsValid(ASC)) return nullptr;
 	
 	return ASC;
+}
+
+void ATSPlayerCharacter::InitGAAndSendInitComplete_internal(UAbilitySystemComponent* InASC, APlayerController* InPC)
+{
+	if (!IsValid(InPC)) return;
+	if (!IsValid(InASC)) return;	
+	if (!IsValid(BaseGAGEData)) return;
+	
+	for (auto& GA : BaseGAGEData->BaseGameplayAbilities)
+	{
+		if (!IsValid(GA)) continue;
+		FGameplayAbilitySpec AbilitySpec(GA, 1, INDEX_NONE, this);
+		InASC->GiveAbility(AbilitySpec);
+	}
+	
+	UTSInGameCycleControlSystem* GameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);
+	if (!IsValid(GameCycleControlSystem)) return;
+
+	// 초기화 준비 완료 
+	GameCycleControlSystem->InitInGamePlayerComplete(InPC);
 }
 
 

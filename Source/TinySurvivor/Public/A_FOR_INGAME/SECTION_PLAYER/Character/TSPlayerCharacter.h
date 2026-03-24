@@ -10,6 +10,7 @@
 #include "A_FOR_INGAME/SECTION_PLAYER/TSPlayerCompGetterInterface.h"
 #include "TSPlayerCharacter.generated.h"
 
+class UTSGiveGAGEDataAsset;
 class UCameraComponent;
 class USpringArmComponent;
 class UTSPlayerInputActionComponent;
@@ -60,7 +61,20 @@ public:
 	
 #pragma endregion
 //======================================================================================================================	
-#pragma region GAS
+#pragma region 인게임_사이클
+	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인게임 사이클
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+public:
+	void SubscribeInGameCycleDelegate();
+	void UnSubsceceToPlayerState();
+	
+#pragma endregion
+//======================================================================================================================	
+#pragma region GAS_섹션
 	//━━━━━━━━━━━━━━━━━━━━
 	// GAS
 	//━━━━━━━━━━━━━━━━━━━━
@@ -70,13 +84,19 @@ protected:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;;
 	// ~ IAbilitySystemInterface
 	
+	// GAS 관련 초기화 -> GA 부여, GE 부여 -> 초기화 완료 알림
+	virtual void InitGAAndSendInitComplete_internal(UAbilitySystemComponent* InASC, APlayerController* InPC);
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = " TS | Player")
+	TObjectPtr<UTSGiveGAGEDataAsset> BaseGAGEData = nullptr;
+	
 #pragma endregion
 //======================================================================================================================	
-#pragma region 인벤토리_API_및_컴포넌트
+#pragma region 인벤토리_섹션
 	
 	
 	//━━━━━━━━━━━━━━━━━━━━
-	// 인벤토리 API 및 컴포넌트
+	// 인벤토리_섹션
 	//━━━━━━━━━━━━━━━━━━━━
 	
 public:
@@ -101,10 +121,10 @@ protected:
 	
 #pragma endregion
 //======================================================================================================================
-#pragma region 인벤토리_비쥬얼_컴포넌트	
+#pragma region 인벤토리_비쥬얼_섹션	
 	
 	//━━━━━━━━━━━━━━━━━━━━
-	// 인벤토리_비쥬얼_컴포넌트
+	// 인벤토리_비쥬얼_섹션
 	//━━━━━━━━━━━━━━━━━━━━	
 	
 protected:
@@ -119,11 +139,11 @@ protected:
 	
 #pragma endregion
 //======================================================================================================================	
-#pragma region 인터렉트API_컴포넌트_데이터
+#pragma region 인터렉트_섹션
 	
 	
 	//━━━━━━━━━━━━━━━━━━━━
-	// 인터렉트API_컴포넌트_데이터
+	// 인터렉트_섹션
 	//━━━━━━━━━━━━━━━━━━━━
 		
 public:
@@ -143,11 +163,11 @@ protected:
 
 #pragma endregion
 //======================================================================================================================	
-#pragma region 입력_컴포넌트들
+#pragma region 입력_섹션
 	
 	
 	//━━━━━━━━━━━━━━━━━━━━
-	// 입력_컴포넌트들
+	// 입력_섹션
 	//━━━━━━━━━━━━━━━━━━━━	
 	
 protected:
@@ -160,7 +180,7 @@ protected:
 	
 	
 	//━━━━━━━━━━━━━━━━━━━━
-	// 입력_컴포넌트들
+	// 카메라와_스프링암
 	//━━━━━━━━━━━━━━━━━━━━	
 	
 protected:

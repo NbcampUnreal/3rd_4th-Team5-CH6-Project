@@ -18,4 +18,7 @@ class TINYSURVIVOR_API UTSResourceDataSystemSettings : public UDeveloperSettings
 public:
 	UPROPERTY(Config, EditAnywhere, Category = "ResourceData")
 	TSoftObjectPtr<UTSResourceDataSystemDataAsset> GlobalResourceDataAsset;
+	
+	UPROPERTY(Config, EditAnywhere, Category = "ResourceData")
+	bool bWantPrintDeBugLog = false;
 };

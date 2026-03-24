@@ -14,7 +14,7 @@ UTSGA_Crouch::UTSGA_Crouch()
 	// 부여 태그
 	ActivationOwnedTags.AddTag(MovementTag::TS_Movement_Moving_Crouch);
 	
-	// 차단 가능한 태그 (걷기, 앉기, 엎드리기, 조준)
+	// 취소 가능한 어빌리티 (걷기, 앉기, 엎드리기, 조준)
 	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Sprinting);
 	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Walking);
 	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Prone);

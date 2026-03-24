@@ -44,6 +44,9 @@ public class TinySurvivor : ModuleRules
 			// 게임 플레이 메시지 시스템 모듈
 			"GameplayMessageRuntime",
 			
+			// ry 게임 코어 시스템 모듈
+			"RYGamesCoreSystem",
+			
 		});
 	}
 }

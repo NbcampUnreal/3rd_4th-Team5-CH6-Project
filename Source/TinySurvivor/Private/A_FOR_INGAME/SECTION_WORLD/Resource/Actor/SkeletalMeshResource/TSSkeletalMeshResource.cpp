@@ -29,7 +29,7 @@ void ATSSkeletalMeshResource::BeginPlay()
 	Super::BeginPlay();
 	
 	// 서버에서 피직스 실행
-	if (HasAuthority()) ResourceSkeletalMeshComp->SetSimulatePhysics(true);
+	if (HasAuthority()) ResourceSkeletalMeshComp->SetSimulatePhysics(false);
 	
 	if (!IsValid(InteractWidgetComp)) return;
 	if (!IsValid(InteractWidgetComp->GetUserWidgetObject())) return;

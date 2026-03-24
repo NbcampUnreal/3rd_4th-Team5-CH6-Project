@@ -75,6 +75,8 @@ protected:
 	// 데이터 배열 (최적화용 캐싱)
 	TArray<FTSResourceStaticData> ResourceStaticDataArray;
 	
+	bool bWantPrintDeBugLog = false;
+	
 #pragma endregion
 //======================================================================================================================	
 	

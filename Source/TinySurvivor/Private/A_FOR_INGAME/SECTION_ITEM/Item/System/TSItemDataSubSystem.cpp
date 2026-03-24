@@ -116,7 +116,10 @@ void UTSItemDataSubSystem::InitializeItemStaticData_internal()
 		ItemStaticDataMap.Add(StaticData.ItemBaseInfoTable.ItemID, &StaticData);
 	}
 	
-	// 로그 
+	
+	// 로그
+	bWantPrintDeBugLog = Settings->bWantPrintDeBugLog;
+	if (bWantPrintDeBugLog == false) return;
 	for (const auto& [Key, Value] : ItemStaticDataMap)
 	{
 		UTSItemDataTableLogLibrary::LogStaticItemData_Lib(Value);

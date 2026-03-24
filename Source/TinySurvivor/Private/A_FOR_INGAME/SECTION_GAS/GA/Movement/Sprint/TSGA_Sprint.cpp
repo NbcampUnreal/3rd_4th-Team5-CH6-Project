@@ -14,7 +14,7 @@ UTSGA_Sprint::UTSGA_Sprint()
 	// 부여 태그
 	ActivationOwnedTags.AddTag(MovementTag::TS_Movement_Moving_Sprinting);
 	
-	// 차단 가능한 태그 (걷기, 앉기, 엎드리기, 조준)
+	// 차단 가능한 어빌리티 (걷기, 앉기, 엎드리기, 조준)
 	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Walking);
 	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Crouch);
 	CancelAbilitiesWithTag.AddTag(MovementTag::TS_Movement_Moving_Prone);

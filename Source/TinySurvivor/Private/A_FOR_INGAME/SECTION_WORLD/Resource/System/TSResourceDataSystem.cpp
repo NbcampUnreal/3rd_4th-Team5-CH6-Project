@@ -116,6 +116,8 @@ void UTSResourceDataSystem::InitializeResourceStaticData_internal()
 	}
 	
 	// 로그 
+	bWantPrintDeBugLog = Settings->bWantPrintDeBugLog;
+	if (bWantPrintDeBugLog == false) return;
 	for (const auto& [Key, Value]  : ResourceStaticDataMap)
 	{
 		UTSResourceDataTableLogLibrary::LogResourceStaticData_Lib(Value);
