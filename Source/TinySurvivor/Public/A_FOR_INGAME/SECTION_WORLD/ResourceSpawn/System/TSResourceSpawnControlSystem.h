@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/System/FTSResourceSpawnControlSystemRunTimeData.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/System/FTSResourceSpawnControlSystemRunTimeData.h"
 #include "TSResourceSpawnControlSystem.generated.h"
 
 /**
@@ -35,6 +35,7 @@ public:
 	UTSResourceSpawnControlSystem();
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void PostInitialize() override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Deinitialize() override;
 	
@@ -51,7 +52,6 @@ protected:
 	void InitResourceSpawnNodeAndBuckets();
 	
 public:
-	
 	// 자원 스폰 초기 동작이 완료되었다고 알림 받음 (UTSResourceNodeAndBucketGetHelperSystem가 자길 할 일 하고 호출)
 	void InitResourceSpawnNodeAndBucketsCompleteReceive();
 	

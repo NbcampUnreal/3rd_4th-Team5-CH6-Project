@@ -50,6 +50,13 @@ void UTSResourceSpawnControlSystem::Initialize(FSubsystemCollectionBase& Collect
 	Super::Initialize(Collection);
 }
 
+void UTSResourceSpawnControlSystem::PostInitialize()
+{
+	Super::PostInitialize();
+	
+	
+}
+
 void UTSResourceSpawnControlSystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);

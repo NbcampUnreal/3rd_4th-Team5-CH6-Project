@@ -10,7 +10,7 @@
 #include "TSInGameCycleControlSystem.generated.h"
 
 // 인 게임 사이클에 따른 호출 델리게이트  (반드시 init 초기화 단계 이후 호출)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FInGameCycleDelegate, ETSInGameCycleMode&, InGamecycleMode, FTSSaveMasterData&, Data);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FInGameCycleDelegate, ETSInGameCycleMode, InGamecycleMode, FTSSaveMasterData&, Data);
 
 /**
  * 인게임의 사이클을 책임지는 시스템 
