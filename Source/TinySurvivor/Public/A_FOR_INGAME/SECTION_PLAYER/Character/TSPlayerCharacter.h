@@ -8,8 +8,10 @@
 #include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Interface/ForOwner/TSInventoryOwnerActionInterface.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/TSPlayerCompGetterInterface.h"
+#include "A_FOR_INGAME/SECTION_SAVELOAD/Data/Struct/TSSaveMasterData.h"
 #include "TSPlayerCharacter.generated.h"
 
+enum class ETSInGameCycleMode : uint8;
 class UTSGiveGAGEDataAsset;
 class UCameraComponent;
 class USpringArmComponent;
@@ -55,9 +57,11 @@ public:
 
 public:
 	ATSPlayerCharacter();
+	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 #pragma endregion
 //======================================================================================================================	
@@ -70,7 +74,20 @@ public:
 	
 public:
 	void SubscribeInGameCycleDelegate();
-	void UnSubsceceToPlayerState();
+	void UnSubscribeToPlayerState();
+	
+	// 인 게임 사이클 델리게이트 바인딩 함수 
+	UFUNCTION()
+	void OnReceivedInGameCycleDelegate_internal(ETSInGameCycleMode InGameCycleMode, FTSSaveMasterData& InData);
+	
+	// new 호출 시
+	void CallWhenNewModeIsCalled_internal();
+	
+	// load 호출 시
+	void CallWhenLoadModeIsCalled_internal(FTSSaveMasterData& InData);
+	
+	// play 호출 시 
+	void CallWhenPlayModeIsCalled_internal();
 	
 #pragma endregion
 //======================================================================================================================	

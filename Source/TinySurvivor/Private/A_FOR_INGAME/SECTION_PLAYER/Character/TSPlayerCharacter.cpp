@@ -82,6 +82,13 @@ ATSPlayerCharacter::ATSPlayerCharacter()
 	}
 }
 
+void ATSPlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (HasAuthority()) SubscribeInGameCycleDelegate();
+}
+
 void ATSPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -126,6 +133,82 @@ void ATSPlayerCharacter::OnRep_PlayerState()
 	if (!IsValid(ASC)) return;
 	
 	ASC->InitAbilityActorInfo(GetPlayerState(), this);
+}
+
+void ATSPlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (HasAuthority()) UnSubscribeToPlayerState();
+	
+	Super::EndPlay(EndPlayReason);
+}
+
+#pragma endregion
+//======================================================================================================================
+#pragma region 인게임_사이클
+	
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인게임 사이클
+	//━━━━━━━━━━━━━━━━━━━━	
+
+void ATSPlayerCharacter::SubscribeInGameCycleDelegate()
+{
+	UTSInGameCycleControlSystem* GameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);
+	if (!IsValid(GameCycleControlSystem)) return;
+	GameCycleControlSystem->InGameCycleDelegate.AddDynamic(this, &ATSPlayerCharacter::OnReceivedInGameCycleDelegate_internal);
+}
+
+void ATSPlayerCharacter::UnSubscribeToPlayerState()
+{
+	UTSInGameCycleControlSystem* GameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);
+	if (!IsValid(GameCycleControlSystem)) return;
+	GameCycleControlSystem->InGameCycleDelegate.RemoveAll(this);
+}
+
+void ATSPlayerCharacter::OnReceivedInGameCycleDelegate_internal(ETSInGameCycleMode InGameCycleMode, FTSSaveMasterData& InData)
+{
+	switch (InGameCycleMode)
+	{
+	case ETSInGameCycleMode::NEW:
+		CallWhenNewModeIsCalled_internal();
+		break;
+	case ETSInGameCycleMode::LOAD:
+		CallWhenLoadModeIsCalled_internal(InData);
+		break;
+		
+	case ETSInGameCycleMode::PLAY:
+		CallWhenPlayModeIsCalled_internal();
+		break;
+	}
+}
+
+void ATSPlayerCharacter::CallWhenNewModeIsCalled_internal()
+{
+	// 새 게임 준비 등록 
+	UTSInGameCycleControlSystem* GameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);
+	if (!IsValid(GameCycleControlSystem)) return;
+	if (!IsValid(GetController())) return;
+	APlayerController* PC = CastChecked<APlayerController>(GetController());
+	GameCycleControlSystem->NEW_GamePlayerRegister(PC);
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	// 새 게임 준비 완료 알림
+	GameCycleControlSystem->NEW_GamePlayerComplete(PC);
+}
+
+void ATSPlayerCharacter::CallWhenLoadModeIsCalled_internal(FTSSaveMasterData& InData)
+{
+}
+
+void ATSPlayerCharacter::CallWhenPlayModeIsCalled_internal()
+{
 }
 
 #pragma endregion
