@@ -2,11 +2,10 @@
 
 
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceNodeAndBucketGetHelperSystem.h"
-
-#include "A_FOR_INGAME/SECTION_INGAMECYCLE/System/TSInGameCycleControlSystem.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Actor/ResourceBucket/TSResourceBucketActor.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Actor/ResourceNode/TSResourceNodeActor.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceSpawnControlSystem.h"
+#include "A_FOR_INGAME/SECTION_INGAMECYCLE/System/TSInGameCycleControlSystem.h"
 
 //======================================================================================================================	
 #pragma region 게터
@@ -35,6 +34,7 @@ UTSResourceNodeAndBucketGetHelperSystem* UTSResourceNodeAndBucketGetHelperSystem
 	//━━━━━━━━━━━━━━━━━━━━
 	// 라이프 사이클
 	//━━━━━━━━━━━━━━━━━━━━
+
 UTSResourceNodeAndBucketGetHelperSystem::UTSResourceNodeAndBucketGetHelperSystem()
 {
 }
@@ -49,6 +49,13 @@ bool UTSResourceNodeAndBucketGetHelperSystem::ShouldCreateSubsystem(UObject* Out
 void UTSResourceNodeAndBucketGetHelperSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	
+	// 인게임 사이클 시스템 초기화 이후 초기화 및 델리게이트 구독 
+	Collection.InitializeDependency<UTSInGameCycleControlSystem>();
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (!IsValid(InGameCycleControlSystem)) return;
+	InGameCycleControlSystem->InGameCycleDelegate.AddDynamic(this, &UTSResourceNodeAndBucketGetHelperSystem::OnReceivedInGameCycleDelegate_internal);
+	
 }
 
 void UTSResourceNodeAndBucketGetHelperSystem::OnWorldBeginPlay(UWorld& InWorld)
@@ -63,11 +70,50 @@ void UTSResourceNodeAndBucketGetHelperSystem::Deinitialize()
 		GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 	}
 	
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (IsValid(InGameCycleControlSystem))
+	{
+		InGameCycleControlSystem->InGameCycleDelegate.RemoveAll(this);
+	}
+	
 	Super::Deinitialize();
 }
 
 #pragma endregion
-//======================================================================================================================		
+//======================================================================================================================	
+#pragma region 인게임_사이클
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인게임_사이클 (자원 초기화 이후 로직)
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+void UTSResourceNodeAndBucketGetHelperSystem::OnReceivedInGameCycleDelegate_internal(ETSInGameCycleMode InGameCycleMode, FTSSaveMasterData& InData)
+{
+	// 자원 스폰 시스템에 의해서 모든 것이 통제당함.
+}
+
+void UTSResourceNodeAndBucketGetHelperSystem::CallWhenNewModeIsCalled_internal()
+{
+	// 인 게임 사이클 시스템에게 알림 
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (!IsValid(InGameCycleControlSystem)) return;
+	InGameCycleControlSystem->NEW_WorldResourceNodeBucketNodeSystemComplete();
+}
+
+void UTSResourceNodeAndBucketGetHelperSystem::CallWhenLoadModeIsCalled_internal(FTSSaveMasterData& InData)
+{
+	// 인 게임 사이클 시스템에게 알림 
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (!IsValid(InGameCycleControlSystem)) return;
+	InGameCycleControlSystem->LOAD_WorldResourceNodeBucketNodeSystemComplete();
+}
+
+void UTSResourceNodeAndBucketGetHelperSystem::CallWhenPlayModeIsCalled_internal()
+{
+}
+
+#pragma endregion
+//======================================================================================================================
 #pragma region 노드_버킷_섹션
 	
 	//━━━━━━━━━━━━━━━━━━━━

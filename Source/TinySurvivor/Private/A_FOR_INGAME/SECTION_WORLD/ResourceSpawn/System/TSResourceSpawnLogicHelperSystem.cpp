@@ -46,6 +46,12 @@ bool UTSResourceSpawnLogicHelperSystem::ShouldCreateSubsystem(UObject* Outer) co
 void UTSResourceSpawnLogicHelperSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	
+	// 인게임 사이클 시스템 초기화 이후 초기화 및 델리게이트 구독 
+	Collection.InitializeDependency<UTSInGameCycleControlSystem>();
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (!IsValid(InGameCycleControlSystem)) return;
+	InGameCycleControlSystem->InGameCycleDelegate.AddDynamic(this, &UTSResourceSpawnLogicHelperSystem::OnReceivedInGameCycleDelegate_internal);
 }
 
 void UTSResourceSpawnLogicHelperSystem::OnWorldBeginPlay(UWorld& InWorld)
@@ -60,8 +66,54 @@ void UTSResourceSpawnLogicHelperSystem::OnWorldBeginPlay(UWorld& InWorld)
 
 void UTSResourceSpawnLogicHelperSystem::Deinitialize()
 {
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (IsValid(InGameCycleControlSystem))
+	{
+		InGameCycleControlSystem->InGameCycleDelegate.RemoveAll(this);
+	}
+	
 	Super::Deinitialize();
 }
 
+
+
 #pragma endregion
 //======================================================================================================================	
+#pragma region 인게임_사이클
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인게임_사이클 (자원 초기화 이후 로직)
+	//━━━━━━━━━━━━━━━━━━━━	
+
+void UTSResourceSpawnLogicHelperSystem::OnReceivedInGameCycleDelegate_internal(ETSInGameCycleMode InGameCycleMode, FTSSaveMasterData& InData)
+{
+	switch (InGameCycleMode) 
+	{
+	case ETSInGameCycleMode::NEW:
+		CallWhenNewModeIsCalled_internal();
+		break;
+		
+	case ETSInGameCycleMode::LOAD:
+		CallWhenLoadModeIsCalled_internal(InData);
+		break;
+	
+	case ETSInGameCycleMode::PLAY:
+		CallWhenPlayModeIsCalled_internal();
+		break;
+	}
+}
+
+void UTSResourceSpawnLogicHelperSystem::CallWhenNewModeIsCalled_internal()
+{
+}
+
+void UTSResourceSpawnLogicHelperSystem::CallWhenLoadModeIsCalled_internal(FTSSaveMasterData& InData)
+{
+}
+
+void UTSResourceSpawnLogicHelperSystem::CallWhenPlayModeIsCalled_internal()
+{
+}
+
+#pragma endregion
+//======================================================================================================================

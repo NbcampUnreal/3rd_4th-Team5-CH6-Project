@@ -107,6 +107,11 @@ void UTSInGameCycleControlSystem::CheckCanStart_LOAD()
 	if (InitCheckData.bResourceNodeBucketNodeSystemReadyComplete == false) return;		// 월드 자원 리소스 버킷 노드 시스템 체크
 	if (InitCheckData.bResourceSpawnLogicHelperSystemReadyComplete == false) return;	// 월드 자원 스폰 로직 헬퍼 시스템 체크
 
+	//[향후 init 추가]
+	//[향후 init 추가]
+	//[향후 init 추가]
+
+	// 모든 init 이후 로직 
 	UTSSaveLoadSystem* SaveLoadSystem = UTSSaveLoadSystem::Get(this);
 	if (!IsValid(SaveLoadSystem)) return;
 	
@@ -114,13 +119,61 @@ void UTSInGameCycleControlSystem::CheckCanStart_LOAD()
 	if (SaveLoadSystem->GetLastRequestedLoadSaveID() == -1)
 	{
 		InGameCycleDelegate.Broadcast(ETSInGameCycleMode::NEW, *SaveLoadSystem->RequestCurrentLoadedDataPtr());
-		UE_LOG(LogTemp, Warning, TEXT("InGameCycle_New Game"));
 		return;
 	}
 	
 	// -1 이 아니면 세이브 데이터가 있다는 뜻 -> 로드 호출 
 	InGameCycleDelegate.Broadcast(ETSInGameCycleMode::LOAD, *SaveLoadSystem->RequestCurrentLoadedDataPtr());
-	UE_LOG(LogTemp, Warning, TEXT("InGameCycle_Load Game"));
+}
+
+#pragma endregion
+//======================================================================================================================
+#pragma region 뉴
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 뉴
+	//━━━━━━━━━━━━━━━━━━━━		
+
+void UTSInGameCycleControlSystem::NEW_GamePlayerRegister(APlayerController* InPlayerController)
+{
+	if (!IsValid(InPlayerController)) return;
+	
+	FTSPlayerReadyData PlayerInitData;
+	PlayerInitData.PlayerController = InPlayerController;
+	PlayerInitData.IsReady = false;
+	
+	NEW_CheckData.AllPlayersReadyCheckData.Add(PlayerInitData);
+}
+
+void UTSInGameCycleControlSystem::NEW_GamePlayerComplete(APlayerController* InPlayerController)
+{
+	if (!IsValid(InPlayerController)) return;
+	
+	for (auto& PlayerInitData : NEW_CheckData.AllPlayersReadyCheckData)
+	{
+		if (PlayerInitData.PlayerController != InPlayerController) continue;
+		PlayerInitData.IsReady = true;
+		CheckCanStart_PLAYING_NEW();
+		return;
+	}
+}
+
+void UTSInGameCycleControlSystem::CheckCanStart_PLAYING_NEW()
+{
+	// 플레이어 체크 
+	for (auto& PlayerInitData : NEW_CheckData.AllPlayersReadyCheckData)
+	{
+		if (NEW_CheckData.AllPlayersReadyCheckData.IsEmpty()) {UE_LOG(LogTemp, Warning, TEXT("NEW_ AllPlayersInitData Is Empty"));return;}
+		if (!PlayerInitData.IsReady) {UE_LOG(LogTemp, Warning, TEXT("NEW_Player Not Ready"));return;}
+	}
+	
+	// 자원 스폰 
+	if (NEW_CheckData.bResourceSpawnControlSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnControlSystem Not NEW_Complete")); return;}		// 월드 자원 스폰 컨트롤 시스템 체크
+	if (NEW_CheckData.bResourceSpawnHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnHelperSystem Not NEW_Complete")); return;}			// 월드 자원 스폰 헬퍼 시스템 체크 
+	if (NEW_CheckData.bResourceNodeBucketNodeSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceNodeBucketNodeSystem Not NEW_Complete")); return;}	// 월드 자원 리소스 버킷 노드 시스템 체크
+	if (NEW_CheckData.bResourceSpawnLogicHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnLogicHelperSystem Not NEW_Complete"));return;} // 월드 자원 스폰 로직 헬퍼 시스템 체크
+
+	UE_LOG(LogTemp, Warning, TEXT("InGameCycle_NEW_Complete"));
 }
 
 
@@ -151,12 +204,12 @@ void UTSInGameCycleControlSystem::LOAD_GamePlayerComplete(APlayerController* InP
 	{
 		if (PlayerInitData.PlayerController != InPlayerController) continue;
 		PlayerInitData.IsReady = true;
-		CheckCanStart_PLAYING();
+		CheckCanStart_PLAYING_LOAD();
 		return;
 	}
 }
 
-void UTSInGameCycleControlSystem::CheckCanStart_PLAYING()
+void UTSInGameCycleControlSystem::CheckCanStart_PLAYING_LOAD()
 {
 	// 플레이어 체크 
 	for (auto& PlayerInitData : LOAD_CheckData.AllPlayersReadyCheckData)

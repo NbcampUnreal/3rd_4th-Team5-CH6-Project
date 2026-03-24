@@ -83,6 +83,33 @@ protected:
 	
 #pragma endregion
 //======================================================================================================================
+#pragma region 뉴
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 뉴
+	//━━━━━━━━━━━━━━━━━━━━		
+	
+public:
+	//  뉴 등록, 뉴 완료 알림 함수 (플레이어)
+	void NEW_GamePlayerRegister(APlayerController* InPlayerController);
+	void NEW_GamePlayerComplete(APlayerController* InPlayerController);
+	
+	// 자원 스폰
+	FORCEINLINE void NEW_WorldResourceControlSystemComplete() { NEW_CheckData.bResourceSpawnControlSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };				// 월드 자원 스폰 컨트롤 시스템 체크
+	FORCEINLINE void NEW_WorldResourceSpawnHelperSystemComplete() { NEW_CheckData.bResourceSpawnHelperSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };			// 월드 자원 스폰 헬퍼 시스템 체크 
+	FORCEINLINE void NEW_WorldResourceNodeBucketNodeSystemComplete() { NEW_CheckData.bResourceNodeBucketNodeSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };	// 월드 자원 리소스 버킷 노드 시스템 체크
+	FORCEINLINE void NEW_WorldResourceLogicHelperSystemComplete() { NEW_CheckData.bResourceSpawnLogicHelperSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); }		// 월드 자원 스폰 로직 헬퍼 시스템 체크 
+	
+	
+protected:
+	// 뉴 전부 되었는지 체크하기 위한 함수 	
+	void CheckCanStart_PLAYING_NEW();
+	
+	// 초기화가 전부 되었는지 체크하기 위한 데이터 
+	FTSInGameCycleReadyCheckData NEW_CheckData;
+	
+#pragma endregion
+//======================================================================================================================
 #pragma region 로드
 	
 	//━━━━━━━━━━━━━━━━━━━━
@@ -90,25 +117,24 @@ protected:
 	//━━━━━━━━━━━━━━━━━━━━	
 	
 public:
-	// 초기화 준비 등록, 초기화 완료 알림 함수 (플레이어)
+	// 로드 준비 등록, 로드 완료 알림 함수 (플레이어)
 	void LOAD_GamePlayerRegister(APlayerController* InPlayerController);
 	void LOAD_GamePlayerComplete(APlayerController* InPlayerController);
 	
 	// 자원 스폰
-	FORCEINLINE void LOAD_WorldResourceControlSystemComplete() { LOAD_CheckData.bResourceSpawnControlSystemReadyComplete = true; CheckCanStart_PLAYING(); };				// 월드 자원 스폰 컨트롤 시스템 체크
-	FORCEINLINE void LOAD_WorldResourceSpawnHelperSystemComplete() { LOAD_CheckData.bResourceSpawnHelperSystemReadyComplete = true; CheckCanStart_PLAYING(); };			// 월드 자원 스폰 헬퍼 시스템 체크 
-	FORCEINLINE void LOAD_WorldResourceNodeBucketNodeSystemComplete() { LOAD_CheckData.bResourceNodeBucketNodeSystemReadyComplete = true; CheckCanStart_PLAYING(); };	// 월드 자원 리소스 버킷 노드 시스템 체크
-	FORCEINLINE void LOAD_WorldResourceLogicHelperSystemComplete() { LOAD_CheckData.bResourceSpawnLogicHelperSystemReadyComplete = true; CheckCanStart_PLAYING(); }		// 월드 자원 스폰 로직 헬퍼 시스템 체크 
+	FORCEINLINE void LOAD_WorldResourceControlSystemComplete() { LOAD_CheckData.bResourceSpawnControlSystemReadyComplete = true; CheckCanStart_PLAYING_LOAD(); };				// 월드 자원 스폰 컨트롤 시스템 체크
+	FORCEINLINE void LOAD_WorldResourceSpawnHelperSystemComplete() { LOAD_CheckData.bResourceSpawnHelperSystemReadyComplete = true; CheckCanStart_PLAYING_LOAD(); };			// 월드 자원 스폰 헬퍼 시스템 체크 
+	FORCEINLINE void LOAD_WorldResourceNodeBucketNodeSystemComplete() { LOAD_CheckData.bResourceNodeBucketNodeSystemReadyComplete = true; CheckCanStart_PLAYING_LOAD(); };	// 월드 자원 리소스 버킷 노드 시스템 체크
+	FORCEINLINE void LOAD_WorldResourceLogicHelperSystemComplete() { LOAD_CheckData.bResourceSpawnLogicHelperSystemReadyComplete = true; CheckCanStart_PLAYING_LOAD(); }		// 월드 자원 스폰 로직 헬퍼 시스템 체크 
 	
 	
 protected:
 	// 로드가 전부 되었는지 체크하기 위한 함수 	
-	void CheckCanStart_PLAYING();
+	void CheckCanStart_PLAYING_LOAD();
 	
-	// 초기화가 전부 되었는지 체크하기 위한 데이터 
+	// 로드가 전부 되었는지 체크하기 위한 데이터 
 	FTSInGameCycleReadyCheckData LOAD_CheckData;
-	
-	
+
 #pragma endregion	
 //======================================================================================================================
 	

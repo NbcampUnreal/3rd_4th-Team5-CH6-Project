@@ -58,15 +58,21 @@ void UTSResourceSpawnHelperSystem::Initialize(FSubsystemCollectionBase& Collecti
 {
 	Super::Initialize(Collection);
 	
-	// 초기화 완료 알림
+	// 인게임 사이클 시스템 초기화 이후 초기화 및 델리게이트 구독 
+	Collection.InitializeDependency<UTSInGameCycleControlSystem>();
 	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
 	if (!IsValid(InGameCycleControlSystem)) return;
-	InGameCycleControlSystem->InitWorldResourceSpawnHelperSystemComplete();
+	InGameCycleControlSystem->InGameCycleDelegate.AddDynamic(this, &UTSResourceSpawnHelperSystem::OnReceivedInGameCycleDelegate_internal);
 }
 
 void UTSResourceSpawnHelperSystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
+	
+	// 초기화 완료 알림
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (!IsValid(InGameCycleControlSystem)) return;
+	InGameCycleControlSystem->InitWorldResourceSpawnHelperSystemComplete();
 }
 
 void UTSResourceSpawnHelperSystem::Tick(float DeltaTime)
@@ -76,8 +82,54 @@ void UTSResourceSpawnHelperSystem::Tick(float DeltaTime)
 
 void UTSResourceSpawnHelperSystem::Deinitialize()
 {
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (IsValid(InGameCycleControlSystem))
+	{
+		InGameCycleControlSystem->InGameCycleDelegate.RemoveAll(this);
+	}
+	
 	Super::Deinitialize();
 }
 
+
+
 #pragma endregion
 //======================================================================================================================
+#pragma region 인게임_사이클
+	
+	//━━━━━━━━━━━━━━━━━━━━
+	// 인게임_사이클 (자원 초기화 이후 로직)
+	//━━━━━━━━━━━━━━━━━━━━	
+
+void UTSResourceSpawnHelperSystem::OnReceivedInGameCycleDelegate_internal(ETSInGameCycleMode InGameCycleMode, FTSSaveMasterData& InData)
+{
+	switch (InGameCycleMode) 
+	{
+	case ETSInGameCycleMode::NEW:
+		CallWhenNewModeIsCalled_internal();
+		break;
+		
+	case ETSInGameCycleMode::LOAD:
+		CallWhenLoadModeIsCalled_internal(InData);
+		break;
+	
+	case ETSInGameCycleMode::PLAY:
+		CallWhenPlayModeIsCalled_internal();
+		break;
+	}
+}
+
+void UTSResourceSpawnHelperSystem::CallWhenNewModeIsCalled_internal()
+{
+}
+
+void UTSResourceSpawnHelperSystem::CallWhenLoadModeIsCalled_internal(FTSSaveMasterData& InData)
+{
+}
+
+void UTSResourceSpawnHelperSystem::CallWhenPlayModeIsCalled_internal()
+{
+}
+
+#pragma endregion
+//======================================================================================================================	

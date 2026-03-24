@@ -9,7 +9,7 @@
 UENUM(BlueprintType)
 enum class ETSInGameCycleMode : uint8
 {
-	LOAD	UMETA(DisplayName = "Load"),
 	NEW		UMETA(DisplayName = "New"),
+	LOAD	UMETA(DisplayName = "Load"),
 	PLAY	UMETA(DisplayName = "Play"),
 };

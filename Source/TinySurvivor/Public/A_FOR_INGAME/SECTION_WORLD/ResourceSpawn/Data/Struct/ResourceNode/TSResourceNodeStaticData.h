@@ -15,6 +15,10 @@ struct TINYSURVIVOR_API FTSResourceNodeStaticData
 	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category="TS | Resoruce")
 	FGameplayTag RegionTag;
 	
+	// 부모 버킷이 있는가?
+	UPROPERTY(SaveGame)
+	bool bHasParentBucket = false;
+	
 	// 몇 번째 스폰 노드인가?
 	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category="TS | Resoruce")
 	int32 NodeIndex = 0;

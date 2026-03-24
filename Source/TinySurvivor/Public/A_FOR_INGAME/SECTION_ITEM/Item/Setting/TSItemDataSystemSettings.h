@@ -17,7 +17,7 @@ class TINYSURVIVOR_API UTSItemDataSystemSettings : public UDeveloperSettings
 
 public:
 	UPROPERTY(Config, EditAnywhere, Category = "ItemData")
-	TSoftObjectPtr<UTSItemDataSystemDataAsset> GlobalItemDataAsset;
+	TSoftObjectPtr<UTSItemDataSystemDataAsset> GlobalItemDataAsset = nullptr;
 	
 	UPROPERTY(Config, EditAnywhere, Category = "ItemData")
 	bool bWantPrintDeBugLog = false;
