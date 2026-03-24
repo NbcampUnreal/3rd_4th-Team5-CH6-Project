@@ -14,6 +14,8 @@ class TINYSURVIVOR_API UTSResourceSpawnSystemDataAsset : public UDataAsset
 {
 	GENERATED_BODY()
 	
+public:
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | ResourceSpawn")
 	TArray<TObjectPtr<UDataTable>> ResourceSpawnTableArray; 
 	

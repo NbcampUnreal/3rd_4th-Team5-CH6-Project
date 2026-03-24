@@ -3,6 +3,8 @@
 
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceSpawnControlSystem.h"
 #include "A_FOR_INGAME/SECTION_INGAMECYCLE/System/TSInGameCycleControlSystem.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Actor/ResourceBucket/TSResourceBucketActor.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Actor/ResourceNode/TSResourceNodeActor.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceNodeAndBucketGetHelperSystem.h"
 
 //======================================================================================================================	
@@ -118,7 +120,7 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 	{
 		FTSResourceSpawnControlSystemPerRegionRunTimeData& PerRegionRunTimeData = ResourceSpawnControlSystemPerRegionRunTimeData.FindOrAdd(Region);
 		
-		for (auto& Bucket : BucketArray)
+		for (auto& Bucket : BucketArray.ResourceBucketArray)
 		{
 			if (IsValid(Bucket)) PerRegionRunTimeData.BucketPtrArray.AddUnique(Bucket);
 		}
@@ -130,7 +132,7 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 	{
 		FTSResourceSpawnControlSystemPerRegionRunTimeData& PerRegionRunTimeData = ResourceSpawnControlSystemPerRegionRunTimeData.FindOrAdd(Region);
 		
-		for (auto& Node : NodeArray)
+		for (auto& Node : NodeArray.ResourceNodeArray)
 		{
 			if (IsValid(Node)) PerRegionRunTimeData.NodePtrArray.AddUnique(Node);
 		}
@@ -139,7 +141,6 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 	// 자원 노드, 버킷 시스템 할 일 끝. 
 	ResourceNodeAndBucketGetHelperSystem->CallWhenNewModeIsCalled_internal();
 	
-	TSResourceSpawnControlSystemPerRegionRunTimeData.Empty();
 	
 	
 	
