@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameplaytagContainer.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/ResourceNode/TSResourceNodeRuntimeData.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/ResourceNodeBucket/TSResourceNodeBucketRuntimeData.h"
 #include "FTSResourceSpawnControlSystemRunTimeData.generated.h"
 
 class ATSResourceBucketActor;
 class ATSResourceNodeActor;
-struct FTSResourceNodeBucketRuntimeData;
-struct FTSResourceNodeRunTimeData;
 /**
  * 
  */

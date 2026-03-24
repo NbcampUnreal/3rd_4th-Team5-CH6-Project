@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "A_FOR_INGAME/SECTION_WORLD/Resource/Data/Enum/TSResourceType.h"
 #include "TSResourceNodeStaticData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -27,9 +28,9 @@ struct TINYSURVIVOR_API FTSResourceNodeStaticData
 	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category="TS | Resoruce")
 	bool bIsGeneralResource = true;
 	
-	// 들어올 수 있는 자원 타입
+	// 들어올 수 있는 자원 타입 (범용)
 	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category = "TS | Resource", meta=(EditCondition = "bIsGeneralResource == true"))
-	FGameplayTagContainer ResourceTagContainer;
+	ETSResourceType ResourceType = ETSResourceType::None;
 
 	// 들어올 수 있는 특정 자원 
 	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category = "TS | Resource", meta=(EditCondition = "bIsGeneralResource == false"))

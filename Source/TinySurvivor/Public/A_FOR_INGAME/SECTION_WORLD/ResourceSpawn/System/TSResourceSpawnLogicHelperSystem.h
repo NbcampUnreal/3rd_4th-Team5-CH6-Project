@@ -14,6 +14,7 @@
 UCLASS()
 class TINYSURVIVOR_API UTSResourceSpawnLogicHelperSystem : public UWorldSubsystem
 {
+	friend class UTSResourceSpawnControlSystem;
 	
 	GENERATED_BODY()
 	

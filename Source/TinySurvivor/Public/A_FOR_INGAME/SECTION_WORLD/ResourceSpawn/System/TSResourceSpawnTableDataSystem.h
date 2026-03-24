@@ -3,16 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/TalbeStaticData/TSResourceSpawnTableStaticData.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "TSResourceSpawnLogicDataHelperSystem.generated.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/TalbeStaticData/TSResourceSpawnTableStaticData.h"
+#include "TSResourceSpawnTableDataSystem.generated.h"
 
-struct FTSResourceSpawnPerRegionDatatable;
 /**
  * 영역마다 자원 스폰에 관한 테이블을 캐싱하는 데이터 매니저
  */
 UCLASS()
-class TINYSURVIVOR_API UTSResourceSpawnLogicDataHelperSystem : public UGameInstanceSubsystem
+class TINYSURVIVOR_API UTSResourceSpawnTableDataSystem : public UGameInstanceSubsystem
 {
 	friend class UTSResourceSpawnControlSystem;
 	
@@ -26,7 +25,7 @@ class TINYSURVIVOR_API UTSResourceSpawnLogicDataHelperSystem : public UGameInsta
 	//━━━━━━━━━━━━━━━━━━━━	
 public:
 
-	static UTSResourceSpawnLogicDataHelperSystem* Get(const UObject* InWorldContextObject);
+	static UTSResourceSpawnTableDataSystem* Get(const UObject* InWorldContextObject);
 
 #pragma endregion
 //======================================================================================================================	

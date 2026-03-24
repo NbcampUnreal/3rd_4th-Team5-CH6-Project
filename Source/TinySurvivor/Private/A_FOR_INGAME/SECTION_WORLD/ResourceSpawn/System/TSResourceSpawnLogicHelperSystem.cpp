@@ -87,24 +87,15 @@ void UTSResourceSpawnLogicHelperSystem::Deinitialize()
 
 void UTSResourceSpawnLogicHelperSystem::OnReceivedInGameCycleDelegate_internal(ETSInGameCycleMode InGameCycleMode, FTSSaveMasterData& InData)
 {
-	switch (InGameCycleMode) 
-	{
-	case ETSInGameCycleMode::NEW:
-		CallWhenNewModeIsCalled_internal();
-		break;
-		
-	case ETSInGameCycleMode::LOAD:
-		CallWhenLoadModeIsCalled_internal(InData);
-		break;
-	
-	case ETSInGameCycleMode::PLAY:
-		CallWhenPlayModeIsCalled_internal();
-		break;
-	}
+	// 자원 스폰 시스템에 의해서 모든 것이 통제당함.
 }
 
 void UTSResourceSpawnLogicHelperSystem::CallWhenNewModeIsCalled_internal()
 {
+	// 인 게임 사이클 시스템에게 알림 
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
+	if (!IsValid(InGameCycleControlSystem)) return;
+	InGameCycleControlSystem->NEW_WorldResourceLogicHelperSystemComplete();
 }
 
 void UTSResourceSpawnLogicHelperSystem::CallWhenLoadModeIsCalled_internal(FTSSaveMasterData& InData)

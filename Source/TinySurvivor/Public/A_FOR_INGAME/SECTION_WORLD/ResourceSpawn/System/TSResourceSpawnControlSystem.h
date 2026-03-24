@@ -99,6 +99,7 @@ protected:
 	
 protected:
 	
+	// key 영역 태그, value 영역 내 버킷과 노드 모음
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TS | ResourceSpawn")
 	TMap<FGameplayTag, FTSResourceSpawnControlSystemPerRegionRunTimeData> ResourceSpawnControlSystemPerRegionRunTimeData;
 	

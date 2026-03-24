@@ -1,9 +1,7 @@
 ﻿// All CopyRight From YulRyongGameStudio //
 
 
-#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceSpawnLogicDataHelperSystem.h"
-
-#include "A_FOR_INGAME/SECTION_WORLD/Resource/Library/TSResourceDataTableLogLibrary.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceSpawnTableDataSystem.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/DataAsset/TSResourceSpawnSystemDataAsset.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Library/TSResourceSpawnTableCachingHelperLibrary.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Library/TSResourceSpawnTableDebugLibrary.h"
@@ -16,7 +14,7 @@
 	// 게터
 	//━━━━━━━━━━━━━━━━━━━━	
 
-UTSResourceSpawnLogicDataHelperSystem* UTSResourceSpawnLogicDataHelperSystem::Get(const UObject* InWorldContextObject)
+UTSResourceSpawnTableDataSystem* UTSResourceSpawnTableDataSystem::Get(const UObject* InWorldContextObject)
 {
 	if (!IsValid(InWorldContextObject)) return nullptr;
 	
@@ -25,7 +23,7 @@ UTSResourceSpawnLogicDataHelperSystem* UTSResourceSpawnLogicDataHelperSystem::Ge
 			
 	UGameInstance* GameInstance = World->GetGameInstance();
 
-	UTSResourceSpawnLogicDataHelperSystem* ItemDataSubSystem = GameInstance->GetSubsystem<UTSResourceSpawnLogicDataHelperSystem>();
+	UTSResourceSpawnTableDataSystem* ItemDataSubSystem = GameInstance->GetSubsystem<UTSResourceSpawnTableDataSystem>();
 	if (!IsValid(ItemDataSubSystem)) return nullptr;
 
 	return ItemDataSubSystem;
@@ -39,7 +37,7 @@ UTSResourceSpawnLogicDataHelperSystem* UTSResourceSpawnLogicDataHelperSystem::Ge
 	// 라이프 사이클
 	//━━━━━━━━━━━━━━━━━━━━	
 	
-void UTSResourceSpawnLogicDataHelperSystem::Initialize(FSubsystemCollectionBase& Collection)
+void UTSResourceSpawnTableDataSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 	
@@ -62,7 +60,7 @@ void UTSResourceSpawnLogicDataHelperSystem::Initialize(FSubsystemCollectionBase&
 	// 내부 API
 	//━━━━━━━━━━━━━━━━━━━━	
 
-void UTSResourceSpawnLogicDataHelperSystem::InitializeResourceSpawnTableStaticData_internal()
+void UTSResourceSpawnTableDataSystem::InitializeResourceSpawnTableStaticData_internal()
 {
 	// 1. DeveloperSettings에서 세팅 객체 가져오기
 	const UTSResourceSpawnSetting* Settings = GetDefault<UTSResourceSpawnSetting>();

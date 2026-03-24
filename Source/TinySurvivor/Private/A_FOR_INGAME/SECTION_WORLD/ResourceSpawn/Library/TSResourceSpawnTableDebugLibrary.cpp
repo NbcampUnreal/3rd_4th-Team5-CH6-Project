@@ -19,5 +19,5 @@ void UTSResourceSpawnTableDebugLibrary::PrintDebugInfoSpawnTable_Lib(FTSResource
 		UE_LOG(ResourceSpawnDataMgrLog, Log, TEXT("SpawnCount: %d"), Data.SpawnCount);
 	}
 
-	UE_LOG(ResourceSpawnDataMgrLog, Warning, TEXT("========================================================="));
+	UE_LOG(ResourceSpawnDataMgrLog, Log, TEXT("========================================================="));
 }

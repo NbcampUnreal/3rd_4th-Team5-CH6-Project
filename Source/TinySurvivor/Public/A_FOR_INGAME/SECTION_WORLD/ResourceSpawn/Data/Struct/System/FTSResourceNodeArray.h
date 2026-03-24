@@ -9,6 +9,7 @@ class ATSResourceNodeActor;
 
 /**
  * TSResourceNodeAndBucketGetHelperSystem 에서 쓰는 구조체 
+ * UTSResourceSpawnCalHelperSystem 에서도 씀.
  */
 USTRUCT(BlueprintType)
 struct TINYSURVIVOR_API FTSResourceNodeArray

@@ -52,7 +52,8 @@ public:
 	
 	FORCEINLINE FTSResourceNodeRunTimeData& GetNodeData() { return NodeData;};
 	FORCEINLINE void SetNodeData(FTSResourceNodeRunTimeData& InNodeData) { NodeData = InNodeData;};
-	
+	FORCEINLINE void RegisterResource(ATSResourceActorBase* InResource) { NodeData.CurrentSpawnedResourcePtr = InResource; NodeData.DynamicData.bIsSpawnedAnyResource = true; }
+	FORCEINLINE void UnRegisterResource() { NodeData.CurrentSpawnedResourcePtr = nullptr; NodeData.DynamicData.bIsSpawnedAnyResource = false; }	
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TS | ResourceSpawn")

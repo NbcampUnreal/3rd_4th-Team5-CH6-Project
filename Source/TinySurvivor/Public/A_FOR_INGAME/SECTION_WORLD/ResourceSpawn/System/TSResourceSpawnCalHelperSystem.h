@@ -5,15 +5,18 @@
 #include "CoreMinimal.h"
 #include "A_FOR_INGAME/SECTION_INGAMECYCLE/Data/Enum/TSInGameCycleMode.h"
 #include "A_FOR_INGAME/SECTION_SAVELOAD/Data/Struct/TSSaveMasterData.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/System/FTSResourceSpawnControlSystemRunTimeData.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Data/Struct/TalbeStaticData/TSResourceSpawnTableStaticData.h"
 #include "Subsystems/WorldSubsystem.h"
-#include "TSResourceSpawnHelperSystem.generated.h"
+#include "TSResourceSpawnCalHelperSystem.generated.h"
 
 /**
- * 자원 소환 담당 서브 매니저 : 자원 스폰 컨트롤 시스템에게 지시를 받아서 특정 자원을 소환하는 역할  
+ * 자원 소환 담당 계산 서브 매니저 : 자원 스폰 컨트롤 시스템에게 지시를 받아서 특정 자원을 소환을 얼만큼 하는 계산을 담당하는 역할  
  */
 UCLASS()
-class TINYSURVIVOR_API UTSResourceSpawnHelperSystem : public UTickableWorldSubsystem
+class TINYSURVIVOR_API UTSResourceSpawnCalHelperSystem : public UTickableWorldSubsystem
 {
+	friend class UTSResourceSpawnControlSystem;
 	
 	GENERATED_BODY()
 	
@@ -24,7 +27,7 @@ class TINYSURVIVOR_API UTSResourceSpawnHelperSystem : public UTickableWorldSubsy
 	// 게터
 	//━━━━━━━━━━━━━━━━━━━━	
 public:
-	static UTSResourceSpawnHelperSystem* Get(const UObject* InWorldContextObject);
+	static UTSResourceSpawnCalHelperSystem* Get(const UObject* InWorldContextObject);
 	
 #pragma endregion
 //======================================================================================================================	
@@ -34,7 +37,7 @@ public:
 	// 라이프 사이클
 	//━━━━━━━━━━━━━━━━━━━━
 public:
-	UTSResourceSpawnHelperSystem();
+	UTSResourceSpawnCalHelperSystem();
 	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
@@ -65,5 +68,16 @@ protected:
 	void CallWhenPlayModeIsCalled_internal();
 	
 #pragma endregion
-//======================================================================================================================		
+//======================================================================================================================
+#pragma region 스폰
+	//━━━━━━━━━━━━━━━━━━━━
+	// 스폰
+	//━━━━━━━━━━━━━━━━━━━━	
+	
+protected:
+	// 자원 스폰 컨트롤 시스템이 데이터를 넘겨줌에 따라 데이터가 허용하는 만큼 스폰을 실시하는 함수 (새 게임일 때만 씀)
+	void NEW_StartSpawnResourceBasedOnTableData_internal(FTSResourceSpawnControlSystemPerRegionRunTimeData& InNodeAndBucketPtrData, FTSResourceSpawnTableStaticData& InSpawnTableData);
+
+#pragma endregion
+//======================================================================================================================	
 };

@@ -87,12 +87,12 @@ void UTSInGameCycleControlSystem::InitInGamePlayerComplete(APlayerController* In
 	{
 		if (PlayerInitData.PlayerController != InPlayerController) continue;
 		PlayerInitData.IsReady = true;
-		CheckCanStart_LOAD();
+		CheckCanStart_NEW_OR_LOAD();
 		return;
 	}
 }
 
-void UTSInGameCycleControlSystem::CheckCanStart_LOAD()
+void UTSInGameCycleControlSystem::CheckCanStart_NEW_OR_LOAD()
 {
 	// 플레이어 체크 
 	for (auto& PlayerInitData : InitCheckData.AllPlayersReadyCheckData)
@@ -160,20 +160,38 @@ void UTSInGameCycleControlSystem::NEW_GamePlayerComplete(APlayerController* InPl
 
 void UTSInGameCycleControlSystem::CheckCanStart_PLAYING_NEW()
 {
+	UE_LOG(LogTemp, Log, TEXT("================================================================="));
+
+	bool bIsAllPlayerReady = true;
+	
 	// 플레이어 체크 
+	if (NEW_CheckData.AllPlayersReadyCheckData.IsEmpty()) {UE_LOG(LogTemp, Warning, TEXT("NEW_ AllPlayersInitData Is Empty"));bIsAllPlayerReady = false;}
 	for (auto& PlayerInitData : NEW_CheckData.AllPlayersReadyCheckData)
 	{
-		if (NEW_CheckData.AllPlayersReadyCheckData.IsEmpty()) {UE_LOG(LogTemp, Warning, TEXT("NEW_ AllPlayersInitData Is Empty"));return;}
-		if (!PlayerInitData.IsReady) {UE_LOG(LogTemp, Warning, TEXT("NEW_Player Not Ready"));return;}
+		if (!PlayerInitData.IsReady) {UE_LOG(LogTemp, Warning, TEXT("NEW_Player Not Ready"));bIsAllPlayerReady = false;}
+		else {UE_LOG(LogTemp, Log, TEXT("NEW_Player Ready"));}
 	}
 	
 	// 자원 스폰 
-	if (NEW_CheckData.bResourceSpawnControlSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnControlSystem Not NEW_Complete")); return;}		// 월드 자원 스폰 컨트롤 시스템 체크
-	if (NEW_CheckData.bResourceSpawnHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnHelperSystem Not NEW_Complete")); return;}			// 월드 자원 스폰 헬퍼 시스템 체크 
-	if (NEW_CheckData.bResourceNodeBucketNodeSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceNodeBucketNodeSystem Not NEW_Complete")); return;}	// 월드 자원 리소스 버킷 노드 시스템 체크
-	if (NEW_CheckData.bResourceSpawnLogicHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnLogicHelperSystem Not NEW_Complete"));return;} // 월드 자원 스폰 로직 헬퍼 시스템 체크
-
-	UE_LOG(LogTemp, Warning, TEXT("InGameCycle_NEW_Complete"));
+	if (NEW_CheckData.bResourceSpawnControlSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnControlSystem Not NEW_Complete")); bIsAllPlayerReady = false;;}		 // 월드 자원 스폰 컨트롤 시스템 체크
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceSpawnControlSystem NEW_Complete"));}
+	if (NEW_CheckData.bResourceSpawnHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnHelperSystem Not NEW_Complete")); bIsAllPlayerReady = false;;}			 // 월드 자원 스폰 헬퍼 시스템 체크 
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceSpawnHelperSystem NEW_Complete"));}
+	if (NEW_CheckData.bResourceNodeBucketNodeSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceNodeBucketNodeSystem Not NEW_Complete")); bIsAllPlayerReady = false;;}	 // 월드 자원 리소스 버킷 노드 시스템 체크
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceNodeBucketNodeSystem NEW_Complete"));}
+	if (NEW_CheckData.bResourceSpawnLogicHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnLogicHelperSystem Not NEW_Complete"));bIsAllPlayerReady = false;;} // 월드 자원 스폰 로직 헬퍼 시스템 체크
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceSpawnLogicHelperSystem NEW_Complete"));}	
+	
+	if (bIsAllPlayerReady == false)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InGameCycle_NEW Not Ready"));
+		UE_LOG(LogTemp, Log, TEXT("================================================================="));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("InGameCycle_NEW_Complete"));
+	UE_LOG(LogTemp, Log, TEXT("================================================================="));
+	
 }
 
 
@@ -211,20 +229,38 @@ void UTSInGameCycleControlSystem::LOAD_GamePlayerComplete(APlayerController* InP
 
 void UTSInGameCycleControlSystem::CheckCanStart_PLAYING_LOAD()
 {
+	UE_LOG(LogTemp, Log, TEXT("================================================================="));
+
+	bool bIsAllPlayerReady = true;
+	
 	// 플레이어 체크 
+	if (LOAD_CheckData.AllPlayersReadyCheckData.IsEmpty()) {UE_LOG(LogTemp, Warning, TEXT("LOAD_ AllPlayersInitData Is Empty")); bIsAllPlayerReady = false;}
 	for (auto& PlayerInitData : LOAD_CheckData.AllPlayersReadyCheckData)
 	{
-		if (LOAD_CheckData.AllPlayersReadyCheckData.IsEmpty()) {UE_LOG(LogTemp, Warning, TEXT("LOAD_ AllPlayersInitData Is Empty"));return;}
-		if (!PlayerInitData.IsReady) {UE_LOG(LogTemp, Warning, TEXT("LOAD_Player Not Ready"));return;}
+		if (!PlayerInitData.IsReady) {UE_LOG(LogTemp, Log, TEXT("LOAD_Player Not Ready")); bIsAllPlayerReady = false;}
+		else {UE_LOG(LogTemp, Log, TEXT("LOAD_Player Ready"));}
 	}
 	
 	// 자원 스폰 
-	if (LOAD_CheckData.bResourceSpawnControlSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnControlSystem Not LOAD_Complete")); return;}		// 월드 자원 스폰 컨트롤 시스템 체크
-	if (LOAD_CheckData.bResourceSpawnHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnHelperSystem Not LOAD_Complete")); return;}			// 월드 자원 스폰 헬퍼 시스템 체크 
-	if (LOAD_CheckData.bResourceNodeBucketNodeSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceNodeBucketNodeSystem Not LOAD_Complete")); return;}	// 월드 자원 리소스 버킷 노드 시스템 체크
-	if (LOAD_CheckData.bResourceSpawnLogicHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnLogicHelperSystem Not LOAD_Complete"));return;} // 월드 자원 스폰 로직 헬퍼 시스템 체크
+	if (LOAD_CheckData.bResourceSpawnControlSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnControlSystem Not LOAD_Complete")); bIsAllPlayerReady = false;}			// 월드 자원 스폰 컨트롤 시스템 체크
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceSpawnControlSystem LOAD_Complete"));}
+	if (LOAD_CheckData.bResourceSpawnHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnHelperSystem Not LOAD_Complete")); bIsAllPlayerReady = false;}			// 월드 자원 스폰 헬퍼 시스템 체크 
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceSpawnHelperSystem LOAD_Complete"));}
+	if (LOAD_CheckData.bResourceNodeBucketNodeSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceNodeBucketNodeSystem Not LOAD_Complete")); bIsAllPlayerReady = false;}		// 월드 자원 리소스 버킷 노드 시스템 체크
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceNodeBucketNodeSystem LOAD_Complete"));}
+	if (LOAD_CheckData.bResourceSpawnLogicHelperSystemReadyComplete == false) {UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnLogicHelperSystem Not LOAD_Complete"));bIsAllPlayerReady = false;}	// 월드 자원 스폰 로직 헬퍼 시스템 체크
+	else {UE_LOG(LogTemp, Log, TEXT("ResourceSpawnLogicHelperSystem LOAD_Complete"));}
+	
+	if (bIsAllPlayerReady == false)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InGameCycle_LOAD Not Ready"));
+		UE_LOG(LogTemp, Log, TEXT("================================================================="));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("InGameCycle_LOAD_Complete"));
+	UE_LOG(LogTemp, Log, TEXT("================================================================="));
 
-	UE_LOG(LogTemp, Warning, TEXT("InGameCycle_LOAD_Complete"));
 }
 
 #pragma endregion	

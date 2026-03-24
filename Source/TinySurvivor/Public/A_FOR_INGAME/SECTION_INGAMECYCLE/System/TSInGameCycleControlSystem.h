@@ -69,14 +69,14 @@ public:
 	void InitInGamePlayerComplete(APlayerController* InPlayerController);
 	
 	// 자원 스폰
-	FORCEINLINE void InitWorldResourceControlSystemComplete() { InitCheckData.bResourceSpawnControlSystemReadyComplete = true; CheckCanStart_LOAD(); };				// 월드 자원 스폰 컨트롤 시스템 체크
-	FORCEINLINE void InitWorldResourceSpawnHelperSystemComplete() { InitCheckData.bResourceSpawnHelperSystemReadyComplete = true; CheckCanStart_LOAD(); };			// 월드 자원 스폰 헬퍼 시스템 체크 
-	FORCEINLINE void InitWorldResourceNodeBucketNodeSystemComplete() { InitCheckData.bResourceNodeBucketNodeSystemReadyComplete = true; CheckCanStart_LOAD(); };	// 월드 자원 리소스 버킷 노드 시스템 체크
-	FORCEINLINE void InitWorldResourceLogicHelperSystemComplete() { InitCheckData.bResourceSpawnLogicHelperSystemReadyComplete = true; CheckCanStart_LOAD(); }		// 월드 자원 스폰 로직 헬퍼 시스템 체크 
+	FORCEINLINE void InitWorldResourceControlSystemComplete() { InitCheckData.bResourceSpawnControlSystemReadyComplete = true; CheckCanStart_NEW_OR_LOAD(); };				// 월드 자원 스폰 컨트롤 시스템 체크
+	FORCEINLINE void InitWorldResourceSpawnCalHelperSystemComplete() { InitCheckData.bResourceSpawnHelperSystemReadyComplete = true; CheckCanStart_NEW_OR_LOAD(); };			// 월드 자원 스폰 헬퍼 시스템 체크 
+	FORCEINLINE void InitWorldResourceNodeBucketNodeSystemComplete() { InitCheckData.bResourceNodeBucketNodeSystemReadyComplete = true; CheckCanStart_NEW_OR_LOAD(); };	// 월드 자원 리소스 버킷 노드 시스템 체크
+	FORCEINLINE void InitWorldResourceLogicHelperSystemComplete() { InitCheckData.bResourceSpawnLogicHelperSystemReadyComplete = true; CheckCanStart_NEW_OR_LOAD(); }		// 월드 자원 스폰 로직 헬퍼 시스템 체크 
 	
 protected:
 	// 초기화가 전부 되었는지 체크하기 위한 함수 	
-	void CheckCanStart_LOAD();
+	void CheckCanStart_NEW_OR_LOAD();
 	
 	// 초기화가 전부 되었는지 체크하기 위한 데이터 
 	FTSInGameCycleReadyCheckData InitCheckData;
@@ -96,8 +96,8 @@ public:
 	
 	// 자원 스폰
 	FORCEINLINE void NEW_WorldResourceControlSystemComplete() { NEW_CheckData.bResourceSpawnControlSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };				// 월드 자원 스폰 컨트롤 시스템 체크
-	FORCEINLINE void NEW_WorldResourceSpawnHelperSystemComplete() { NEW_CheckData.bResourceSpawnHelperSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };			// 월드 자원 스폰 헬퍼 시스템 체크 
-	FORCEINLINE void NEW_WorldResourceNodeBucketNodeSystemComplete() { NEW_CheckData.bResourceNodeBucketNodeSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };	// 월드 자원 리소스 버킷 노드 시스템 체크
+	FORCEINLINE void NEW_WorldResourceSpawnCalHelperSystemComplete() { NEW_CheckData.bResourceSpawnHelperSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };			// 월드 자원 스폰 헬퍼 시스템 체크 
+	FORCEINLINE void NEW_WorldResourceNodeBucketNodeSystemComplete() { NEW_CheckData.bResourceNodeBucketNodeSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); };		// 월드 자원 리소스 버킷 노드 시스템 체크
 	FORCEINLINE void NEW_WorldResourceLogicHelperSystemComplete() { NEW_CheckData.bResourceSpawnLogicHelperSystemReadyComplete = true; CheckCanStart_PLAYING_NEW(); }		// 월드 자원 스폰 로직 헬퍼 시스템 체크 
 	
 	

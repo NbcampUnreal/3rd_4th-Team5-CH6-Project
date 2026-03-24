@@ -17,6 +17,6 @@ struct TINYSURVIVOR_API FTSResourceNodeDynamicData
 	
 	// 자원 노드가 소환해야하는 자원 런타임 데이터
 	UPROPERTY(SaveGame, EditAnywhere, BlueprintReadWrite, Category = "TS | Resource")
-	FTSResourceRuntimeData LastSavedResourceRuntimeData; 
+	FTSResourceRuntimeData LastSavedResourceRuntimeDataForSaveLoad; 
 	
 };

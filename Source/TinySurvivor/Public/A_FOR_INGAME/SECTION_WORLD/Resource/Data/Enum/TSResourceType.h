@@ -14,4 +14,5 @@ UENUM(BlueprintType)
 enum class ETSResourceType : uint8
 {
 	None		UMETA(DisplayName = "None"),
+	Food		UMETA(DisplayName = "Food"),
 };

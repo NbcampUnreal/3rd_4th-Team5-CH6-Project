@@ -6,6 +6,9 @@
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Actor/ResourceBucket/TSResourceBucketActor.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/Actor/ResourceNode/TSResourceNodeActor.h"
 #include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceNodeAndBucketGetHelperSystem.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceSpawnCalHelperSystem.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceSpawnTableDataSystem.h"
+#include "A_FOR_INGAME/SECTION_WORLD/ResourceSpawn/System/TSResourceSpawnLogicHelperSystem.h"
 
 //======================================================================================================================	
 #pragma region 게터
@@ -111,10 +114,19 @@ void UTSResourceSpawnControlSystem::OnReceivedInGameCycleDelegate_internal(ETSIn
 
 void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 {
+	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
 	UTSResourceNodeAndBucketGetHelperSystem* ResourceNodeAndBucketGetHelperSystem = UTSResourceNodeAndBucketGetHelperSystem::Get(this);
-	if (!IsValid(ResourceNodeAndBucketGetHelperSystem)) return;
+	UTSResourceSpawnTableDataSystem* ResourceSpawnDataTableSystem = UTSResourceSpawnTableDataSystem::Get(this);
+	UTSResourceSpawnCalHelperSystem* ResourceSpawnCalHelperSystem = UTSResourceSpawnCalHelperSystem::Get(this);
+	UTSResourceSpawnLogicHelperSystem* ResourceSpawnLogicDataHelperSystem = UTSResourceSpawnLogicHelperSystem::Get(this);
 	
-	// 1. 버킷 리스트를 돌면서 region 마다 전부 캐싱  
+	if (!IsValid(InGameCycleControlSystem)) return;
+	if (!IsValid(ResourceNodeAndBucketGetHelperSystem)) return;
+	if (!IsValid(ResourceSpawnDataTableSystem)) return;
+	if (!IsValid(ResourceSpawnCalHelperSystem)) return;
+	if (!IsValid(ResourceSpawnLogicDataHelperSystem)) return;
+	
+	// 1-1. 버킷 리스트를 돌면서 region 마다 전부 캐싱  
 	ResourceNodeAndBucketGetHelperSystem->BucketList;
 	for (auto& [Region, BucketArray] : ResourceNodeAndBucketGetHelperSystem->BucketList)
 	{
@@ -126,7 +138,7 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 		}
 	}
 	
-	// 2. 노드 리스트를 돌면서 region 마다 전부 캐싱 
+	// 1-2. 노드 리스트를 돌면서 region 마다 전부 캐싱 
 	ResourceNodeAndBucketGetHelperSystem->NodeList;
 	for (auto& [Region, NodeArray] : ResourceNodeAndBucketGetHelperSystem->NodeList)
 	{
@@ -138,12 +150,25 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 		}
 	}	
 	
-	// 자원 노드, 버킷 시스템 할 일 끝. 
-	ResourceNodeAndBucketGetHelperSystem->CallWhenNewModeIsCalled_internal();
+	// 2-1. 캐싱한 테이블 데이터를 돌며 요청 실시
+	for (auto& [Region, PerRegionRunTimeData] : ResourceSpawnControlSystemPerRegionRunTimeData)
+	{
+		// 2-2. 자원 소환 관련 테이블 가져오기 
+		FTSResourceSpawnTableStaticData** DataPtr = ResourceSpawnDataTableSystem->ResourceSpawnLogicDataMap.Find(Region);
+		if (!DataPtr) continue;
+		
+		FTSResourceSpawnTableStaticData* Data = DataPtr ? *DataPtr : nullptr;
+		if (!Data) continue;
+		
+		// 2-4. 계산 요청 -> 계산 후 자동 스폰 
+		ResourceSpawnCalHelperSystem->NEW_StartSpawnResourceBasedOnTableData_internal(PerRegionRunTimeData, *Data);
+	}
 	
-	
-	
-	
+	// 3. 자신 및 모든 서브 시스템 완료 실시 
+	InGameCycleControlSystem->NEW_WorldResourceControlSystemComplete();		  // 월드 자원 스폰 컨트롤 시스템 (자신)
+	ResourceNodeAndBucketGetHelperSystem->CallWhenNewModeIsCalled_internal(); // 월드 자원 리소스 버킷 노드 시스템 
+	ResourceSpawnCalHelperSystem->CallWhenNewModeIsCalled_internal();		  // 월드 자원 스폰 헬퍼 시스템
+	ResourceSpawnLogicDataHelperSystem->CallWhenNewModeIsCalled_internal(); // 월드 자원 스폰 로직 헬퍼 시스템
 }
 
 void UTSResourceSpawnControlSystem::CallWhenLoadModeIsCalled_internal(FTSSaveMasterData& InData)
@@ -153,6 +178,7 @@ void UTSResourceSpawnControlSystem::CallWhenLoadModeIsCalled_internal(FTSSaveMas
 void UTSResourceSpawnControlSystem::CallWhenPlayModeIsCalled_internal()
 {
 }
+
 #pragma endregion
 //======================================================================================================================	
 #pragma region 자원_초기화

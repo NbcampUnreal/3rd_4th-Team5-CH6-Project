@@ -8,6 +8,7 @@
 #include "TSResourceNodeRuntimeData.generated.h"
 
 
+class ATSResourceActorBase;
 class ATSResourceBucketActor;
 class ATSResourceNodeActor;
 
@@ -16,6 +17,10 @@ struct TINYSURVIVOR_API FTSResourceNodeRunTimeData
 {
 	GENERATED_BODY()
 
+	// 현재 소환된 자원
+	UPROPERTY()
+	TObjectPtr<ATSResourceActorBase> CurrentSpawnedResourcePtr = nullptr;
+	
 	// 자기 자신
 	UPROPERTY() 
 	TObjectPtr<ATSResourceNodeActor> ThisDataOwnerNodePtr = nullptr;
