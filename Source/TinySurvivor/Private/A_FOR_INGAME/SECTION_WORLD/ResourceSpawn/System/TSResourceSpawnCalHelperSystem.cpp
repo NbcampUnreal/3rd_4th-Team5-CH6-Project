@@ -135,36 +135,31 @@ void UTSResourceSpawnCalHelperSystem::NEW_StartSpawnResourceBasedOnTableData_int
 	TMap<ETSResourceType, FTSResourceNodeArray> TempGeneralNodeMap;
 	TMap<int32, FTSResourceNodeArray> TempUniqueNodeMap;
 	
-	// 범용 노드와 유니크 노드 구분 
+	// 1단계 : 범용 노드와 유니크 노드 구분 
 	for (auto& Node : InNodeAndBucketPtrData.NodePtrArray)
 	{
 		// 유효성 체크 
 		if (!IsValid(Node)) continue;
 		
-		// 범용 
-		if (Node->GetNodeData().StaticData.bIsGeneralResource == true )
+		// 범용 map 에 추가
+		if (Node->GetNodeData().StaticData.bIsGeneralResource == true && Node->GetNodeData().StaticData.ResourceType != ETSResourceType::None)
 		{
-			if (Node->GetNodeData().StaticData.ResourceType == ETSResourceType::None) continue;
-			
-			// 범용 map 에 추가
 			auto& Value = TempGeneralNodeMap.FindOrAdd(Node->GetNodeData().StaticData.ResourceType);
 			Value.ResourceNodeArray.Add(Node);
 		}
-		// 유니크 
-		else
+		// 유니크 map 에 추가
+		else if (Node->GetNodeData().StaticData.bIsGeneralResource == false && Node->GetNodeData().StaticData.ResourceID != -1)
 		{
-			if (Node->GetNodeData().StaticData.ResourceID == -1) continue;
-
-			// 유니크 추가
 			auto& Value = TempUniqueNodeMap.FindOrAdd(Node->GetNodeData().StaticData.ResourceID);
 			Value.ResourceNodeArray.Add(Node);
 		}
 	}
 	
-	// 시스템 체크 
+	// 자원 데이터, 자원 스폰 시스템 체크 
 	UTSResourceDataSystem* ResourceDataSystem = UTSResourceDataSystem::Get(this);
-	if (!IsValid(ResourceDataSystem)) return;
 	UTSResourceSpawnSystem* ResourceSpawnSystem = UTSResourceSpawnSystem::Get(this);
+
+	if (!IsValid(ResourceDataSystem)) return;
 	if (!IsValid(ResourceSpawnSystem)) return;;
 	
 	// by 영역 데이터 테이블 순환하며 전부 체크
@@ -174,19 +169,13 @@ void UTSResourceSpawnCalHelperSystem::NEW_StartSpawnResourceBasedOnTableData_int
 		FTSResourceStaticData* Data = ResourceDataSystem->GetResourceStaticData(ResourceSpawnTableData.ResourceID);
 		if (!Data) continue;
 		
+		// 소환하려는 갯수만큼 반복
 		for (int32 SpawnCount = 0; SpawnCount < ResourceSpawnTableData.SpawnCount; ++SpawnCount)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("========================================================="));
-			UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnTableData.RegionTAg : %s"), *ResourceSpawnTableData.RegionTag.ToString());
-			UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnTableData.ResourceID : %d"), ResourceSpawnTableData.ResourceID);
-			UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnTableData.SpawnCount : %d"), ResourceSpawnTableData.SpawnCount);
-			UE_LOG(LogTemp, Warning, TEXT("ResourceSpawnTableData.bIsGeneralNode : %s"), ResourceSpawnTableData.bIsGeneralNode ? TEXT("true") : TEXT("false"));
-			UE_LOG(LogTemp, Warning, TEXT("========================================================="));
-		
 			int32 RandomIndex;
 			FTSResourceNodeArray* Value;
 		
-			// 범용 스폰일 경우 
+			// 범용 스폰일 경우 실행하는 코드
 			if (ResourceSpawnTableData.bIsGeneralNode == true)
 			{
 				// 들어갈 수 있는 노드가 있는지 판단 (타입)
@@ -195,14 +184,9 @@ void UTSResourceSpawnCalHelperSystem::NEW_StartSpawnResourceBasedOnTableData_int
 
 				// 랜덤 노드 인덱스 받기 
 				RandomIndex = FMath::RandHelper(Value->ResourceNodeArray.Num());
-				if (!Value->ResourceNodeArray.IsValidIndex(RandomIndex))
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Cant Find Any Spawn Able Node"));
-					continue;
-				}
+				if (!Value->ResourceNodeArray.IsValidIndex(RandomIndex)) continue;
 			}
-		
-			// 유니크인 경우 
+			// 유니크인 경우 실행하는 코드
 			else
 			{
 				// 들어갈 수 있는 노드가 있는지 판단 (ID)
@@ -211,25 +195,21 @@ void UTSResourceSpawnCalHelperSystem::NEW_StartSpawnResourceBasedOnTableData_int
 
 				// 랜덤 인덱스 받기
 				RandomIndex = FMath::RandHelper(Value->ResourceNodeArray.Num());
-				if (!Value->ResourceNodeArray.IsValidIndex(RandomIndex))
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Cant Find Any Spawn Able Node"));
-					continue;
-				}
+				if (!Value->ResourceNodeArray.IsValidIndex(RandomIndex)) continue;
 			}
 
-			// 스폰 실시 
+			// (공통) 노드 가져오기
 			auto& TargetNode = Value->ResourceNodeArray[RandomIndex];
 			if (!IsValid(TargetNode)) continue;
 		
-			// 배열에서 제거
+			// (공통) 스폰 실시 
 			bool bSpawnSuccess = ResourceSpawnSystem->SpawnNewResource(ResourceSpawnTableData.ResourceID, TargetNode->GetActorLocation(), TargetNode->GetActorRotation(), TargetNode);
 			if (bSpawnSuccess == false) continue;
 
+			// (공통) 배열에서 제거
 			Value->ResourceNodeArray.RemoveAt(RandomIndex);
 		}
 	}
-	
 }
 
 #pragma endregion

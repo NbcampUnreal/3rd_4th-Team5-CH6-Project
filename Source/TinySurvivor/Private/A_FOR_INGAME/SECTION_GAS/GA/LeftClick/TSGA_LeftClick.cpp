@@ -23,7 +23,10 @@ void UTSGA_LeftClick::ActivateAbility(const FGameplayAbilitySpecHandle Handle,co
 	
 	// 현재 플레이어의 상태 체크할 목록 
 	// 1. 현재 활성화되어 있는 핫키가 있는가?
+	//
 	
+	
+	// 2. 현재 보고 있는 타겟의 역할이 무엇인가?
 	
 	
 	

@@ -98,7 +98,7 @@ protected:
 	// 자원_초기화
 	//━━━━━━━━━━━━━━━━━━━━
 	
-public:
+protected:
 	
 	// 버킷, 노드 초기화 실시 함수 
 	void InitResourceNodeAndBucketList();

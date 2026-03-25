@@ -14,6 +14,8 @@ class UWidgetComponent;
 UCLASS()
 class TINYSURVIVOR_API ATSResourceActorBase : public AActor, public ITSResourceInterface, public ITSInteractInterface
 {
+	friend class UTSResourceSpawnSystem;
+	
 	GENERATED_BODY()
 
 //======================================================================================================================	

@@ -114,6 +114,7 @@ void UTSResourceSpawnControlSystem::OnReceivedInGameCycleDelegate_internal(ETSIn
 
 void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 {
+	// 0. 관련된 모든 시스템 체크 
 	UTSInGameCycleControlSystem* InGameCycleControlSystem = UTSInGameCycleControlSystem::Get(this);	
 	UTSResourceNodeAndBucketGetHelperSystem* ResourceNodeAndBucketGetHelperSystem = UTSResourceNodeAndBucketGetHelperSystem::Get(this);
 	UTSResourceSpawnTableDataSystem* ResourceSpawnDataTableSystem = UTSResourceSpawnTableDataSystem::Get(this);
@@ -131,7 +132,6 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 	for (auto& [Region, BucketArray] : ResourceNodeAndBucketGetHelperSystem->BucketList)
 	{
 		FTSResourceSpawnControlSystemPerRegionRunTimeData& PerRegionRunTimeData = ResourceSpawnControlSystemPerRegionRunTimeData.FindOrAdd(Region);
-		
 		for (auto& Bucket : BucketArray.ResourceBucketArray)
 		{
 			if (IsValid(Bucket)) PerRegionRunTimeData.BucketPtrArray.AddUnique(Bucket);
@@ -143,7 +143,6 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 	for (auto& [Region, NodeArray] : ResourceNodeAndBucketGetHelperSystem->NodeList)
 	{
 		FTSResourceSpawnControlSystemPerRegionRunTimeData& PerRegionRunTimeData = ResourceSpawnControlSystemPerRegionRunTimeData.FindOrAdd(Region);
-		
 		for (auto& Node : NodeArray.ResourceNodeArray)
 		{
 			if (IsValid(Node)) PerRegionRunTimeData.NodePtrArray.AddUnique(Node);
@@ -153,14 +152,13 @@ void UTSResourceSpawnControlSystem::CallWhenNewModeIsCalled_internal()
 	// 2-1. 캐싱한 테이블 데이터를 돌며 요청 실시
 	for (auto& [Region, PerRegionRunTimeData] : ResourceSpawnControlSystemPerRegionRunTimeData)
 	{
-		// 2-2. 자원 소환 관련 테이블 가져오기 
+		// 2-2. 자원 소환 관련 테이블 체크 
 		FTSResourceSpawnTableStaticData** DataPtr = ResourceSpawnDataTableSystem->ResourceSpawnLogicDataMap.Find(Region);
 		if (!DataPtr) continue;
-		
 		FTSResourceSpawnTableStaticData* Data = DataPtr ? *DataPtr : nullptr;
 		if (!Data) continue;
 		
-		// 2-4. 계산 요청 -> 계산 후 자동 스폰 
+		// 2-3. 계산 요청 -> 계산 후 자동 스폰 
 		ResourceSpawnCalHelperSystem->NEW_StartSpawnResourceBasedOnTableData_internal(PerRegionRunTimeData, *Data);
 	}
 	

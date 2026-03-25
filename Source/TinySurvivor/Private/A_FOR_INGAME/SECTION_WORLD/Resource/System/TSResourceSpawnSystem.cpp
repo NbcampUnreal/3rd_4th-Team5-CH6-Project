@@ -50,8 +50,8 @@ bool UTSResourceSpawnSystem::SpawnNewResource(int32 InResourceID, FVector InSpaw
 
 bool UTSResourceSpawnSystem::SpawnNewResource_Internal(FTSResourceStaticData& InResourceStaticData, TSubclassOf<ATSResourceActorBase> ResourceClass, FVector& InSpawnLocation, FRotator& InSpawnRotator, ATSResourceNodeActor* InSpawnNode)
 {
-	if (!IsValid(ResourceClass)) return false;
 	if (!IsValid(GetWorld())) return false;
+	if (!IsValid(ResourceClass)) return false;
 	if (!IsValid(InSpawnNode)) return false;
 	
 	// 1. 스폰 파라미터 설정
@@ -68,8 +68,10 @@ bool UTSResourceSpawnSystem::SpawnNewResource_Internal(FTSResourceStaticData& In
 	NewResourceRuntimeData.DynamicData.CurrentHealth = InResourceStaticData.ResourceLootInfoTable.Health;
 	NewResourceRuntimeData.StaticDataID = InResourceStaticData.ResourceBaseInfoTable.ResourceID;
 
-	// 런타임 데이터 설정 및 스폰 노드에 등록 
+	// 런타임 데이터 설정, 인터렉트 위젯 설정 및 스폰 노드에 등록 
 	SpawnedResource->SetResourceRuntimeData(NewResourceRuntimeData);
+	SpawnedResource->InitInteractUI(SpawnedResource->GetResourceRuntimeData());
+	SpawnedResource->Execute_ToggleInteractWidget(SpawnedResource, false);
 	InSpawnNode->RegisterResource(SpawnedResource);
 	
 	return true;
