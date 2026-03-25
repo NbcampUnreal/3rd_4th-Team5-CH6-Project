@@ -5,7 +5,7 @@
 #include "A_FOR_COMMON/GameplayMessage/Data/Struct/Interact/FTSInteractMessageData.h"
 #include "A_FOR_COMMON/GameplayMessage/Setting/TSGameplayChannelSetting.h"
 #include "A_FOR_COMMON/Library/Getter/Controller/TSGetControllerLibrary.h"
-#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
+#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSCommonInteractInterface.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 
 
@@ -143,15 +143,15 @@ void UTSPlayerInteractComponent::DoInteractUILogicAfterLineTrace()
 	if (CurrentInteractActor == LastInteractActor) return;
 	
 	// 2. [지난 액터 처리] 마지막 액터가 유효했다면 위젯 끄기
-	if (LastInteractActor.IsValid() && IsValid(LastInteractActor.Get()) && LastInteractActor->GetClass()->ImplementsInterface(UTSInteractInterface::StaticClass()))
+	if (LastInteractActor.IsValid() && IsValid(LastInteractActor.Get()) && LastInteractActor->GetClass()->ImplementsInterface(UTSCommonInteractInterface::StaticClass()))
 	{
-		ITSInteractInterface::Execute_ToggleInteractWidget(LastInteractActor.Get(), false);
+		ITSCommonInteractInterface::Execute_ToggleInteractWidget(LastInteractActor.Get(), false);
 	}
 	
 	// 3. [현재 액터 처리] 현재 액터가 유효하다면 위젯 켜기
-	if (CurrentInteractActor.IsValid() && IsValid(CurrentInteractActor.Get()) && CurrentInteractActor->GetClass()->ImplementsInterface(UTSInteractInterface::StaticClass()))
+	if (CurrentInteractActor.IsValid() && IsValid(CurrentInteractActor.Get()) && CurrentInteractActor->GetClass()->ImplementsInterface(UTSCommonInteractInterface::StaticClass()))
 	{
-		ITSInteractInterface::Execute_ToggleInteractWidget(CurrentInteractActor.Get(), true);
+		ITSCommonInteractInterface::Execute_ToggleInteractWidget(CurrentInteractActor.Get(), true);
 	}
 }
 
@@ -174,9 +174,7 @@ void UTSPlayerInteractComponent::SubscribeInteract_Internal()
 
 void UTSPlayerInteractComponent::OnRequestCurrentActorChannelGameplayMessageReceived(FGameplayTag InChannelTag, const FTSInteractMessageData& OutPayload)
 {
-	if (!IsValid(GetWorld())) return;
-	
-	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(GetWorld());
+	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(this);
 	if (!IsValid(&MessageSubsystem)) return;	
 	
 	FTSInteractMessageData MSG;
@@ -190,9 +188,7 @@ void UTSPlayerInteractComponent::OnRequestCurrentActorChannelGameplayMessageRece
 
 void UTSPlayerInteractComponent::UnsubscribeInteract_Internal()
 {
-	if (!IsValid(GetWorld())) return;
-	
-	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(GetWorld());
+	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(this);
 	if (!IsValid(&MessageSubsystem)) return;	
 	
 	if (!ListenerHandle.IsValid()) return;

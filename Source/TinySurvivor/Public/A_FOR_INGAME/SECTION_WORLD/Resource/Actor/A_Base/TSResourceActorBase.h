@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
+#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSCommonInteractInterface.h"
 #include "A_FOR_INGAME/SECTION_WORLD/Resource/Interface/TSResourceInterface.h"
 #include "TSResourceActorBase.generated.h"
 
@@ -12,7 +12,7 @@ class UTSLootHandleComponent;
 class UWidgetComponent;
 
 UCLASS()
-class TINYSURVIVOR_API ATSResourceActorBase : public AActor, public ITSResourceInterface, public ITSInteractInterface
+class TINYSURVIVOR_API ATSResourceActorBase : public AActor, public ITSResourceInterface, public ITSCommonInteractInterface
 {
 	friend class UTSResourceSpawnSystem;
 	
@@ -52,10 +52,10 @@ public:
 	//━━━━━━━━━━━━━━━━━━━━	
 	
 public:
-	// ITSInteractInterface ~ 
+	// ITSCommonInteractInterface ~ 
 	virtual void ToggleInteractWidget_Implementation(bool InWantOn) override;
 	FORCEINLINE virtual ETSPlayRole GetPlayRole_Implementation() override { return PlayRole;}
-	// ~ ITSInteractInterface
+	// ~ ITSCommonInteractInterface
 	
 protected:
 	virtual void InitInteractUI(FTSResourceRuntimeData& ItemRuntimeData);

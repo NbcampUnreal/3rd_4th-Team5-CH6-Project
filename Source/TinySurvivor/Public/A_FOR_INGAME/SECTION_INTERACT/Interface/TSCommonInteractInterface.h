@@ -5,11 +5,11 @@
 #include "CoreMinimal.h"
 #include "A_FOR_COMMON/Data/Enum/TSPlayRole.h"
 #include "UObject/Interface.h"
-#include "TSInteractInterface.generated.h"
+#include "TSCommonInteractInterface.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE()
-class UTSInteractInterface : public UInterface
+class UTSCommonInteractInterface : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -17,7 +17,7 @@ class UTSInteractInterface : public UInterface
 /**
  * 
  */
-class TINYSURVIVOR_API ITSInteractInterface
+class TINYSURVIVOR_API ITSCommonInteractInterface
 {
 	GENERATED_BODY()
 

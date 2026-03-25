@@ -80,6 +80,10 @@ protected:
 	// 라이프 사이클
 	//━━━━━━━━━━━━━━━━━━━━	
 	
+public:
+	FORCEINLINE AActor* GetCurrentInteractActor() const { return CurrentInteractActor.IsValid() ? CurrentInteractActor.Get() : nullptr; }
+	FORCEINLINE AActor* GetLastInteractActor() const { return LastInteractActor.IsValid() ? LastInteractActor.Get() : nullptr; }
+	
 protected:
 
 	//--------------------

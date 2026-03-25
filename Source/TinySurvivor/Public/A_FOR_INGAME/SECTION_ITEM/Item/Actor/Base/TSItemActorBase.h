@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
+#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSCommonInteractInterface.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Data/Struct/TSItemRuntimeData.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Item/Interface/TSItemInterface.h"
 #include "TSItemActorBase.generated.h"
@@ -12,7 +12,7 @@
 class UWidgetComponent;
 
 UCLASS(NotBlueprintable, Abstract)
-class TINYSURVIVOR_API ATSItemActorBase : public AActor, public ITSInteractInterface, public ITSItemInterface
+class TINYSURVIVOR_API ATSItemActorBase : public AActor, public ITSCommonInteractInterface, public ITSItemInterface
 {
 	GENERATED_BODY()
 
@@ -50,10 +50,10 @@ public:
 	//━━━━━━━━━━━━━━━━━━━━	
 	
 public:
-	// ITSInteractInterface ~ 
+	// ITSCommonInteractInterface ~ 
 	virtual void ToggleInteractWidget_Implementation(bool InWantOn) override;
 	FORCEINLINE virtual ETSPlayRole GetPlayRole_Implementation() override { return PlayRole;}
-	// ~ ITSInteractInterface
+	// ~ ITSCommonInteractInterface
 	
 protected:
 	virtual void InitInteractUI(FTSItemRuntimeData& ItemRuntimeData);

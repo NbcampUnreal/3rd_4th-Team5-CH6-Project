@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
-#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSInteractInterface.h"
+#include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSCommonInteractInterface.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Interface/ForOwner/TSInventoryOwnerActionInterface.h"
-#include "A_FOR_INGAME/SECTION_PLAYER/TSPlayerCompGetterInterface.h"
+#include "A_FOR_INGAME/SECTION_PLAYER/Interface/TSPlayerCompGetterInterface.h"
 #include "A_FOR_INGAME/SECTION_SAVELOAD/Data/Struct/TSSaveMasterData.h"
 #include "TSPlayerCharacter.generated.h"
 
@@ -21,7 +22,7 @@ class UTSPlayerInteractComponent;
  * 
  */
 UCLASS()
-class TINYSURVIVOR_API ATSPlayerCharacter : public ACharacter, public ITSInteractInterface, public ITSInventoryOwnerActionInterface, public IAbilitySystemInterface, public ITSPlayerCompGetterInterface
+class TINYSURVIVOR_API ATSPlayerCharacter : public ACharacter, public ITSCommonInteractInterface, public ITSInventoryOwnerActionInterface, public IAbilitySystemInterface, public ITSPlayerCompGetterInterface
 
 {
 	GENERATED_BODY()
@@ -36,14 +37,31 @@ class TINYSURVIVOR_API ATSPlayerCharacter : public ACharacter, public ITSInterac
 public:
 	
 	// ITSPlayerCompGetterInterface ~ 
-	FORCEINLINE virtual UCameraComponent* GetCameraComponent_Implementation() const override { return CameraComponent;}
-	FORCEINLINE virtual USpringArmComponent* GetSpringArmComponent_Implementation() const override { return SpringArmComponent;}
-	FORCEINLINE virtual UTSHotKeyInventoryComponent* GetHotKeyInventoryComponent_Implementation() const override { return HotKeyInventoryComponent;}
-	FORCEINLINE virtual UTSHotKeyEquipVisualComponent* GetHotKeyEquipVisualComponent_Implementation() const override { return HotKeyEquipVisualComponent; }
-	FORCEINLINE virtual UTSBackPackInventoryComponent* GetBackPackInventoryComponent_Implementation() const override { return BackpackInventoryComponent;}
-	FORCEINLINE virtual UTSBackPackEquipVisualComponent* GetBackPackEquipVisualComponent_Implementation() const override { return BackpackEquipVisualComponent;}
-	FORCEINLINE virtual UTSBodyInventoryComponent* GetBodyInventoryComponent_Implementation() const override {return EquipmentInventoryComponent; }
-	FORCEINLINE virtual UTSBodyEquipVisualComponent* GetBodyEquipVisualComponent_Implementation() const override { return EquipVisualComponent; }
+	
+	// 카메라, 스프링암, 캡슐, 스켈레탈, CMC
+	FORCEINLINE virtual UCameraComponent* GetCameraComponent_Implementation()  override { return CameraComponent;}
+	FORCEINLINE virtual USpringArmComponent* GetSpringArmComponent_Implementation()  override { return SpringArmComponent;}
+	FORCEINLINE virtual UCapsuleComponent* GetPlayerCapsuleComponent_Implementation()  override { return GetCapsuleComponent(); }
+	FORCEINLINE virtual USkeletalMeshComponent* GetSkeletalMeshComponent_Implementation() override { return GetMesh();}
+	FORCEINLINE virtual UCharacterMovementComponent* GetCharacterMovementComponent_Implementation() override { return GetCharacterMovement(); }
+	
+	// GAS
+	FORCEINLINE virtual UAbilitySystemComponent* GetAbilitySystemComponent_Implementation() override { return GetAbilitySystemComponent() ;}
+	
+	// 입력
+	FORCEINLINE virtual UTSPlayerInputActionComponent* GetPlayerInputActionComponent_Implementation()  override { return PlayerInputHandleComponent;}
+	
+	// 인터렉트
+	FORCEINLINE virtual UTSPlayerInteractComponent* GetPlayerInteractComponent_Implementation()  override { return PlayerInteractComponent;}
+
+	// 인벤토리 및 비쥬얼
+	FORCEINLINE virtual UTSHotKeyInventoryComponent* GetHotKeyInventoryComponent_Implementation()  override { return HotKeyInventoryComponent;}
+	FORCEINLINE virtual UTSHotKeyEquipVisualComponent* GetHotKeyEquipVisualComponent_Implementation()  override { return HotKeyEquipVisualComponent; }
+	FORCEINLINE virtual UTSBackPackInventoryComponent* GetBackPackInventoryComponent_Implementation()  override { return BackpackInventoryComponent;}
+	FORCEINLINE virtual UTSBackPackEquipVisualComponent* GetBackPackEquipVisualComponent_Implementation()  override { return BackpackEquipVisualComponent;}
+	FORCEINLINE virtual UTSBodyInventoryComponent* GetBodyInventoryComponent_Implementation()  override {return EquipmentInventoryComponent; }
+	FORCEINLINE virtual UTSBodyEquipVisualComponent* GetBodyEquipVisualComponent_Implementation()  override { return EquipVisualComponent; }
+	
 	// ~ ITSPlayerCompGetterInterface
 	
 #pragma endregion
@@ -164,10 +182,10 @@ protected:
 	//━━━━━━━━━━━━━━━━━━━━
 		
 public:
-	// ITSInteractInterface ~ 
+	// ITSCommonInteractInterface ~ 
 	virtual void ToggleInteractWidget_Implementation(bool InWantOn) override { return; /*아무것도 안 함*/ };
 	FORCEINLINE virtual ETSPlayRole GetPlayRole_Implementation() override { return PlayRole;}
-	// ~ ITSInteractInterface
+	// ~ ITSCommonInteractInterface
 	
 protected:
 	// 컴포넌트
