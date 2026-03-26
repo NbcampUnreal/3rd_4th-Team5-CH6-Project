@@ -13,4 +13,7 @@ UCLASS()
 class TINYSURVIVOR_API UTSDebugGASTestLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
+	
+public:
+	
 };

@@ -3,14 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "A_FOR_INGAME/SECTION_GAS/A_Base/TSGA_BaseForOneMontage.h"
-#include "TSGA_LCDefaultOnResource.generated.h"
+#include "TSGA_BaseAbility.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "TSGA_BaseForOneMontage.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class TINYSURVIVOR_API UTSGA_LCDefaultOnResource : public UTSGA_BaseForOneMontage
+class TINYSURVIVOR_API UTSGA_BaseForOneMontage : public UTSGA_BaseAbility
 {
 	GENERATED_BODY()
 	
@@ -20,10 +21,8 @@ class TINYSURVIVOR_API UTSGA_LCDefaultOnResource : public UTSGA_BaseForOneMontag
 	//━━━━━━━━━━━━━━━━━━━━
 	// 라이프 사이클
 	//━━━━━━━━━━━━━━━━━━━━		
-	
 public:
-	UTSGA_LCDefaultOnResource();
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
+	UTSGA_BaseForOneMontage();
 	
 #pragma endregion
 //======================================================================================================================	
@@ -32,13 +31,22 @@ public:
 	//━━━━━━━━━━━━━━━━━━━━
 	// 몽타주
 	//━━━━━━━━━━━━━━━━━━━━	
-protected:
+protected:	
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TS | GAS")
-	UAnimMontage* OnResourceMontage;
-	
+	/** * 공통 몽타주 실행 함수 
+	 * @param InMontage 실행할 몽타주
+	 * @param InPlayRate 재생 속도
+	 * @param StartSection 시작 섹션 이름
+	 */
+	UFUNCTION(BlueprintCallable, Category = "TS | GAS")
+	virtual UAbilityTask_PlayMontageAndWait* PlayStandardMontageAndWait(
+		UAnimMontage* InMontage, float InPlayRate = 1.0f, FName InStartSection = NAME_None);
+
+	// 델리게이트를 바인딩할 가상 함수들 (자식 클래스에서 필요시 Override)
+	UFUNCTION() virtual void OnMontageFinished();
+	UFUNCTION() virtual void OnMontageInterrupted();
+	UFUNCTION() virtual void OnMontageCancelled();
+
 #pragma endregion
 //======================================================================================================================		
-	
-	
 };

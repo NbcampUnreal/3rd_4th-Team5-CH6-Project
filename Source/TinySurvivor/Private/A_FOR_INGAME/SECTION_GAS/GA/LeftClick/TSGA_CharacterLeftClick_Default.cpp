@@ -2,6 +2,8 @@
 
 
 #include "A_FOR_INGAME/SECTION_GAS/GA/LeftClick/TSGA_CharacterLeftClick_Default.h"
+
+#include "AbilitySystemBlueprintLibrary.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/Interface/TSPlayerCompGetterInterface.h"
 #include "A_FOR_INGAME/SECTION_INTERACT/Comp/Player/TSPlayerInteractComponent.h"
 #include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSCommonInteractInterface.h"
@@ -39,41 +41,53 @@ void UTSGA_CharacterLeftClick_Default::ActivateAbility(const FGameplayAbilitySpe
 		ITSCommonInteractInterface* CommonInteractInterface = Cast<ITSCommonInteractInterface>(InteractComponent->GetCurrentInteractActor());
 		if (!CommonInteractInterface) { K2_EndAbility(); return; }
 		
-		switch (CommonInteractInterface->GetPlayRole())
+		// payload 데이터 생성 
+		FGameplayEventData Payload;
+		Payload.Instigator = GetAvatarActorFromActorInfo();
+		Payload.Target = InteractComponent->GetCurrentInteractActor();
+		
+		// 롤에 따라 발송
+		switch (CommonInteractInterface->Execute_GetPlayRole(InteractComponent->GetCurrentInteractActor()))
 		{
 		case ETSPlayRole::None:
 			break;
 			
 		case ETSPlayRole::Player:
-			GetAbilitySystemComponentFromActorInfo()->TryActivateAbilitiesByTag(InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnPlayer.GetTag().GetSingleTagContainer());
+			Payload.EventTag = InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnPlayer;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetAvatarActorFromActorInfo(), Payload.EventTag,Payload);
 			break;
 			
 		case ETSPlayRole::Giant:
-			GetAbilitySystemComponentFromActorInfo()->TryActivateAbilitiesByTag(InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnGiant.GetTag().GetSingleTagContainer());
+			Payload.EventTag = InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnGiant;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetAvatarActorFromActorInfo(), Payload.EventTag,Payload);
 			break;
 			
 		case ETSPlayRole::Monster:
-			GetAbilitySystemComponentFromActorInfo()->TryActivateAbilitiesByTag(InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnMonster.GetTag().GetSingleTagContainer());
+			Payload.EventTag = InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnMonster;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetAvatarActorFromActorInfo(), Payload.EventTag,Payload);
 			break;
 			
 		case ETSPlayRole::Resource:
-			GetAbilitySystemComponentFromActorInfo()->TryActivateAbilitiesByTag(InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnResource.GetTag().GetSingleTagContainer());
+			UE_LOG(LogTemp, Log, TEXT("[TS_Debug] Resource"));
+			Payload.EventTag = InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnResource;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetAvatarActorFromActorInfo(), Payload.EventTag,Payload);
 			break;
 			
 		case ETSPlayRole::Item:
-			GetAbilitySystemComponentFromActorInfo()->TryActivateAbilitiesByTag(InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnItem.GetTag().GetSingleTagContainer());
+			Payload.EventTag = InputTag::LeftClick::TS_Input_LeftClick_DefaultAction_OnItem;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetAvatarActorFromActorInfo(), Payload.EventTag,Payload);
 			break;
 		}
 	}
 	// 현재 보고 있는 액터가 없을 경우 
 	else
 	{
-		GetAbilitySystemComponentFromActorInfo()->TryActivateAbilitiesByTag(InputTag::LeftClick::TS_Input_LeftClick_DefaultAction.GetTag().GetSingleTagContainer());
+		// GetAbilitySystemComponentFromActorInfo()->TryActivateAbilitiesByTag(InputTag::LeftClick::TS_Input_LeftClick_DefaultAction.GetTag().GetSingleTagContainer());
 	}
 	
 	K2_EndAbility(); 
 	return;
-}
+}	
 
 /*
 // *********설명 *********

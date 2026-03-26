@@ -247,7 +247,6 @@ void UTSPlayerInputActionComponent::InteractByLeftClick_internal(const FInputAct
 	FGameplayTagContainer TagContainer;
 	TagContainer.AddTag(PossibleInteractTag::TS_Interact_LeftClick);
 	OwnerASC->TryActivateAbilitiesByTag(TagContainer);
-	
 }
 
 #pragma endregion

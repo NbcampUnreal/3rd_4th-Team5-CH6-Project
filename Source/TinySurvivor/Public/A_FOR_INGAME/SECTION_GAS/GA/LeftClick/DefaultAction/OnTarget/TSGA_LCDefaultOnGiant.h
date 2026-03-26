@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "A_FOR_INGAME/SECTION_GAS/A_Base/TSGA_BaseAbility.h"
+#include "A_FOR_INGAME/SECTION_GAS/A_Base/TSGA_BaseForOneMontage.h"
 #include "TSGA_LCDefaultOnGiant.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class TINYSURVIVOR_API UTSGA_LCDefaultOnGiant : public UTSGA_BaseAbility
+class TINYSURVIVOR_API UTSGA_LCDefaultOnGiant : public UTSGA_BaseForOneMontage
 {
 	GENERATED_BODY()
 };

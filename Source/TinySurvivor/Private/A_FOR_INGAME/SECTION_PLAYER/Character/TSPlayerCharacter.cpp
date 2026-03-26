@@ -123,7 +123,6 @@ void ATSPlayerCharacter::PossessedBy(AController* NewController)
 	
 	// 초기화 실시 및 완료 알림 
 	InitGAAndSendInitComplete_internal(ASC, PC);
-	
 }
 
 void ATSPlayerCharacter::OnRep_PlayerState()

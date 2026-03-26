@@ -7,6 +7,7 @@
 #include "A_FOR_COMMON/Tag/Input/TSInputTag.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "A_FOR_COMMON/Tag/Interact/PossibleInteractTag.h"
 #include "GameFramework/Character.h"
 
 UTSGA_CharacterLeftClick::UTSGA_CharacterLeftClick()
@@ -14,10 +15,12 @@ UTSGA_CharacterLeftClick::UTSGA_CharacterLeftClick()
 	// 에셋 태그
 	FGameplayTagContainer AssetTags;
 	AssetTags.AddTag(InputTag::LeftClick::TS_Input_LeftClickCall);
+	AssetTags.AddTag(PossibleInteractTag::TS_Interact_LeftClick);
 	SetAssetTags(AssetTags);
 	
 	// 부여 태그
 	ActivationOwnedTags.AddTag(InputTag::LeftClick::TS_Input_LeftClickCall);
+	ActivationOwnedTags.AddTag(PossibleInteractTag::TS_Interact_LeftClick);
 	
 	// 인스턴싱, 네트워크 실행, 네트워크 보안 실행 규칙 
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;

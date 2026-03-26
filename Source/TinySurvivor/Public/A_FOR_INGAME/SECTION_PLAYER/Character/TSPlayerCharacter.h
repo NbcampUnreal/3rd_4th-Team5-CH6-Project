@@ -3,21 +3,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AbilitySystemBlueprintLibrary.h"
-#include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
+#include "AbilitySystemInterface.h"
+#include "A_FOR_INGAME/SECTION_SAVELOAD/Data/Struct/TSSaveMasterData.h"
 #include "A_FOR_INGAME/SECTION_INTERACT/Interface/TSCommonInteractInterface.h"
 #include "A_FOR_INGAME/SECTION_ITEM/Inventory/Inventory/Interface/ForOwner/TSInventoryOwnerActionInterface.h"
 #include "A_FOR_INGAME/SECTION_PLAYER/Interface/TSPlayerCompGetterInterface.h"
-#include "A_FOR_INGAME/SECTION_SAVELOAD/Data/Struct/TSSaveMasterData.h"
 #include "TSPlayerCharacter.generated.h"
 
+#pragma region 전방선언
 enum class ETSInGameCycleMode : uint8;
 class UTSGiveGAGEDataAsset;
 class UCameraComponent;
 class USpringArmComponent;
 class UTSPlayerInputActionComponent;
 class UTSPlayerInteractComponent;
+#pragma endregion
 /**
  * 
  */
